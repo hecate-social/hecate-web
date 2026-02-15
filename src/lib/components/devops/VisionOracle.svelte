@@ -351,8 +351,10 @@
 			.replace(/^### (.*$)/gm, '<h3 class="text-xs font-semibold text-surface-100 mt-3 mb-1">$1</h3>')
 			.replace(/^## (.*$)/gm, '<h2 class="text-sm font-semibold text-hecate-300 mt-4 mb-1.5">$1</h2>')
 			.replace(/^# (.*$)/gm, '<h1 class="text-base font-bold text-surface-100 mb-2">$1</h1>')
-			.replace(/^\- (.*$)/gm, '<li class="text-[11px] text-surface-200 ml-3">$1</li>')
+			.replace(/^(\d+)\.\s+(.*$)/gm, '<div class="text-[11px] text-surface-200 ml-3 mb-1"><span class="text-surface-400 mr-1.5">$1.</span>$2</div>')
+			.replace(/^\- (.*$)/gm, '<div class="text-[11px] text-surface-200 ml-3 mb-1"><span class="text-surface-400 mr-1.5">&bull;</span>$1</div>')
 			.replace(/\*\*(.*?)\*\*/g, '<strong class="text-surface-100">$1</strong>')
+			.replace(/\*(.*?)\*/g, '<em class="text-surface-300">$1</em>')
 			.replace(/\n\n/g, '<br/><br/>')
 			.trim();
 	}
