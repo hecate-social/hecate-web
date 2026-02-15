@@ -361,6 +361,7 @@ const HELP_TEXT = [
 	'  /nick <name>   — Change your nickname',
 	'  /join <channel> — Join or create a channel',
 	'  /part, /leave   — Leave current channel',
+	'  /list           — Browse channels (lobby)',
 	'  /me <action>    — Send an action message',
 	'  /topic          — Show current channel topic',
 	'  /clear          — Clear message history',
@@ -433,6 +434,12 @@ export async function parseAndExecute(input: string, channelId: string | null): 
 			const ch = get(channels).find((c) => c.channel_id === channelId);
 			addSystemMessage(channelId, `Left #${ch?.name ?? channelId}`);
 			await partChannel(channelId);
+			activeChannelId.set(null);
+			return;
+		}
+
+		case '/list': {
+			await fetchChannels();
 			activeChannelId.set(null);
 			return;
 		}
