@@ -83,13 +83,24 @@ jobs:
             ```
 
             **Manual Installation:**
-            - **Linux**: Download `.AppImage` or `.deb` below
-            - **macOS**: Download `.dmg` below
+            - **Linux**: Download `.deb` or `.tar.gz` below
+            - **macOS**: Download `.dmg` or `.tar.gz` below
 
             ### Requirements
 
             - [hecate-daemon](https://github.com/hecate-social/hecate-daemon) running locally
-            - Linux: webkit2gtk-4.1 (included in .deb, auto-installed by AppImage)
+            - Linux: webkit2gtk-4.1 (included in .deb)
           releaseDraft: false
           prerelease: false
           args: --target ${{ matrix.rust_target }}
+
+      - name: Package portable binary
+        run: |
+          cd src-tauri/target/${{ matrix.rust_target }}/release
+          tar -czf hecate-web-${{ matrix.target }}.tar.gz hecate-web
+          echo "PORTABLE_ARCHIVE=$(pwd)/hecate-web-${{ matrix.target }}.tar.gz" >> "$GITHUB_ENV"
+
+      - name: Upload portable binary
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh release upload ${{ github.ref_name }} "$PORTABLE_ARCHIVE" --clobber
