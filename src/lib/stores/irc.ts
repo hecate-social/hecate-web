@@ -244,6 +244,8 @@ function handleIrcEvent(evt: IrcEvent): void {
 				return next;
 			});
 			removeTab(evt.channel_id);
+			// Refresh channel list — backend may have auto-closed the empty channel
+			fetchChannels();
 			break;
 		case 'members_changed':
 			fetchChannelMembers(evt.channel_id);

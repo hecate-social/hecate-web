@@ -81,14 +81,14 @@
 					</div>
 				{:else if msg.type === 'action'}
 					<div class="flex gap-2 py-1 hover:bg-surface-800/30 rounded px-1">
-						<span class="text-[10px] text-surface-600 shrink-0 pt-0.5 w-10 text-right"
+						<span class="text-[10px] text-surface-600 shrink-0 pt-0.5 w-12 text-right"
 							>{formatTime(msg.timestamp)}</span
 						>
 						<span class="text-xs text-purple-400 italic">* {msg.nick} {msg.content}</span>
 					</div>
 				{:else}
 					<div class="flex gap-2 py-1 hover:bg-surface-800/30 rounded px-1">
-						<span class="text-[10px] text-surface-600 shrink-0 pt-0.5 w-10 text-right"
+						<span class="text-[10px] text-surface-600 shrink-0 pt-0.5 w-12 text-right"
 							>{formatTime(msg.timestamp)}</span
 						>
 						<span class="text-xs font-medium text-accent-400 shrink-0">{msg.nick}</span>
@@ -102,28 +102,16 @@
 
 	<!-- Input bar -->
 	<div class="px-4 py-3 border-t border-surface-600 bg-surface-800">
-		<div class="flex items-end gap-2">
-			<textarea
-				bind:this={inputRef}
-				bind:value={inputText}
-				onkeydown={handleKeydown}
-				placeholder="Message #{$channels.find((c) => c.channel_id === $activeChannelId)?.name ?? '...'} — /help for commands"
-				rows="1"
-				class="flex-1 bg-surface-700 border border-surface-600 rounded-lg px-3 py-2
-          text-xs text-surface-100 placeholder-surface-500
-          focus:outline-none focus:border-accent-500/50
-          resize-none min-h-[32px] max-h-[120px]"
-			></textarea>
-			<button
-				onclick={handleSend}
-				class="px-3 py-2 rounded-lg text-xs font-medium transition-colors
-          {inputText.trim()
-					? 'bg-accent-600 text-surface-50 hover:bg-accent-500'
-					: 'bg-surface-700 text-surface-500 cursor-not-allowed'}"
-				disabled={!inputText.trim()}
-			>
-				Send
-			</button>
-		</div>
+		<textarea
+			bind:this={inputRef}
+			bind:value={inputText}
+			onkeydown={handleKeydown}
+			placeholder="Message #{$channels.find((c) => c.channel_id === $activeChannelId)?.name ?? '...'} — /help for commands"
+			rows="1"
+			class="w-full bg-surface-700 border border-surface-600 rounded-lg px-3 py-2
+        text-xs text-surface-100 placeholder-surface-500
+        focus:outline-none focus:border-accent-500/50
+        resize-none min-h-[32px] max-h-[120px]"
+		></textarea>
 	</div>
 </div>

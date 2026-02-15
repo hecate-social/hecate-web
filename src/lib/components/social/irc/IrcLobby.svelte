@@ -148,28 +148,16 @@
 
 	<!-- Command input bar (always visible at bottom) -->
 	<div class="px-4 py-3 border-t border-surface-600 bg-surface-800">
-		<div class="flex items-end gap-2">
-			<textarea
-				bind:this={inputRef}
-				bind:value={inputText}
-				onkeydown={handleInputKeydown}
-				placeholder="/join #channel — /help for commands"
-				rows="1"
-				class="flex-1 bg-surface-700 border border-surface-600 rounded-lg px-3 py-2
-          text-xs text-surface-100 placeholder-surface-500
-          focus:outline-none focus:border-accent-500/50
-          resize-none min-h-[32px] max-h-[120px]"
-			></textarea>
-			<button
-				onclick={handleSend}
-				class="px-3 py-2 rounded-lg text-xs font-medium transition-colors
-          {inputText.trim()
-					? 'bg-accent-600 text-surface-50 hover:bg-accent-500'
-					: 'bg-surface-700 text-surface-500 cursor-not-allowed'}"
-				disabled={!inputText.trim()}
-			>
-				Send
-			</button>
-		</div>
+		<textarea
+			bind:this={inputRef}
+			bind:value={inputText}
+			onkeydown={handleInputKeydown}
+			placeholder="/join #channel — /help for commands"
+			rows="1"
+			class="w-full bg-surface-700 border border-surface-600 rounded-lg px-3 py-2
+        text-xs text-surface-100 placeholder-surface-500
+        focus:outline-none focus:border-accent-500/50
+        resize-none min-h-[32px] max-h-[120px]"
+		></textarea>
 	</div>
 </div>
