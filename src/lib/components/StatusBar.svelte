@@ -3,6 +3,7 @@
 	import { connectionStatus, health, llmHealth } from '../stores/daemon.js';
 	import { selectedModel, isStreaming, lastUsage } from '../stores/llm.js';
 	import { aiModel, selectedPhase } from '../stores/devops.js';
+	import ThemeToggle from './ThemeToggle.svelte';
 
 	const phaseNames: Record<string, string> = {
 		dna: 'DnA',
@@ -97,6 +98,8 @@
 	{/if}
 
 	<div class="flex-1"></div>
+
+	<ThemeToggle />
 
 	{#if $lastUsage}
 		<div class="text-surface-400">

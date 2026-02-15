@@ -340,7 +340,7 @@
 				class="px-2.5 rounded text-[11px] transition-colors self-end
 					{isStreaming || !inputValue.trim() || !$aiModel
 					? 'bg-surface-600 text-surface-400 cursor-not-allowed'
-					: 'bg-hecate-600 text-white hover:bg-hecate-500'}"
+					: 'bg-hecate-600 text-surface-50 hover:bg-hecate-500'}"
 			>
 				Send
 			</button>

@@ -146,7 +146,7 @@
 						class="px-5 py-2.5 rounded-lg text-sm font-medium transition-colors
 							{$isLoading
 							? 'bg-surface-600 text-surface-400 cursor-not-allowed'
-							: 'bg-hecate-600 text-white hover:bg-hecate-500'}"
+							: 'bg-hecate-600 text-surface-50 hover:bg-hecate-500'}"
 					>
 						{$isLoading ? 'Starting...' : 'Start Discovery'}
 					</button>

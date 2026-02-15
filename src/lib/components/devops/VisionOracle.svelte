@@ -429,11 +429,11 @@
 						{#if streamingContent && isStreamingThink(streamingContent)}
 							<div class="flex items-center gap-2 text-surface-400 mb-1">
 								<span class="flex gap-1">
-									<span class="w-1.5 h-1.5 rounded-full bg-amber-500/60 animate-bounce" style="animation-delay: 0ms"></span>
-									<span class="w-1.5 h-1.5 rounded-full bg-amber-500/60 animate-bounce" style="animation-delay: 150ms"></span>
-									<span class="w-1.5 h-1.5 rounded-full bg-amber-500/60 animate-bounce" style="animation-delay: 300ms"></span>
+									<span class="w-1.5 h-1.5 rounded-full bg-accent-500/60 animate-bounce" style="animation-delay: 0ms"></span>
+									<span class="w-1.5 h-1.5 rounded-full bg-accent-500/60 animate-bounce" style="animation-delay: 150ms"></span>
+									<span class="w-1.5 h-1.5 rounded-full bg-accent-500/60 animate-bounce" style="animation-delay: 300ms"></span>
 								</span>
-								<span class="text-[10px] text-amber-400/70">Reasoning...</span>
+								<span class="text-[10px] text-accent-400/70">Reasoning...</span>
 							</div>
 							{#if getStreamingThinkContent(streamingContent).trim()}
 								<details class="group">
@@ -445,7 +445,7 @@
 									<div class="mt-1 pl-2 border-l-2 border-surface-600 text-[10px] text-surface-400
 										whitespace-pre-wrap break-words max-h-32 overflow-y-auto">
 										{getStreamingThinkContent(streamingContent).trim()}<span
-											class="inline-block w-1 h-3 bg-amber-400/50 animate-pulse ml-0.5"></span>
+											class="inline-block w-1 h-3 bg-accent-400/50 animate-pulse ml-0.5"></span>
 									</div>
 								</details>
 							{/if}
@@ -510,7 +510,7 @@
 					class="px-3 rounded-lg text-[11px] transition-colors self-end
 						{isStreaming || !inputValue.trim() || !$aiModel
 						? 'bg-surface-600 text-surface-400 cursor-not-allowed'
-						: 'bg-hecate-600 text-white hover:bg-hecate-500'}"
+						: 'bg-hecate-600 text-surface-50 hover:bg-hecate-500'}"
 				>
 					Send
 				</button>
@@ -536,7 +536,7 @@
 			{#if visionComplete}
 				<span class="text-[10px] text-health-ok">{'\u{25CF}'} Complete</span>
 			{:else if extractedVision}
-				<span class="text-[10px] text-amber-400">{'\u{25D0}'} Drafting...</span>
+				<span class="text-[10px] text-accent-400">{'\u{25D0}'} Drafting...</span>
 			{:else if isStreaming}
 				<span class="text-[10px] text-surface-400">{'\u{25D0}'} Listening...</span>
 			{:else}
@@ -600,7 +600,7 @@
 						class="w-full px-3 py-2 rounded-lg text-xs font-medium transition-colors
 							{isScaffolding || $isLoading || !repoPath.trim()
 							? 'bg-surface-600 text-surface-400 cursor-not-allowed'
-							: 'bg-hecate-600 text-white hover:bg-hecate-500'}"
+							: 'bg-hecate-600 text-surface-50 hover:bg-hecate-500'}"
 					>
 						{isScaffolding ? 'Scaffolding...' : 'Scaffold Venture'}
 					</button>

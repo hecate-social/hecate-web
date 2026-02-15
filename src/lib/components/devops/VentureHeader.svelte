@@ -221,7 +221,7 @@
 			<button
 				onclick={handleRefine}
 				disabled={!refineBrief.trim() || $isLoading}
-				class="px-3 py-2 rounded text-xs bg-hecate-600 text-white
+				class="px-3 py-2 rounded text-xs bg-hecate-600 text-surface-50
 					hover:bg-hecate-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
 			>
 				Refine
@@ -266,7 +266,7 @@
 			<button
 				onclick={handleIdentify}
 				disabled={!divisionName.trim() || $isLoading}
-				class="px-3 py-1.5 rounded text-xs bg-hecate-600 text-white
+				class="px-3 py-1.5 rounded text-xs bg-hecate-600 text-surface-50
 					hover:bg-hecate-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
 			>
 				Identify

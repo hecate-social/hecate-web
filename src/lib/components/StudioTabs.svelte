@@ -12,7 +12,6 @@
 
 	const studios: Tab[] = [
 		{ id: 'llm', name: 'LLM', icon: '\u{1F916}', path: '/llm' },
-		{ id: 'devops', name: 'DevOps', icon: '\u{1F527}', path: '/devops' },
 		{ id: 'node', name: 'Node', icon: '\u{1F310}', path: '/node' },
 		{ id: 'social', name: 'Social', icon: '\u{1F4AC}', path: '/social' },
 		{ id: 'arcade', name: 'Arcade', icon: '\u{1F3AE}', path: '/arcade' }
@@ -116,7 +115,7 @@
 		<button
 			onclick={close}
 			class="w-10 h-10 flex items-center justify-center text-surface-400
-				hover:text-surface-100 hover:bg-red-600 transition-colors"
+				hover:text-surface-100 hover:bg-danger-600 transition-colors"
 			aria-label="Close"
 		>
 			<svg width="10" height="10" viewBox="0 0 10 10" stroke="currentColor" stroke-width="1.2">

@@ -61,13 +61,13 @@
 			return 'text-es-event';
 		}
 		if (eventType.startsWith('event_stack_') || eventType.startsWith('event_cluster_')) {
-			return 'text-emerald-400';
+			return 'text-success-400';
 		}
 		if (eventType.startsWith('fact_arrow_')) {
 			return 'text-sky-400';
 		}
 		if (eventType.startsWith('storm_phase_')) {
-			return 'text-amber-400';
+			return 'text-accent-400';
 		}
 		return 'text-surface-400';
 	}

@@ -1,188 +1,83 @@
 <script lang="ts">
-	import { health, connectionStatus, llmHealth } from '$lib/stores/daemon.js';
-	import { models } from '$lib/stores/llm.js';
-	import { identity, providers, fetchIdentity, fetchProviders } from '$lib/stores/node.js';
-	import { fetchHealth, fetchLLMHealth } from '$lib/stores/daemon.js';
-	import { fetchModels } from '$lib/stores/llm.js';
-	import { onMount } from 'svelte';
+	import NodeInspector from '$lib/components/node/NodeInspector.svelte';
+	import { randomClip } from '$lib/artwork.js';
+	import HeroClip from '$lib/components/HeroClip.svelte';
 
-	onMount(() => {
-		fetchIdentity();
-		fetchProviders();
-		fetchHealth();
-		fetchLLMHealth();
-		fetchModels();
-	});
+	const clip = randomClip();
 
-	function uptimeStr(seconds: number): string {
-		if (seconds < 60) return `${seconds}s`;
-		if (seconds < 3600) {
-			const m = Math.floor(seconds / 60);
-			const s = seconds % 60;
-			return `${m}m ${s}s`;
-		}
-		const h = Math.floor(seconds / 3600);
-		const m = Math.floor((seconds % 3600) / 60);
-		return `${h}h ${m}m`;
+	interface NodeApp {
+		id: string;
+		name: string;
+		icon: string;
+		description: string;
+		active: boolean;
 	}
 
-	function providerStatus(name: string): string {
-		if (!$llmHealth?.providers) return 'unknown';
-		const status = $llmHealth.providers[name];
-		return status || 'unknown';
-	}
+	const apps: NodeApp[] = [
+		{ id: 'inspector', name: 'Node Inspector', icon: '\u{1F50D}', description: 'Dashboard, identity, health, providers', active: true },
+		{ id: 'mesh', name: 'Mesh View', icon: '\u{1F578}\u{FE0F}', description: 'Mesh topology and connections', active: false },
+		{ id: 'marketplace', name: 'Marketplace', icon: '\u{1F3EA}', description: 'Apps and extensions', active: false }
+	];
 
-	function providerStatusColor(name: string): string {
-		const status = providerStatus(name);
-		if (status === 'healthy') return 'text-health-ok';
-		if (status === 'unknown') return 'text-surface-400';
-		return 'text-health-err';
-	}
+	let activeApp: string | null = $state(null);
 </script>
 
-<div class="flex flex-col h-full overflow-y-auto p-6 gap-6">
-	<h1 class="text-xl font-bold text-surface-100">Node Dashboard</h1>
+{#if activeApp === 'inspector'}
+	<NodeInspector onBack={() => activeApp = null} />
+{:else}
+	<!-- App Explorer -->
+	<div class="flex flex-col items-center h-full overflow-y-auto py-8 px-6 gap-6">
+		<HeroClip media={{ type: 'video', ...clip }} />
 
-	<!-- Status cards row -->
-	<div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-		<!-- Connection -->
-		<div class="rounded-lg bg-surface-800 border border-surface-600 p-4">
-			<div class="text-[11px] text-surface-400 uppercase tracking-wider mb-3">Daemon</div>
-			<div class="flex items-center gap-2 mb-2">
-				<span
-					class={$connectionStatus === 'connected'
-						? 'text-health-ok'
-						: $connectionStatus === 'connecting'
-							? 'text-health-loading animate-pulse'
-							: 'text-health-err'}
-				>
-					●
-				</span>
-				<span class="text-sm text-surface-100 capitalize">{$connectionStatus}</span>
-			</div>
-			{#if $health}
-				<div class="text-xs text-surface-300 space-y-1">
-					<div class="flex justify-between">
-						<span class="text-surface-400">Version:</span>
-						<span>{$health.version}</span>
-					</div>
-					<div class="flex justify-between">
-						<span class="text-surface-400">Uptime:</span>
-						<span>{uptimeStr($health.uptime_seconds)}</span>
-					</div>
-					<div class="flex justify-between">
-						<span class="text-surface-400">Identity:</span>
-						<span>{$health.identity}</span>
-					</div>
-				</div>
-			{/if}
+		<div class="flex flex-col items-center gap-2">
+			<h2
+				class="text-xl font-bold tracking-wide"
+				style="background: linear-gradient(135deg, #fbbf24, #a875ff); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;"
+			>
+				Node Studio
+			</h2>
+			<p class="text-surface-400 text-xs text-center">
+				Monitor and manage your Hecate node
+			</p>
 		</div>
 
-		<!-- Identity -->
-		<div class="rounded-lg bg-surface-800 border border-surface-600 p-4">
-			<div class="text-[11px] text-surface-400 uppercase tracking-wider mb-3">Identity</div>
-			{#if $identity?.identity}
-				<div class="text-xs text-surface-300 space-y-1">
-					<div class="flex justify-between">
-						<span class="text-surface-400">Node ID:</span>
-						<span class="text-surface-100 font-mono truncate ml-2">
-							{$identity.identity.node_id}
-						</span>
-					</div>
-					{#if $identity.identity.display_name}
-						<div class="flex justify-between">
-							<span class="text-surface-400">Name:</span>
-							<span>{$identity.identity.display_name}</span>
-						</div>
-					{/if}
-					{#if $identity.identity.realm}
-						<div class="flex justify-between">
-							<span class="text-surface-400">Realm:</span>
-							<span>{$identity.identity.realm}</span>
-						</div>
-					{/if}
-				</div>
-			{:else}
-				<div class="text-xs text-surface-400">Not initialized</div>
-			{/if}
-		</div>
-
-		<!-- LLM Health -->
-		<div class="rounded-lg bg-surface-800 border border-surface-600 p-4">
-			<div class="text-[11px] text-surface-400 uppercase tracking-wider mb-3">LLM</div>
-			<div class="flex items-center gap-2 mb-2">
-				<span
-					class={$llmHealth?.status === 'healthy'
-						? 'text-health-ok'
-						: $llmHealth
-							? 'text-health-err'
-							: 'text-surface-400'}
-				>
-					●
-				</span>
-				<span class="text-sm text-surface-100">
-					{$llmHealth?.status ?? 'unknown'}
-				</span>
-			</div>
-			<div class="text-xs text-surface-300">
-				{$models.length} model{$models.length !== 1 ? 's' : ''} available
-			</div>
-		</div>
-	</div>
-
-	<!-- Providers -->
-	<div class="rounded-lg bg-surface-800 border border-surface-600 p-4">
-		<div class="text-[11px] text-surface-400 uppercase tracking-wider mb-3">Providers</div>
-		{#if $providers.length === 0}
-			<div class="text-xs text-surface-400">No providers configured</div>
-		{:else}
-			<div class="space-y-2">
-				{#each $providers as provider}
-					<div
-						class="flex items-center justify-between text-xs bg-surface-700 rounded px-3 py-2"
+		<div class="grid grid-cols-2 lg:grid-cols-3 gap-3 max-w-2xl w-full">
+			{#each apps as app}
+				{#if app.active}
+					<button
+						onclick={() => activeApp = app.id}
+						class="group relative flex flex-col items-center gap-2.5 p-5 rounded-xl
+							bg-surface-800/80 border border-surface-600/50
+							hover:border-accent-500/30 hover:bg-surface-700/80
+							transition-all duration-200 cursor-pointer"
 					>
-						<div class="flex items-center gap-2">
-							<span class={providerStatusColor(provider.name)}>●</span>
-							<span class="text-surface-100 font-medium">{provider.name}</span>
-							<span class="text-surface-400">{provider.type}</span>
-						</div>
-						<div class="flex items-center gap-2">
-							{#if provider.url}
-								<span class="text-surface-400 font-mono text-[10px]">{provider.url}</span>
-							{/if}
-							<span
-								class="text-[10px] px-1.5 py-0.5 rounded {provider.enabled
-									? 'bg-health-ok/10 text-health-ok'
-									: 'bg-surface-600 text-surface-400'}"
-							>
-								{provider.enabled ? 'enabled' : 'disabled'}
-							</span>
-						</div>
+						<span
+							class="text-2xl transition-transform duration-200 group-hover:scale-110
+								group-hover:drop-shadow-[0_0_8px_rgba(245,158,11,0.4)]"
+						>
+							{app.icon}
+						</span>
+						<span class="text-sm font-medium text-surface-100 group-hover:text-accent-400 transition-colors">
+							{app.name}
+						</span>
+						<span class="text-[10px] text-surface-400 text-center leading-relaxed">
+							{app.description}
+						</span>
+					</button>
+				{:else}
+					<div
+						class="flex flex-col items-center gap-2.5 p-5 rounded-xl
+							bg-surface-800/80 border border-surface-600/50 opacity-60"
+					>
+						<span class="text-2xl">{app.icon}</span>
+						<span class="text-sm font-medium text-surface-100">{app.name}</span>
+						<span class="text-[10px] text-surface-400 text-center leading-relaxed">
+							{app.description}
+						</span>
+						<span class="text-[9px] text-surface-500 uppercase tracking-wider">Coming Soon</span>
 					</div>
-				{/each}
-			</div>
-		{/if}
+				{/if}
+			{/each}
+		</div>
 	</div>
-
-	<!-- Models -->
-	<div class="rounded-lg bg-surface-800 border border-surface-600 p-4">
-		<div class="text-[11px] text-surface-400 uppercase tracking-wider mb-3">Models</div>
-		{#if $models.length === 0}
-			<div class="text-xs text-surface-400">No models available</div>
-		{:else}
-			<div class="grid grid-cols-1 md:grid-cols-2 gap-2">
-				{#each $models as model}
-					<div class="flex items-center justify-between text-xs bg-surface-700 rounded px-3 py-2">
-						<div>
-							<span class="text-surface-100 font-medium">{model.name}</span>
-							{#if model.parameter_size}
-								<span class="text-surface-400 ml-1">({model.parameter_size})</span>
-							{/if}
-						</div>
-						<span class="text-hecate-400 text-[10px]">{model.provider}</span>
-					</div>
-				{/each}
-			</div>
-		{/if}
-	</div>
-</div>
+{/if}

@@ -7,6 +7,7 @@
 	import { fetchIdentity, fetchProviders } from '$lib/stores/node.js';
 	import { loadPersonalityInfo } from '$lib/stores/personality.js';
 	import { loadAgents } from '$lib/stores/agents.js';
+	import '$lib/stores/theme.js';
 	import { onMount, onDestroy } from 'svelte';
 
 	let { children } = $props();

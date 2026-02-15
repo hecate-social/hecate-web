@@ -14,17 +14,26 @@
 	--color-hecate-900: #4c0fa3;
 	--color-hecate-950: #2d0070;
 
-	/* Surface colors (dark theme — high contrast) */
-	--color-surface-900: #0f0f14;
-	--color-surface-800: #16161d;
+	/* Surface colors (Vivid — high contrast default) */
+	--color-surface-900: #0c0c10;
+	--color-surface-800: #14141b;
 	--color-surface-700: #1e1e28;
-	--color-surface-600: #303040;
-	--color-surface-500: #44445a;
-	--color-surface-400: #70708a;
-	--color-surface-300: #9494ae;
-	--color-surface-200: #b4b4cc;
-	--color-surface-100: #d8d8e8;
-	--color-surface-50: #f0f0f8;
+	--color-surface-600: #3a3a50;
+	--color-surface-500: #6868a0;
+	--color-surface-400: #9898b8;
+	--color-surface-300: #b8b8d4;
+	--color-surface-200: #d0d0e8;
+	--color-surface-100: #eaeaf8;
+	--color-surface-50: #ffffff;
+
+	/* Semantic color tokens */
+	--color-accent-400: #fbbf24;
+	--color-accent-500: #f59e0b;
+	--color-accent-600: #d97706;
+	--color-danger-400: #f87171;
+	--color-danger-600: #dc2626;
+	--color-success-400: #34d399;
+	--color-success-500: #10b981;
 
 	/* Status colors */
 	--color-health-ok: #22c55e;
@@ -45,6 +54,27 @@
 	--color-phase-anp: #60a5fa;
 	--color-phase-tni: #34d399;
 	--color-phase-dno: #fbbf24;
+}
+
+/* Subtle theme — original muted palette */
+[data-theme='subtle'] {
+	--color-surface-900: #0f0f14;
+	--color-surface-800: #16161d;
+	--color-surface-700: #1e1e28;
+	--color-surface-600: #303040;
+	--color-surface-500: #44445a;
+	--color-surface-400: #70708a;
+	--color-surface-300: #9494ae;
+	--color-surface-200: #b4b4cc;
+	--color-surface-100: #d8d8e8;
+	--color-surface-50: #f0f0f8;
+	--color-accent-400: #d4a017;
+	--color-accent-500: #b8860b;
+	--color-accent-600: #9a7209;
+	--color-danger-400: #d06060;
+	--color-danger-600: #b03030;
+	--color-success-400: #2aaa7e;
+	--color-success-500: #0d9468;
 }
 
 /* Base dark theme */

@@ -45,11 +45,11 @@
 			<!-- Currently reasoning -->
 			<div class="flex items-center gap-2 text-surface-400 mb-1">
 				<span class="flex gap-1">
-					<span class="w-1.5 h-1.5 rounded-full bg-amber-500/60 animate-bounce" style="animation-delay: 0ms"></span>
-					<span class="w-1.5 h-1.5 rounded-full bg-amber-500/60 animate-bounce" style="animation-delay: 150ms"></span>
-					<span class="w-1.5 h-1.5 rounded-full bg-amber-500/60 animate-bounce" style="animation-delay: 300ms"></span>
+					<span class="w-1.5 h-1.5 rounded-full bg-accent-500/60 animate-bounce" style="animation-delay: 0ms"></span>
+					<span class="w-1.5 h-1.5 rounded-full bg-accent-500/60 animate-bounce" style="animation-delay: 150ms"></span>
+					<span class="w-1.5 h-1.5 rounded-full bg-accent-500/60 animate-bounce" style="animation-delay: 300ms"></span>
 				</span>
-				<span class="text-xs text-amber-400/70">Reasoning...</span>
+				<span class="text-xs text-accent-400/70">Reasoning...</span>
 			</div>
 			{#if thinkContent.trim()}
 				<details class="group">
@@ -60,7 +60,7 @@
 					</summary>
 					<div class="mt-1 pl-3 border-l-2 border-surface-600 text-xs text-surface-400
 						whitespace-pre-wrap break-words leading-relaxed max-h-40 overflow-y-auto">
-						{thinkContent.trim()}<span class="inline-block w-1 h-3 bg-amber-400/50 animate-pulse ml-0.5 align-text-bottom"></span>
+						{thinkContent.trim()}<span class="inline-block w-1 h-3 bg-accent-400/50 animate-pulse ml-0.5 align-text-bottom"></span>
 					</div>
 				</details>
 			{/if}

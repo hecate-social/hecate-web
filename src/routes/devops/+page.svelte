@@ -161,7 +161,7 @@
 							class="flex-1 px-4 py-2.5 rounded-lg text-sm font-medium transition-colors
 								{!ventureName.trim() || $isLoading
 								? 'bg-surface-600 text-surface-400 cursor-not-allowed'
-								: 'bg-hecate-600 text-white hover:bg-hecate-500'}"
+								: 'bg-hecate-600 text-surface-50 hover:bg-hecate-500'}"
 						>
 							{$isLoading ? 'Initiating...' : 'Initiate Venture'}
 						</button>

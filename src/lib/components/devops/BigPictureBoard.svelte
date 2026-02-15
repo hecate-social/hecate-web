@@ -261,7 +261,7 @@
 						<button
 							onclick={() => startBigPictureStorm(vid())}
 							class="px-6 py-3 rounded-lg text-sm font-medium
-								bg-es-event text-white hover:bg-es-event/90
+								bg-es-event text-surface-50 hover:bg-es-event/90
 								transition-colors shadow-lg shadow-es-event/20"
 						>
 							{'\u{26A1}'} Start High Octane (10 min)
@@ -347,7 +347,7 @@
 							disabled={!eventInput.trim()}
 							class="px-3 py-2 rounded text-xs transition-colors
 								{eventInput.trim()
-								? 'bg-es-event text-white hover:bg-es-event/80'
+								? 'bg-es-event text-surface-50 hover:bg-es-event/80'
 								: 'bg-surface-600 text-surface-400 cursor-not-allowed'}"
 						>
 							Add
@@ -1076,7 +1076,7 @@
 							class="text-[10px] px-4 py-1.5 rounded font-medium transition-colors
 								{$isLoading
 								? 'bg-surface-700 text-surface-500 cursor-not-allowed'
-								: 'bg-hecate-600 text-white hover:bg-hecate-500'}"
+								: 'bg-hecate-600 text-surface-50 hover:bg-hecate-500'}"
 						>
 							{$isLoading ? 'Promoting...' : 'Promote to Divisions'}
 						</button>
@@ -1126,7 +1126,7 @@
 					<button
 						onclick={() => resumeStorm(vid())}
 						class="px-6 py-3 rounded-lg text-sm font-medium
-							bg-hecate-600 text-white hover:bg-hecate-500
+							bg-hecate-600 text-surface-50 hover:bg-hecate-500
 							transition-colors"
 					>
 						Resume Storm

@@ -1,196 +1,83 @@
 <script lang="ts">
-	import ChatMessageBubble from '$lib/components/ChatMessage.svelte';
-	import StreamingText from '$lib/components/StreamingText.svelte';
-	import {
-		models,
-		selectedModel,
-		messages,
-		isStreaming,
-		streamingContent,
-		lastUsage,
-		sendMessage,
-		clearChat,
-		fetchModels
-	} from '$lib/stores/llm.js';
-	import {
-		personalityInfo,
-		activeRole,
-		personalityEnabled,
-		setRole,
-		togglePersonality
-	} from '$lib/stores/personality.js';
-	import { onMount, tick } from 'svelte';
+	import ChatView from '$lib/components/llm/ChatView.svelte';
+	import { randomClip } from '$lib/artwork.js';
+	import HeroClip from '$lib/components/HeroClip.svelte';
+	import { models, selectedModel, fetchModels } from '$lib/stores/llm.js';
+	import { onMount } from 'svelte';
 
-	let inputValue = $state('');
-	let messagesContainer: HTMLDivElement | undefined = $state();
-	let inputEl: HTMLTextAreaElement | undefined = $state();
+	const clip = randomClip();
+
+	let activeApp: string | null = $state(null);
 
 	onMount(() => {
 		fetchModels();
-		inputEl?.focus();
 	});
 
-	async function handleSubmit() {
-		if (!inputValue.trim() || $isStreaming) return;
-		const msg = inputValue;
-		inputValue = '';
-		await sendMessage(msg);
-		// Auto-resize textarea
-		if (inputEl) {
-			inputEl.style.height = 'auto';
-		}
+	function openChat(modelName: string) {
+		$selectedModel = modelName;
+		activeApp = 'chat';
 	}
-
-	function handleKeydown(e: KeyboardEvent) {
-		if (e.key === 'Enter' && !e.shiftKey) {
-			e.preventDefault();
-			handleSubmit();
-		}
-	}
-
-	function autoResize(e: Event) {
-		const target = e.target as HTMLTextAreaElement;
-		target.style.height = 'auto';
-		target.style.height = Math.min(target.scrollHeight, 200) + 'px';
-	}
-
-	// Auto-scroll on new content
-	$effect(() => {
-		// Reference reactive values to trigger effect
-		$messages;
-		$streamingContent;
-		tick().then(() => {
-			if (messagesContainer) {
-				messagesContainer.scrollTop = messagesContainer.scrollHeight;
-			}
-		});
-	});
 </script>
 
-<div class="flex flex-col h-full">
-	<!-- Model selector bar -->
-	<div
-		class="flex items-center gap-3 px-4 py-2 border-b border-surface-600 bg-surface-800/50 shrink-0"
-	>
-		<label for="model-select" class="text-[11px] text-surface-400">Model:</label>
-		<select
-			id="model-select"
-			bind:value={$selectedModel}
-			class="bg-surface-700 border border-surface-600 rounded px-2 py-1 text-xs text-surface-100
-				focus:outline-none focus:border-hecate-500 cursor-pointer"
-		>
-			{#each $models as model}
-				<option value={model.name}>
-					{model.name}
-					{#if model.provider}({model.provider}){/if}
-				</option>
-			{/each}
-		</select>
+{#if activeApp === 'chat'}
+	<ChatView onBack={() => activeApp = null} />
+{:else}
+	<!-- Model Explorer -->
+	<div class="flex flex-col items-center h-full overflow-y-auto py-8 px-6 gap-6">
+		<HeroClip media={{ type: 'video', ...clip }} />
 
-		<!-- Personality / Role selector -->
-		{#if $personalityInfo?.personality_loaded}
-			<div class="w-px h-4 bg-surface-600"></div>
-
-			<button
-				onclick={togglePersonality}
-				class="text-[11px] px-1.5 py-0.5 rounded transition-colors
-					{$personalityEnabled
-					? 'text-amber-400 hover:text-amber-300'
-					: 'text-surface-500 hover:text-surface-400'}"
-				title={$personalityEnabled ? 'Personality active (click to disable)' : 'Personality disabled (click to enable)'}
+		<div class="flex flex-col items-center gap-2">
+			<h2
+				class="text-xl font-bold tracking-wide"
+				style="background: linear-gradient(135deg, #fbbf24, #a875ff); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;"
 			>
-				{$personalityEnabled ? '\u{1F525}' : '\u{26AB}'}
-			</button>
+				LLM Studio
+			</h2>
+			<p class="text-surface-400 text-xs text-center">
+				Chat with AI models across providers
+			</p>
+		</div>
 
-			{#if $personalityEnabled}
-				<select
-					value={$activeRole ?? ''}
-					onchange={(e) => setRole((e.target as HTMLSelectElement).value || null)}
-					class="bg-surface-700 border border-surface-600 rounded px-1.5 py-0.5 text-[11px] text-surface-300
-						focus:outline-none focus:border-amber-500/50 cursor-pointer"
-				>
-					<option value="">No role</option>
-					{#each $personalityInfo.roles.filter(r => r.available) as role}
-						<option value={role.code}>{role.name}</option>
-					{/each}
-				</select>
-			{/if}
-		{/if}
-
-		<div class="flex-1"></div>
-
-		{#if $lastUsage}
-			<div class="text-[10px] text-surface-400 font-mono">
-				{#if $lastUsage.prompt_tokens}prompt: {$lastUsage.prompt_tokens}{/if}
-				{#if $lastUsage.completion_tokens}
-					&middot; completion: {$lastUsage.completion_tokens}
-				{/if}
-			</div>
-		{/if}
-
-		<button
-			onclick={clearChat}
-			class="text-[11px] text-surface-400 hover:text-surface-100 px-2 py-1 rounded
-				hover:bg-surface-700 transition-colors"
-		>
-			Clear
-		</button>
-	</div>
-
-	<!-- Messages area -->
-	<div bind:this={messagesContainer} class="flex-1 overflow-y-auto p-4">
-		{#if $messages.length === 0 && !$isStreaming}
-			<div class="flex items-center justify-center h-full">
-				<div class="text-center text-surface-400">
-					<div class="text-3xl mb-3">◆</div>
-					<div class="text-sm">Start a conversation</div>
-					<div class="text-[11px] mt-1">
-						{#if $selectedModel}
-							Using <span class="text-hecate-400">{$selectedModel}</span>
-						{:else}
-							No model selected
-						{/if}
-					</div>
-				</div>
+		{#if $models.length === 0}
+			<div class="text-center py-8">
+				<div class="text-2xl mb-2 text-surface-500">&#9670;</div>
+				<div class="text-xs text-surface-400">No models available</div>
+				<div class="text-[10px] text-surface-500 mt-1">Check daemon connection</div>
 			</div>
 		{:else}
-			{#each $messages as message}
-				<ChatMessageBubble {message} />
-			{/each}
-
-			{#if $isStreaming}
-				<StreamingText content={$streamingContent} />
-			{/if}
+			<div class="grid grid-cols-2 lg:grid-cols-3 gap-3 max-w-2xl w-full">
+				{#each $models as model}
+					<button
+						onclick={() => openChat(model.name)}
+						class="group relative flex flex-col items-center gap-2.5 p-5 rounded-xl
+							bg-surface-800/80 border border-surface-600/50
+							hover:border-accent-500/30 hover:bg-surface-700/80
+							transition-all duration-200 cursor-pointer"
+					>
+						<span
+							class="text-2xl transition-transform duration-200 group-hover:scale-110
+								group-hover:drop-shadow-[0_0_8px_rgba(245,158,11,0.4)]"
+						>
+							&#9670;
+						</span>
+						<span class="text-sm font-medium text-surface-100 group-hover:text-accent-400 transition-colors">
+							{model.name}
+						</span>
+						<div class="flex flex-col items-center gap-1">
+							<span
+								class="text-[10px] px-1.5 py-0.5 rounded-full bg-surface-700 text-hecate-400"
+							>
+								{model.provider}
+							</span>
+							{#if model.parameter_size}
+								<span class="text-[10px] text-surface-400">
+									{model.parameter_size}
+								</span>
+							{/if}
+						</div>
+					</button>
+				{/each}
+			</div>
 		{/if}
 	</div>
-
-	<!-- Input area -->
-	<div class="border-t border-surface-600 bg-surface-800/50 p-3 shrink-0">
-		<div class="flex items-end gap-2 max-w-4xl mx-auto">
-			<textarea
-				bind:this={inputEl}
-				bind:value={inputValue}
-				onkeydown={handleKeydown}
-				oninput={autoResize}
-				placeholder={$isStreaming ? 'Waiting for response...' : 'Type a message... (Enter to send, Shift+Enter for newline)'}
-				disabled={$isStreaming || !$selectedModel}
-				rows={1}
-				class="flex-1 bg-surface-700 border border-surface-600 rounded-lg px-4 py-2.5 text-sm
-					text-surface-100 placeholder-surface-400 resize-none
-					focus:outline-none focus:border-hecate-500
-					disabled:opacity-50 disabled:cursor-not-allowed"
-			></textarea>
-
-			<button
-				onclick={handleSubmit}
-				disabled={$isStreaming || !inputValue.trim() || !$selectedModel}
-				class="px-4 py-2.5 rounded-lg text-sm font-medium transition-colors
-					{$isStreaming || !inputValue.trim() || !$selectedModel
-					? 'bg-surface-600 text-surface-400 cursor-not-allowed'
-					: 'bg-hecate-600 text-white hover:bg-hecate-500'}"
-			>
-				Send
-			</button>
-		</div>
-	</div>
-</div>
+{/if}

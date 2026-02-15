@@ -1,13 +1,29 @@
+mod irc_streaming;
 mod personality;
 mod socket_proxy;
 mod streaming;
 
 use tauri::http::Response;
+use tauri::Manager;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_shell::init())
+        .setup(|app| {
+            let window = app.get_webview_window("main").unwrap();
+            #[cfg(target_os = "linux")]
+            {
+                window.with_webview(|webview| {
+                    use webkit2gtk::WebViewExt;
+                    use webkit2gtk::SettingsExt;
+                    if let Some(settings) = webview.inner().settings() {
+                        settings.set_media_playback_requires_user_gesture(false);
+                    }
+                }).ok();
+            }
+            Ok(())
+        })
         .register_asynchronous_uri_scheme_protocol("hecate", |_ctx, request, responder| {
             std::thread::spawn(move || {
                 let response = match socket_proxy::proxy_request(&request) {
@@ -27,6 +43,7 @@ pub fn run() {
         })
         .invoke_handler(tauri::generate_handler![
             streaming::chat_stream,
+            irc_streaming::irc_stream,
             personality::get_personality_info,
             personality::build_system_prompt,
             personality::list_roles,
