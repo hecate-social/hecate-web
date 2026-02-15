@@ -63,20 +63,6 @@
 		const target = e.target as HTMLElement;
 		const isInput = target.tagName === 'INPUT' || target.tagName === 'TEXTAREA';
 
-		// Ctrl+Tab / Ctrl+Shift+Tab — cycle tabs (works even in inputs)
-		if (e.ctrlKey && e.key === 'Tab') {
-			e.preventDefault();
-			const tabs = $tabOrder;
-			if (tabs.length === 0) return;
-			const currentIdx = tabs.indexOf($activeChannelId ?? '');
-			const nextIdx = e.shiftKey
-				? (currentIdx - 1 + tabs.length) % tabs.length
-				: (currentIdx + 1) % tabs.length;
-			activeChannelId.set(tabs[nextIdx]);
-			clearUnread(tabs[nextIdx]);
-			return;
-		}
-
 		// Ctrl+W — close current tab
 		if (e.ctrlKey && e.key === 'w') {
 			e.preventDefault();
@@ -86,7 +72,7 @@
 			return;
 		}
 
-		// Alt+1..9 — switch to tab N
+		// Alt+1..9 — switch to channel tab N
 		if (e.altKey && e.key >= '1' && e.key <= '9') {
 			e.preventDefault();
 			const idx = parseInt(e.key) - 1;

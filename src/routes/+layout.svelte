@@ -9,8 +9,12 @@
 	import { loadAgents } from '$lib/stores/agents.js';
 	import '$lib/stores/theme.js';
 	import { onMount, onDestroy } from 'svelte';
+	import { goto } from '$app/navigation';
+	import { page } from '$app/state';
 
 	let { children } = $props();
+
+	const studioPaths = ['/', '/llm', '/node', '/social', '/arcade'];
 
 	onMount(() => {
 		startPolling(10000);
@@ -24,7 +28,25 @@
 	onDestroy(() => {
 		stopPolling();
 	});
+
+	function handleGlobalKeydown(e: KeyboardEvent) {
+		// Ctrl+Tab / Ctrl+Shift+Tab — cycle studios
+		if (e.ctrlKey && e.key === 'Tab') {
+			e.preventDefault();
+			const current = page.url?.pathname ?? '/';
+			const idx = studioPaths.findIndex((p) =>
+				p === '/' ? current === '/' : current.startsWith(p)
+			);
+			const currentIdx = idx >= 0 ? idx : 0;
+			const nextIdx = e.shiftKey
+				? (currentIdx - 1 + studioPaths.length) % studioPaths.length
+				: (currentIdx + 1) % studioPaths.length;
+			goto(studioPaths[nextIdx]);
+		}
+	}
 </script>
+
+<svelte:window onkeydown={handleGlobalKeydown} />
 
 <div class="flex flex-col h-screen w-screen overflow-hidden">
 	<StudioTabs />

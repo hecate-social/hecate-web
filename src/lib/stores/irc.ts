@@ -370,11 +370,10 @@ const HELP_TEXT = [
 	'  /help           — Show this help text',
 	'',
 	'Keyboard shortcuts:',
-	'  Ctrl+Tab       — Next tab',
-	'  Ctrl+Shift+Tab — Previous tab',
-	'  Ctrl+W         — Close current tab',
-	'  Alt+1..9       — Switch to tab N',
-	'  Escape         — Back to lobby'
+	'  Ctrl+W         — Close current channel',
+	'  Alt+1..9       — Switch to channel N',
+	'  Escape         — Back to lobby',
+	'  Ctrl+Tab       — Switch studio (global)'
 ].join('\n');
 
 export async function parseAndExecute(input: string, channelId: string | null): Promise<void> {
