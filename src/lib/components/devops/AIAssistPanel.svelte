@@ -172,11 +172,20 @@
 		}
 	}
 
+	let inputEl: HTMLTextAreaElement | undefined = $state();
+
 	function handleKeydown(e: KeyboardEvent) {
 		if (e.key === 'Enter' && !e.shiftKey) {
 			e.preventDefault();
 			sendMessage(inputValue);
+			if (inputEl) inputEl.style.height = 'auto';
 		}
+	}
+
+	function autoResize(e: Event) {
+		const target = e.target as HTMLTextAreaElement;
+		target.style.height = 'auto';
+		target.style.height = Math.min(target.scrollHeight, 120) + 'px';
 	}
 
 	function handleClose() {
@@ -314,11 +323,13 @@
 	<div class="border-t border-surface-600 p-2 shrink-0">
 		<div class="flex gap-1.5">
 			<textarea
+				bind:this={inputEl}
 				bind:value={inputValue}
 				onkeydown={handleKeydown}
+				oninput={autoResize}
 				placeholder={isStreaming ? 'Waiting...' : 'Ask about this phase...'}
 				disabled={isStreaming || !$aiModel}
-				rows={2}
+				rows={1}
 				class="flex-1 bg-surface-700 border border-surface-600 rounded px-2.5 py-1.5
 					text-[11px] text-surface-100 placeholder-surface-400 resize-none
 					focus:outline-none focus:border-hecate-500

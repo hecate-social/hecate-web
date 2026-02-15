@@ -266,11 +266,20 @@ Remember: you are warm but direct. Challenge vague answers. The vision is only a
 		isScaffolding = false;
 	}
 
+	let inputEl: HTMLTextAreaElement | undefined = $state();
+
 	function handleKeydown(e: KeyboardEvent) {
 		if (e.key === 'Enter' && !e.shiftKey) {
 			e.preventDefault();
 			sendMessage(inputValue);
+			if (inputEl) inputEl.style.height = 'auto';
 		}
+	}
+
+	function autoResize(e: Event) {
+		const target = e.target as HTMLTextAreaElement;
+		target.style.height = 'auto';
+		target.style.height = Math.min(target.scrollHeight, 150) + 'px';
 	}
 
 	// Resize drag handlers
@@ -397,11 +406,13 @@ Remember: you are warm but direct. Challenge vague answers. The vision is only a
 		<div class="border-t border-surface-600 p-3 shrink-0">
 			<div class="flex gap-2">
 				<textarea
+					bind:this={inputEl}
 					bind:value={inputValue}
 					onkeydown={handleKeydown}
+					oninput={autoResize}
 					placeholder={isStreaming ? 'Oracle is thinking...' : 'Describe your venture...'}
 					disabled={isStreaming || !$aiModel}
-					rows={2}
+					rows={1}
 					class="flex-1 bg-surface-700 border border-surface-600 rounded-lg px-3 py-2
 						text-[11px] text-surface-100 placeholder-surface-400 resize-none
 						focus:outline-none focus:border-hecate-500
