@@ -12,13 +12,16 @@
 	// Fetch members when active channel changes
 	$effect(() => {
 		if ($activeChannelId) {
-			fetchChannelMembers($activeChannelId);
+			const channelId = $activeChannelId;
+			fetchChannelMembers(channelId);
+			// Re-fetch shortly after in case join hasn't propagated yet
+			const initialTimer = setTimeout(() => fetchChannelMembers(channelId), 1500);
 			// Set up polling
 			clearInterval(pollTimer);
-			const channelId = $activeChannelId;
 			pollTimer = setInterval(() => {
 				fetchChannelMembers(channelId);
 			}, POLL_INTERVAL_MS);
+			return () => clearTimeout(initialTimer);
 		} else {
 			clearInterval(pollTimer);
 		}

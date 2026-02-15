@@ -154,6 +154,7 @@ export async function connectStream(): Promise<void> {
 	const errorName = `irc-error-${streamId}`;
 
 	const unEvent = await listen<IrcEvent>(eventName, (event) => {
+		if (!get(streamConnected)) streamConnected.set(true);
 		handleIrcEvent(event.payload);
 	});
 	unlisteners.push(unEvent);
@@ -164,13 +165,31 @@ export async function connectStream(): Promise<void> {
 	});
 	unlisteners.push(unError);
 
+	// Re-join persisted tabs shortly after stream starts.
+	// invoke('irc_stream') blocks for SSE lifetime, so we schedule
+	// the re-join on a timer instead of awaiting it.
+	setTimeout(() => rejoinPersistedTabs(), 500);
+
 	try {
+		// This blocks for the entire SSE lifetime
 		await invoke('irc_stream', { streamId });
-		streamConnected.set(true);
-		console.log('[irc] stream connected');
 	} catch (e) {
-		console.error('[irc] stream.start() failed:', e);
+		console.error('[irc] stream failed:', e);
+	} finally {
 		disconnectStream();
+	}
+}
+
+async function rejoinPersistedTabs(): Promise<void> {
+	const tabs = get(tabOrder);
+	if (tabs.length === 0) return;
+	console.log('[irc] re-joining %d persisted tabs', tabs.length);
+	for (const channelId of tabs) {
+		try {
+			await joinChannel(channelId);
+		} catch (e) {
+			console.error('[irc] re-join failed for', channelId, e);
+		}
 	}
 }
 
