@@ -1,9 +1,4 @@
 <script lang="ts">
-	import { randomClip } from '$lib/artwork.js';
-	import HeroClip from '$lib/components/HeroClip.svelte';
-
-	const clip = randomClip();
-
 	interface ArcadeGame {
 		id: string;
 		name: string;
@@ -19,8 +14,6 @@
 </script>
 
 <div class="flex flex-col items-center h-full overflow-y-auto py-8 px-6 gap-6">
-	<HeroClip media={{ type: 'video', ...clip }} />
-
 	<div class="flex flex-col items-center gap-2">
 		<h2
 			class="text-xl font-bold tracking-wide"

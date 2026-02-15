@@ -1,11 +1,7 @@
 <script lang="ts">
 	import ChatView from '$lib/components/llm/ChatView.svelte';
-	import { randomClip } from '$lib/artwork.js';
-	import HeroClip from '$lib/components/HeroClip.svelte';
 	import { models, selectedModel, fetchModels } from '$lib/stores/llm.js';
 	import { onMount } from 'svelte';
-
-	const clip = randomClip();
 
 	let activeApp: string | null = $state(null);
 
@@ -24,8 +20,6 @@
 {:else}
 	<!-- Model Explorer -->
 	<div class="flex flex-col items-center h-full overflow-y-auto py-8 px-6 gap-6">
-		<HeroClip media={{ type: 'video', ...clip }} />
-
 		<div class="flex flex-col items-center gap-2">
 			<h2
 				class="text-xl font-bold tracking-wide"

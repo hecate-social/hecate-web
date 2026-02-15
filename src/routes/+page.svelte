@@ -2,12 +2,7 @@
 	import { health, connectionStatus } from '$lib/stores/daemon.js';
 	import { models } from '$lib/stores/llm.js';
 	import { identity } from '$lib/stores/node.js';
-	import { randomClip } from '$lib/artwork.js';
-	import HeroClip from '$lib/components/HeroClip.svelte';
-
 	const DONATE_URL = 'https://buymeacoffee.com/rlefever';
-
-	const clip = randomClip();
 
 	interface StudioCard {
 		id: string;
@@ -61,9 +56,6 @@
 ></div>
 
 <div class="relative flex flex-col items-center h-full overflow-y-auto py-6 px-6 gap-6">
-	<!-- Hero artwork -->
-	<HeroClip media={{ type: 'video', ...clip }} size="w-64 h-64" />
-
 	<!-- Brand -->
 	<div class="flex flex-col items-center gap-2">
 		<h1
