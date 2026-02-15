@@ -15,9 +15,9 @@
 		designAggregate,
 		designEvent,
 		planDesk,
-		openAIAssist,
-		AGENT_PERSONAS
+		openAIAssist
 	} from '$lib/stores/devops.js';
+	import { designLevelAgents, type AgentPrompt } from '$lib/stores/agents.js';
 	import type { DeskCard, ExecutionMode } from '$lib/types.js';
 	import TaskCard from './TaskCard.svelte';
 
@@ -146,7 +146,7 @@
 		}
 	}
 
-	function agentContextPrompt(persona: (typeof AGENT_PERSONAS)[0]): string {
+	function agentContextPrompt(persona: AgentPrompt): string {
 		const div = $selectedDivision?.context_name ?? 'this division';
 		const cards = $deskCards;
 		const existingDesks = cards.map((c) => c.name).join(', ');
@@ -311,7 +311,7 @@
 		</div>
 
 		<div class="grid grid-cols-2 md:grid-cols-4 gap-2">
-			{#each AGENT_PERSONAS as persona}
+			{#each $designLevelAgents as persona}
 				<button
 					onclick={() => openAIAssist(agentContextPrompt(persona))}
 					class="rounded-lg border border-surface-600 bg-surface-800/50

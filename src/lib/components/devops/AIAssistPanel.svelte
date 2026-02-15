@@ -17,6 +17,7 @@
 		phaseAffinity
 	} from '$lib/stores/devops.js';
 	import { systemPrompt } from '$lib/stores/personality.js';
+	import { assistGeneralPrompt } from '$lib/stores/agents.js';
 	import { createStudioContext } from '$lib/context.js';
 	import ModelSelector from '$lib/components/shared/ModelSelector.svelte';
 	import type { ChatMessage, StreamChunk } from '$lib/types.js';
@@ -87,9 +88,7 @@
 			);
 		}
 
-		parts.push(
-			'Be concise and practical. Suggest specific, actionable items. When suggesting domain elements, use snake_case naming. When suggesting events, use the format: {subject}_{verb_past}_v{N}.'
-		);
+		parts.push(get(assistGeneralPrompt));
 
 		return parts.join('\n\n---\n\n');
 	}

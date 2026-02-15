@@ -30,6 +30,9 @@ pub fn run() {
             personality::get_personality_info,
             personality::build_system_prompt,
             personality::list_roles,
+            personality::load_agent_prompt,
+            personality::load_agent_group,
+            personality::load_raw_prompt,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

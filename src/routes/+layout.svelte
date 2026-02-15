@@ -6,6 +6,7 @@
 	import { fetchModels } from '$lib/stores/llm.js';
 	import { fetchIdentity, fetchProviders } from '$lib/stores/node.js';
 	import { loadPersonalityInfo } from '$lib/stores/personality.js';
+	import { loadAgents } from '$lib/stores/agents.js';
 	import { onMount, onDestroy } from 'svelte';
 
 	let { children } = $props();
@@ -16,6 +17,7 @@
 		fetchIdentity();
 		fetchProviders();
 		loadPersonalityInfo();
+		loadAgents();
 	});
 
 	onDestroy(() => {

@@ -29,9 +29,9 @@
 		resetBigPicture,
 		fetchStormState,
 		openAIAssist,
-		isLoading,
-		BIG_PICTURE_AGENTS
+		isLoading
 	} from '$lib/stores/devops.js';
+	import { bigPictureAgents } from '$lib/stores/agents.js';
 	import type { BigPictureEvent, EventCluster } from '$lib/types.js';
 
 	let eventInput = $state('');
@@ -268,7 +268,7 @@
 						</button>
 
 						<div class="flex gap-2">
-							{#each BIG_PICTURE_AGENTS as agent}
+							{#each $bigPictureAgents as agent}
 								<button
 									onclick={() =>
 										openAIAssist(
@@ -356,7 +356,7 @@
 
 					<div class="flex items-center justify-between">
 						<div class="flex gap-1.5">
-							{#each BIG_PICTURE_AGENTS as agent}
+							{#each $bigPictureAgents as agent}
 								<button
 									onclick={() =>
 										openAIAssist(
@@ -498,7 +498,7 @@
 				<div class="border-t border-surface-600 p-3 shrink-0">
 					<div class="flex items-center justify-between">
 						<div class="flex gap-1.5">
-							{#each BIG_PICTURE_AGENTS.slice(0, 2) as agent}
+							{#each $bigPictureAgents.slice(0, 2) as agent}
 								<button
 									onclick={() =>
 										openAIAssist(
@@ -792,7 +792,7 @@
 				<div class="border-t border-surface-600 p-3 shrink-0">
 					<div class="flex items-center justify-between">
 						<div class="flex gap-1.5">
-							{#each BIG_PICTURE_AGENTS.slice(0, 2) as agent}
+							{#each $bigPictureAgents.slice(0, 2) as agent}
 								<button
 									onclick={() =>
 										openAIAssist(
@@ -1053,7 +1053,7 @@
 				<div class="border-t border-surface-600 p-3 shrink-0">
 					<div class="flex items-center justify-between">
 						<div class="flex gap-2">
-							{#each BIG_PICTURE_AGENTS.slice(2) as agent}
+							{#each $bigPictureAgents.slice(2) as agent}
 								<button
 									onclick={() =>
 										openAIAssist(
