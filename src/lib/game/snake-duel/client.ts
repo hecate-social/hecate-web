@@ -1,0 +1,169 @@
+// SSE client for streaming snake duel match state from hecate-daemon.
+// Uses Tauri command + event listener (not EventSource — hecate:// protocol
+// proxy reads the full response body before returning, which blocks SSE).
+
+import { get, post } from '$lib/api';
+import { invoke } from '@tauri-apps/api/core';
+import { listen, type UnlistenFn } from '@tauri-apps/api/event';
+import type { GameState } from './types';
+
+interface StartMatchResponse {
+	ok: boolean;
+	match_id: string;
+	af1: number;
+	af2: number;
+	tick_ms: number;
+	status: string;
+}
+
+/** Start a new match on the daemon. Returns match_id. */
+export async function startMatch(
+	af1: number,
+	af2: number,
+	tickMs: number
+): Promise<string> {
+	const resp = await post<StartMatchResponse>('/api/arcade/snake-duel/matches', {
+		af1,
+		af2,
+		tick_ms: tickMs
+	});
+	return resp.match_id;
+}
+
+/** Connect to the SSE stream for a live match via Tauri command.
+ *  Returns an async cleanup function that stops the stream and removes listeners.
+ */
+export async function connectMatchStream(
+	matchId: string,
+	onState: (state: GameState) => void,
+	onDone?: () => void,
+	onError?: (error: string) => void
+): Promise<() => void> {
+	const streamId = crypto.randomUUID();
+	const stateEvent = `snake-duel-state-${streamId}`;
+	const doneEvent = `snake-duel-done-${streamId}`;
+	const errorEvent = `snake-duel-error-${streamId}`;
+
+	const unlisteners: UnlistenFn[] = [];
+
+	const unState = await listen<Record<string, unknown>>(stateEvent, (event) => {
+		try {
+			const state = daemonToGameState(event.payload);
+			onState(state);
+		} catch (e) {
+			console.error('[snake-duel] Failed to parse SSE data:', e);
+		}
+	});
+	unlisteners.push(unState);
+
+	const unDone = await listen(doneEvent, () => {
+		if (onDone) onDone();
+	});
+	unlisteners.push(unDone);
+
+	const unError = await listen<{ type: string; error: string }>(errorEvent, (event) => {
+		console.error('[snake-duel] stream error:', event.payload.error);
+		if (onError) onError(event.payload.error);
+	});
+	unlisteners.push(unError);
+
+	try {
+		await invoke('snake_duel_stream', { streamId, matchId });
+	} catch (e) {
+		console.error('[snake-duel] invoke snake_duel_stream failed:', e);
+		for (const un of unlisteners) un();
+		throw e;
+	}
+
+	return () => {
+		for (const un of unlisteners) un();
+	};
+}
+
+/** Convert daemon JSON map to client GameState type.
+ * Daemon uses snake_case atoms; client uses camelCase strings.
+ */
+function daemonToGameState(data: Record<string, unknown>): GameState {
+	return {
+		snake1: daemonToSnake(data.snake1 as Record<string, unknown>),
+		snake2: daemonToSnake(data.snake2 as Record<string, unknown>),
+		food: data.food as [number, number],
+		poisonApples: (data.poison_apples as Array<Record<string, unknown>>).map((p) => ({
+			pos: p.pos as [number, number],
+			owner: String(p.owner) as 'player1' | 'player2'
+		})),
+		status: String(data.status) as GameState['status'],
+		winner:
+			data.winner === 'none' || data.winner === null
+				? null
+				: (String(data.winner) as 'player1' | 'player2' | 'draw'),
+		tick: data.tick as number,
+		countdown: data.countdown as number
+	};
+}
+
+function daemonToSnake(s: Record<string, unknown>): GameState['snake1'] {
+	return {
+		body: (s.body as number[][]).map(([x, y]) => [x, y] as [number, number]),
+		direction: String(s.direction) as 'up' | 'down' | 'left' | 'right',
+		score: s.score as number,
+		assholeFactor: s.asshole_factor as number,
+		events: ((s.events as Array<Record<string, unknown>>) || []).map((e) => ({
+			type: mapEventType(String(e.type)),
+			value: String(e.value),
+			tick: e.tick as number
+		}))
+	};
+}
+
+function mapEventType(
+	t: string
+): 'food' | 'turn' | 'collision' | 'win' | 'poison-drop' | 'poison-eat' {
+	const mapping: Record<string, string> = {
+		food: 'food',
+		turn: 'turn',
+		collision: 'collision',
+		win: 'win',
+		poison_drop: 'poison-drop',
+		poison_eat: 'poison-eat'
+	};
+	return (mapping[t] || t) as 'food' | 'turn' | 'collision' | 'win' | 'poison-drop' | 'poison-eat';
+}
+
+// --- Query endpoints (history, leaderboard) ---
+
+export interface MatchResult {
+	match_id: string;
+	winner: string;
+	af1: number;
+	af2: number;
+	tick_ms: number;
+	score1: number;
+	score2: number;
+	ticks: number;
+	started_at: number;
+	ended_at: number;
+}
+
+export interface LeaderboardData {
+	total_matches: number;
+	draws: number;
+	stats: Array<{
+		winner: string;
+		wins: number;
+		avg_score: number;
+	}>;
+}
+
+/** Fetch recent match history. */
+export async function fetchHistory(limit = 20): Promise<MatchResult[]> {
+	const resp = await get<{ matches: MatchResult[] }>(
+		`/api/arcade/snake-duel/history?limit=${limit}`
+	);
+	return resp.matches ?? [];
+}
+
+/** Fetch aggregate leaderboard stats. */
+export async function fetchLeaderboard(): Promise<LeaderboardData> {
+	return get<LeaderboardData>('/api/arcade/snake-duel/leaderboard');
+}

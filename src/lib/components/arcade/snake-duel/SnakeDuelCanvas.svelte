@@ -1,7 +1,8 @@
 <script lang="ts">
 	import { onMount, onDestroy } from 'svelte';
 	import { GRID_WIDTH, GRID_HEIGHT } from '$lib/game/snake-duel/constants';
-	import { createGame, tickGame } from '$lib/game/snake-duel/engine';
+	import { createGame } from '$lib/game/snake-duel/engine';
+	import { startMatch as daemonStartMatch, connectMatchStream } from '$lib/game/snake-duel/client';
 	import { drawFrame, drawCountdown, drawGameOver, drawIdle } from '$lib/game/snake-duel/renderer';
 	import type { GameState } from '$lib/game/snake-duel/types';
 
@@ -17,50 +18,39 @@
 	let wrapper: HTMLDivElement;
 	let canvas: HTMLCanvasElement;
 	let ctx: CanvasRenderingContext2D | null = null;
-	let tickInterval: ReturnType<typeof setInterval> | null = null;
-	let countdownInterval: ReturnType<typeof setInterval> | null = null;
 	let resizeObserver: ResizeObserver | null = null;
+	let disconnectStream: (() => void) | null = null;
 
 	export function startMatch(): void {
-		stopIntervals();
-		gameState = { ...createGame(p1AssholeFactor, p2AssholeFactor), status: 'countdown', countdown: 3 };
-		render();
-		startCountdown();
+		cleanup();
+
+		// Start match on the daemon — it owns the game engine now
+		daemonStartMatch(p1AssholeFactor, p2AssholeFactor, tickMs)
+			.then(async (matchId) => {
+				disconnectStream = await connectMatchStream(
+					matchId,
+					(state) => {
+						gameState = state;
+						render();
+					},
+					() => {
+						// Stream finished normally
+						render();
+					},
+					(err) => {
+						console.warn('[snake-duel] stream error:', err);
+					}
+				);
+			})
+			.catch((err) => {
+				console.error('[snake-duel] Failed to start match:', err);
+			});
 	}
 
-	function startCountdown(): void {
-		countdownInterval = setInterval(() => {
-			if (gameState.countdown > 0) {
-				gameState = { ...gameState, countdown: gameState.countdown - 1 };
-				render();
-			} else {
-				if (countdownInterval) clearInterval(countdownInterval);
-				countdownInterval = null;
-				gameState = { ...gameState, status: 'running' };
-				startGameLoop();
-			}
-		}, 800);
-	}
-
-	function startGameLoop(): void {
-		tickInterval = setInterval(() => {
-			const next = tickGame(gameState);
-			gameState = next;
-			render();
-			if (next.status === 'finished') {
-				stopIntervals();
-			}
-		}, tickMs);
-	}
-
-	function stopIntervals(): void {
-		if (tickInterval) {
-			clearInterval(tickInterval);
-			tickInterval = null;
-		}
-		if (countdownInterval) {
-			clearInterval(countdownInterval);
-			countdownInterval = null;
+	function cleanup(): void {
+		if (disconnectStream) {
+			disconnectStream();
+			disconnectStream = null;
 		}
 	}
 
@@ -101,7 +91,7 @@
 	});
 
 	onDestroy(() => {
-		stopIntervals();
+		cleanup();
 		resizeObserver?.disconnect();
 	});
 </script>

@@ -1,5 +1,6 @@
 mod irc_streaming;
 mod personality;
+mod snake_duel_streaming;
 mod socket_proxy;
 mod streaming;
 
@@ -44,6 +45,7 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             streaming::chat_stream,
             irc_streaming::irc_stream,
+            snake_duel_streaming::snake_duel_stream,
             personality::get_personality_info,
             personality::build_system_prompt,
             personality::list_roles,
