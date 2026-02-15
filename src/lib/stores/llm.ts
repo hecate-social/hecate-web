@@ -1,5 +1,6 @@
 import { writable, get } from 'svelte/store';
 import type { ChatMessage, Model, StreamChunk, Usage } from '../types.js';
+import type { ChatStream } from '../context.js';
 import * as api from '../api.js';
 import { createStudioContext } from '../context.js';
 import { systemPrompt } from './personality.js';
@@ -13,6 +14,24 @@ export const lastUsage = writable<Usage | null>(null);
 export const streamError = writable<string | null>(null);
 
 const ctx = createStudioContext();
+let activeStream: ChatStream | null = null;
+
+// When the model changes, cancel any in-flight stream and reset conversation
+let prevModel: string | null = null;
+selectedModel.subscribe((model) => {
+	if (prevModel !== null && prevModel !== model) {
+		if (activeStream) {
+			activeStream.cancel();
+			activeStream = null;
+		}
+		messages.set([]);
+		streamingContent.set('');
+		isStreaming.set(false);
+		lastUsage.set(null);
+		streamError.set(null);
+	}
+	prevModel = model;
+});
 
 export async function fetchModels(): Promise<void> {
 	try {
@@ -61,6 +80,7 @@ export async function sendMessage(content: string): Promise<void> {
 	let receivedAnyEvent = false;
 
 	const stream = ctx.stream.chat(model, allMessages);
+	activeStream = stream;
 
 	// Safety timeout: if no events arrive within 45 seconds, abort
 	const timeout = setTimeout(() => {
@@ -73,6 +93,7 @@ export async function sendMessage(content: string): Promise<void> {
 
 	function finishWithError(error: string) {
 		clearTimeout(timeout);
+		activeStream = null;
 		const errorMsg: ChatMessage = {
 			role: 'assistant',
 			content: `Error: ${error}`
@@ -94,6 +115,7 @@ export async function sendMessage(content: string): Promise<void> {
 		.onDone((chunk: StreamChunk) => {
 			receivedAnyEvent = true;
 			clearTimeout(timeout);
+			activeStream = null;
 
 			if (chunk.content) {
 				accumulated += chunk.content;

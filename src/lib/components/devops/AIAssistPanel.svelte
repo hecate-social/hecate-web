@@ -23,6 +23,8 @@
 	import { tick } from 'svelte';
 	import { get } from 'svelte/store';
 
+	import type { ChatStream } from '$lib/context.js';
+
 	const ctx = createStudioContext();
 
 	let chatMessages: ChatMessage[] = $state([]);
@@ -30,9 +32,26 @@
 	let isStreaming = $state(false);
 	let streamingContent = $state('');
 	let messagesEl: HTMLDivElement | undefined = $state();
+	let activeStream: ChatStream | null = $state(null);
+	let prevModel: string | null = $state(null);
 
 	let currentAffinity = $derived(phaseAffinity($selectedPhase));
 	let phasePref = $derived($phaseModelPrefs[$selectedPhase]);
+
+	// When model changes, cancel in-flight stream and reset conversation
+	$effect(() => {
+		const model = $aiModel;
+		if (prevModel !== null && prevModel !== model) {
+			if (activeStream) {
+				activeStream.cancel();
+				activeStream = null;
+			}
+			chatMessages = [];
+			streamingContent = '';
+			isStreaming = false;
+		}
+		prevModel = model;
+	});
 
 	// Auto-start with context when opened
 	$effect(() => {
@@ -96,6 +115,7 @@
 		let accumulated = '';
 
 		const stream = ctx.stream.chat(model, allMessages);
+		activeStream = stream;
 
 		stream
 			.onChunk((chunk: StreamChunk) => {
@@ -105,6 +125,7 @@
 				}
 			})
 			.onDone(async (chunk: StreamChunk) => {
+				activeStream = null;
 				if (chunk.content) {
 					accumulated += chunk.content;
 				}
@@ -129,6 +150,7 @@
 				}
 			})
 			.onError((error: string) => {
+				activeStream = null;
 				const errorMsg: ChatMessage = {
 					role: 'assistant',
 					content: `Error: ${error}`
