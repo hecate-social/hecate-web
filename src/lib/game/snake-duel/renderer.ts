@@ -165,7 +165,8 @@ export function drawCountdown(ctx: CanvasRenderingContext2D, count: number): voi
 
 export function drawGameOver(
 	ctx: CanvasRenderingContext2D,
-	winner: 'player1' | 'player2' | 'draw' | null
+	winner: 'player1' | 'player2' | 'draw' | null,
+	reason?: string
 ): void {
 	const cw = ctx.canvas.width;
 	const ch = ctx.canvas.height;
@@ -178,18 +179,26 @@ export function drawGameOver(
 	ctx.textAlign = 'center';
 	ctx.textBaseline = 'middle';
 
+	const centerY = ch / 2 - (reason ? fontSize * 0.4 : 0);
+
 	if (winner === 'player1') {
 		ctx.fillStyle = COLORS.player1Head;
-		ctx.fillText('Blue Wins!', cw / 2, ch / 2 - fontSize * 0.6);
+		ctx.fillText('Blue Wins!', cw / 2, centerY - fontSize * 0.6);
 	} else if (winner === 'player2') {
 		ctx.fillStyle = COLORS.player2Head;
-		ctx.fillText('Red Wins!', cw / 2, ch / 2 - fontSize * 0.6);
+		ctx.fillText('Red Wins!', cw / 2, centerY - fontSize * 0.6);
 	} else {
 		ctx.fillStyle = '#ffffff';
-		ctx.fillText("It's a Draw!", cw / 2, ch / 2 - fontSize * 0.6);
+		ctx.fillText("It's a Draw!", cw / 2, centerY - fontSize * 0.6);
 	}
 
-	ctx.font = `${fontSize * 0.4}px monospace`;
-	ctx.fillStyle = '#888888';
-	ctx.fillText('Press "New Match" to play again', cw / 2, ch / 2 + fontSize * 0.6);
+	if (reason) {
+		ctx.font = `${fontSize * 0.35}px monospace`;
+		ctx.fillStyle = '#aaaaaa';
+		ctx.fillText(reason, cw / 2, centerY + fontSize * 0.4);
+	}
+
+	ctx.font = `${fontSize * 0.35}px monospace`;
+	ctx.fillStyle = '#666666';
+	ctx.fillText('Press "New Match" to play again', cw / 2, centerY + fontSize * 1.2);
 }

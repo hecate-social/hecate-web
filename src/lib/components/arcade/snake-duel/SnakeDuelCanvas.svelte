@@ -58,8 +58,8 @@
 		if (!wrapper || !canvas) return;
 		const rect = wrapper.getBoundingClientRect();
 		const aspect = GRID_WIDTH / GRID_HEIGHT;
-		const maxW = 540;
-		const maxH = 432;
+		const maxW = 720;
+		const maxH = 576;
 		let w = Math.min(rect.width, maxW);
 		let h = w / aspect;
 		if (h > Math.min(rect.height, maxH)) {
@@ -71,6 +71,18 @@
 		render();
 	}
 
+	function getEndReason(): string | undefined {
+		if (gameState.status !== 'finished') return undefined;
+		const s1Collision = gameState.snake1.events.find((e) => e.type === 'collision');
+		const s2Collision = gameState.snake2.events.find((e) => e.type === 'collision');
+		if (gameState.winner === 'player1' && s2Collision)
+			return `Red: ${s2Collision.value}`;
+		if (gameState.winner === 'player2' && s1Collision)
+			return `Blue: ${s1Collision.value}`;
+		if (s1Collision) return s1Collision.value;
+		return s2Collision?.value;
+	}
+
 	function render(): void {
 		if (!ctx) return;
 		drawFrame(ctx, gameState);
@@ -79,7 +91,7 @@
 		} else if (gameState.status === 'countdown') {
 			drawCountdown(ctx, gameState.countdown);
 		} else if (gameState.status === 'finished') {
-			drawGameOver(ctx, gameState.winner);
+			drawGameOver(ctx, gameState.winner, getEndReason());
 		}
 	}
 
