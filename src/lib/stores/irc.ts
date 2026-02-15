@@ -371,7 +371,6 @@ const HELP_TEXT = [
 	'  Ctrl+Shift+Tab — Previous tab',
 	'  Ctrl+W         — Close current tab',
 	'  Alt+1..9       — Switch to tab N',
-	'  Ctrl+N         — Open create channel',
 	'  Escape         — Back to lobby'
 ].join('\n');
 

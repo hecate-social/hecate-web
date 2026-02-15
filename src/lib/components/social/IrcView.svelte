@@ -16,7 +16,6 @@
 	import IrcLobby from './irc/IrcLobby.svelte';
 	import IrcMessagePane from './irc/IrcMessagePane.svelte';
 	import IrcMemberSidebar from './irc/IrcMemberSidebar.svelte';
-	import IrcCreateModal from './irc/IrcCreateModal.svelte';
 
 	interface Props {
 		onBack: () => void;
@@ -24,7 +23,6 @@
 
 	let { onBack }: Props = $props();
 
-	let showCreateModal = $state(false);
 	let lobbyRef: IrcLobby | undefined = $state();
 	let messagePaneRef: IrcMessagePane | undefined = $state();
 
@@ -89,13 +87,6 @@
 			return;
 		}
 
-		// Ctrl+N — create channel
-		if (e.ctrlKey && e.key === 'n') {
-			e.preventDefault();
-			showCreateModal = true;
-			return;
-		}
-
 		// Alt+1..9 — switch to tab N
 		if (e.altKey && e.key >= '1' && e.key <= '9') {
 			e.preventDefault();
@@ -108,20 +99,18 @@
 			return;
 		}
 
-		// Escape — back to lobby or close modal
+		// Escape — back to lobby
 		if (e.key === 'Escape') {
-			if (showCreateModal) {
-				showCreateModal = false;
-			} else if ($activeChannelId) {
+			if ($activeChannelId) {
 				activeChannelId.set(null);
 			}
 			return;
 		}
 
-		// / in lobby — focus search (only when not in an input)
+		// / in lobby — focus command input (only when not in an input)
 		if (!isInput && e.key === '/' && !$activeChannelId) {
 			e.preventDefault();
-			lobbyRef?.focusSearch();
+			lobbyRef?.focusInput();
 			return;
 		}
 	}
@@ -133,7 +122,7 @@
 	<IrcHeader {onBack} />
 
 	<div class="flex flex-1 min-h-0">
-		<IrcChannelSidebar onCreateChannel={() => (showCreateModal = true)} />
+		<IrcChannelSidebar />
 
 		{#if $activeChannelId}
 			<!-- Active channel: tabs + messages + members -->
@@ -145,13 +134,8 @@
 				</div>
 			</div>
 		{:else}
-			<!-- No channel: show lobby -->
-			<IrcLobby
-				bind:this={lobbyRef}
-				onCreateChannel={() => (showCreateModal = true)}
-			/>
+			<!-- No channel: show lobby with command input -->
+			<IrcLobby bind:this={lobbyRef} />
 		{/if}
 	</div>
 </div>
-
-<IrcCreateModal show={showCreateModal} onClose={() => (showCreateModal = false)} />

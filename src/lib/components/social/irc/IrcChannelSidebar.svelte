@@ -9,12 +9,6 @@
 		addTab
 	} from '../../../stores/irc.js';
 
-	interface Props {
-		onCreateChannel: () => void;
-	}
-
-	let { onCreateChannel }: Props = $props();
-
 	async function handleSelectChannel(channelId: string) {
 		activeChannelId.set(channelId);
 		clearUnread(channelId);
@@ -28,15 +22,8 @@
 </script>
 
 <div class="w-48 shrink-0 bg-surface-850 border-r border-surface-600 flex flex-col">
-	<div class="flex items-center justify-between px-3 py-2">
+	<div class="px-3 py-2">
 		<span class="text-[10px] text-surface-500 uppercase tracking-wider font-medium">Channels</span>
-		<button
-			onclick={onCreateChannel}
-			class="text-surface-400 hover:text-accent-400 transition-colors text-xs"
-			title="Open new channel (Ctrl+N)"
-		>
-			+
-		</button>
 	</div>
 	<div class="flex-1 overflow-y-auto">
 		{#each $channels as channel}
