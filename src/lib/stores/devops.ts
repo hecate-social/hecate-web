@@ -120,14 +120,9 @@ export function recommendModel(
 	const preferred = available.find((m) => m.name === PREFERRED_CLOUD_MODEL);
 	if (preferred) return preferred.name;
 
-	// 4. Any cloud model matching affinity
-	const match = available.find((m) => modelAffinity(m.name) === affinity);
-	if (match) return match.name;
-
-	// 5. Any local model (small, but better than nothing)
-	if (local.length > 0) return local[0].name;
-
-	return available[0].name;
+	// 4. Return null — let aiModel derived fall through to selectedModel
+	// which fetchModels updates with retry logic
+	return null;
 }
 
 // The resolved model for AI Assist — override > local recommend > phase pref > global
