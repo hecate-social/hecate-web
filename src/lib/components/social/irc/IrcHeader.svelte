@@ -25,7 +25,7 @@
 	{#if $activeChannelId}
 		{@const ch = $channels.find((c) => c.channel_id === $activeChannelId)}
 		<span class="text-accent-400 text-sm font-mono">#{ch?.name ?? '...'}</span>
-		{#if ch?.topic}
+		{#if ch?.topic && ch.topic !== 'undefined'}
 			<span class="text-surface-500 text-[10px] truncate">{ch.topic}</span>
 		{/if}
 	{:else}

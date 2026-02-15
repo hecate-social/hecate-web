@@ -165,17 +165,15 @@ export async function connectStream(): Promise<void> {
 	});
 	unlisteners.push(unError);
 
-	// Re-join persisted tabs shortly after stream starts.
-	// invoke('irc_stream') blocks for SSE lifetime, so we schedule
-	// the re-join on a timer instead of awaiting it.
-	setTimeout(() => rejoinPersistedTabs(), 500);
-
 	try {
-		// This blocks for the entire SSE lifetime
+		// invoke returns immediately (Rust spawns a background thread).
+		// Do NOT call disconnectStream in finally — listeners must stay alive.
 		await invoke('irc_stream', { streamId });
+		// Re-join persisted tabs so the backend SSE handler
+		// joins the correct pg groups (survives HMR / reconnect)
+		await rejoinPersistedTabs();
 	} catch (e) {
-		console.error('[irc] stream failed:', e);
-	} finally {
+		console.error('[irc] stream.start() failed:', e);
 		disconnectStream();
 	}
 }
