@@ -65,6 +65,9 @@
 		return null;
 	});
 
+	// Is the vision complete (all sections filled in)?
+	let visionComplete = $derived(extractedVision !== null && !extractedVision.includes('(Not yet explored)'));
+
 	// Extract brief from vision (<!-- brief: ... --> tag)
 	let extractedBrief = $derived.by(() => {
 		if (!extractedVision) return null;
@@ -116,42 +119,54 @@
 
 		parts.push(`You are The Oracle, a vision architect for the Hecate venture lifecycle system.
 
+YOUR ROLE: Conduct a focused interview AND progressively build a vision document in real time.
+
 CONVERSATION RULES — FOLLOW STRICTLY:
 
-Phase 1: INTERVIEW (first 3-5 exchanges)
-- Ask ONE focused question per response. Do NOT ask multiple questions at once.
-- Keep responses SHORT — 2-4 sentences max, then your question.
-- You MUST cover these topics before producing any vision document:
-  1. Problem domain — what pain does this solve? Who suffers from it today?
-  2. Target users — who exactly uses this? What is their daily reality?
-  3. Core capabilities — what are the 3-5 things this MUST do on day one?
-  4. Constraints — technical stack, team size, timeline, budget, regulations?
-  5. Success criteria — how will we measure whether this venture succeeded?
+1. Ask ONE focused question per response. Do NOT ask multiple questions at once.
+2. Keep your conversational text SHORT — 2-4 sentences max, then your question.
+3. Cover these 5 topics through the interview:
+   1. Problem domain — what pain does this solve? Who suffers from it today?
+   2. Target users — who exactly uses this? What is their daily reality?
+   3. Core capabilities — what are the 3-5 things this MUST do on day one?
+   4. Constraints — technical stack, team size, timeline, budget, regulations?
+   5. Success criteria — how will we measure whether this venture succeeded?
 
-CRITICAL: Do NOT produce a vision document until you have asked about ALL FIVE topics above.
 If the user gives a brief answer, dig deeper with a follow-up. Push for specifics, not generalities.
-You are a curious interviewer, not a document generator.
 
-Phase 2: SYNTHESIS (after 5+ exchanges covering all topics)
-- Tell the user you have enough context and will now synthesize their vision.
-- Produce the vision document inside a markdown code fence.
+CRITICAL — PROGRESSIVE VISION DRAFT:
+After EVERY response, you MUST include the current vision draft in a markdown code fence.
+The vision preview panel updates live from this fence. Sections you haven't explored yet
+should say "(Not yet explored)" — they will fill in as the conversation progresses.
+The user sees their vision take shape in real time. This is the core UX.
 
-The vision document MUST:
-- Start with a comment: <!-- brief: One-line summary -->
-- Have the heading: # {Venture Name} — Vision
-- Include sections: ## Problem, ## Users, ## Capabilities, ## Constraints, ## Success Criteria
-- Be 200-400 words, business language, not technical jargon
+As topics are covered, replace "(Not yet explored)" with real content from the conversation.
+Each response refines and expands the previous draft. The document grows with the interview.
 
-Format:
+When all 5 topics are covered, the vision should be complete (200-400 words, business language).
+After that, ask if anything needs adjustment. Each revision updates the fence.
+
+The vision document MUST use this format:
+
 \`\`\`markdown
-<!-- brief: One-line summary of the venture -->
-# Venture Name — Vision
+<!-- brief: One-line summary of the venture (update as understanding grows) -->
+# {Venture Name} — Vision
+
+## Problem
+...
+
+## Users
+...
+
+## Capabilities
+...
+
+## Constraints
+...
+
+## Success Criteria
 ...
 \`\`\`
-
-Phase 3: REFINEMENT (after vision is produced)
-- Ask if anything needs adjustment.
-- Each revision produces a full updated vision in a new markdown fence.
 
 Remember: you are warm but direct. Challenge vague answers. The vision is only as good as the interview.`);
 
@@ -421,8 +436,12 @@ Remember: you are warm but direct. Challenge vague answers. The vision is only a
 			<span class="text-surface-400 text-xs">{'\u{1F4C4}'}</span>
 			<span class="text-xs font-semibold text-surface-100">Vision Preview</span>
 			<div class="flex-1"></div>
-			{#if extractedVision}
-				<span class="text-[10px] text-health-ok">{'\u{25CF}'} Synthesized</span>
+			{#if visionComplete}
+				<span class="text-[10px] text-health-ok">{'\u{25CF}'} Complete</span>
+			{:else if extractedVision}
+				<span class="text-[10px] text-amber-400">{'\u{25D0}'} Drafting...</span>
+			{:else if isStreaming}
+				<span class="text-[10px] text-surface-400">{'\u{25D0}'} Listening...</span>
 			{:else}
 				<span class="text-[10px] text-surface-400">Waiting for Oracle...</span>
 			{/if}
@@ -443,11 +462,11 @@ Remember: you are warm but direct. Challenge vague answers. The vision is only a
 				{/if}
 			{:else}
 				<div class="flex items-center justify-center h-full">
-					<div class="text-center text-surface-400 max-w-[200px]">
+					<div class="text-center text-surface-400 max-w-[220px]">
 						<div class="text-2xl mb-2">{'\u{1F4C4}'}</div>
 						<div class="text-[11px]">
-							The Oracle will synthesize your VISION.md here after gathering
-							enough context about your venture.
+							Your vision will take shape here as the Oracle
+							gathers context about your venture.
 						</div>
 					</div>
 				</div>
@@ -456,7 +475,7 @@ Remember: you are warm but direct. Challenge vague answers. The vision is only a
 
 		<!-- Scaffold Action -->
 		<div class="border-t border-surface-600 p-3 shrink-0">
-			{#if extractedVision}
+			{#if visionComplete}
 				<div class="space-y-2">
 					<div>
 						<label for="repo-path" class="text-[10px] text-surface-400 block mb-1">
@@ -489,9 +508,13 @@ Remember: you are warm but direct. Challenge vague answers. The vision is only a
 						{isScaffolding ? 'Scaffolding...' : 'Scaffold Venture'}
 					</button>
 				</div>
+			{:else if extractedVision}
+				<div class="text-center text-[10px] text-surface-400 py-2">
+					Vision is taking shape {'\u{2014}'} keep exploring with the Oracle
+				</div>
 			{:else}
 				<div class="text-center text-[10px] text-surface-400 py-2">
-					Complete the Oracle conversation to enable scaffolding
+					The Oracle will guide you through defining your venture
 				</div>
 			{/if}
 		</div>
