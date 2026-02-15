@@ -33,15 +33,42 @@ selectedModel.subscribe((model) => {
 	prevModel = model;
 });
 
+// Preferred cloud model when no capable local models are available
+const PREFERRED_CLOUD_MODEL = 'llama-3.3-70b-versatile';
+// Local models below this threshold are too small for structured prompts
+const MIN_LOCAL_PARAMS_B = 20;
+
+function parseParamBillions(s?: string): number {
+	if (!s) return 0;
+	const m = s.match(/^(\d+(?:\.\d+)?)\s*[Bb]/);
+	return m ? parseFloat(m[1]) : 0;
+}
+
 export async function fetchModels(): Promise<void> {
 	try {
 		const resp = await api.get<{ ok: boolean; models: Model[] }>('/api/llm/models');
 		if (resp.ok && resp.models) {
-			// Always prefer local (Ollama) models — self-hosted, no API keys needed
-			const ollama = resp.models.find((m) => m.provider === 'ollama');
-			const preferred = ollama ? ollama.name : resp.models[0]?.name ?? '';
 			models.set(resp.models);
-			if (preferred) selectedModel.set(preferred);
+			// Prefer capable local models (>= 20B) — self-hosted, no API keys
+			const local = resp.models.filter((m) => m.provider === 'ollama');
+			const capable = local.filter((m) => parseParamBillions(m.parameter_size) >= MIN_LOCAL_PARAMS_B);
+			if (capable.length > 0) {
+				const best = capable.sort((a, b) => (b.size_bytes ?? 0) - (a.size_bytes ?? 0));
+				selectedModel.set(best[0].name);
+				return;
+			}
+			// Fall back to preferred cloud model, then any local, then first available
+			const cloud = resp.models.find((m) => m.name === PREFERRED_CLOUD_MODEL);
+			if (cloud) {
+				selectedModel.set(cloud.name);
+				return;
+			}
+			if (local.length > 0) {
+				selectedModel.set(local[0].name);
+				return;
+			}
+			const first = resp.models[0]?.name ?? '';
+			if (first) selectedModel.set(first);
 		}
 	} catch {
 		models.set([]);

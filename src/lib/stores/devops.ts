@@ -85,8 +85,18 @@ export function phaseAffinity(phase: PhaseCode): 'code' | 'general' {
 	return phase === 'tni' ? 'code' : 'general';
 }
 
+// Preferred cloud model when no capable local models are available
+const PREFERRED_CLOUD_MODEL = 'llama-3.3-70b-versatile';
+const MIN_LOCAL_PARAMS_B = 20;
+
+function parseParamBillions(s?: string): number {
+	if (!s) return 0;
+	const m = s.match(/^(\d+(?:\.\d+)?)\s*[Bb]/);
+	return m ? parseFloat(m[1]) : 0;
+}
+
 // Recommend a model for a phase given available models
-// Prefer local (Ollama) models — they're self-hosted and always available
+// Prefer capable local (Ollama >= 20B) models, then cloud fallback
 export function recommendModel(
 	phase: PhaseCode,
 	available: Model[]
@@ -94,20 +104,28 @@ export function recommendModel(
 	if (available.length === 0) return null;
 	const affinity = phaseAffinity(phase);
 	const local = available.filter((m) => m.provider === 'ollama');
+	const capable = local.filter((m) => parseParamBillions(m.parameter_size) >= MIN_LOCAL_PARAMS_B);
 
-	// 1. Try local model matching phase affinity
-	const localMatch = local.find((m) => modelAffinity(m.name) === affinity);
-	if (localMatch) return localMatch.name;
+	// 1. Capable local model matching phase affinity
+	const capableMatch = capable.find((m) => modelAffinity(m.name) === affinity);
+	if (capableMatch) return capableMatch.name;
 
-	// 2. Any local model (largest first for best quality)
-	if (local.length > 0) {
-		const sorted = [...local].sort((a, b) => (b.size_bytes ?? 0) - (a.size_bytes ?? 0));
+	// 2. Any capable local model (largest first)
+	if (capable.length > 0) {
+		const sorted = [...capable].sort((a, b) => (b.size_bytes ?? 0) - (a.size_bytes ?? 0));
 		return sorted[0].name;
 	}
 
-	// 3. Fall back to cloud model matching affinity
+	// 3. Preferred cloud model
+	const preferred = available.find((m) => m.name === PREFERRED_CLOUD_MODEL);
+	if (preferred) return preferred.name;
+
+	// 4. Any cloud model matching affinity
 	const match = available.find((m) => modelAffinity(m.name) === affinity);
 	if (match) return match.name;
+
+	// 5. Any local model (small, but better than nothing)
+	if (local.length > 0) return local[0].name;
 
 	return available[0].name;
 }
