@@ -1,0 +1,32 @@
+[package]
+name = "hecate-web"
+version = "0.1.0"
+edition = "2021"
+description = "Hecate Desktop — site-specific browser for Hecate Daemon"
+authors = ["Hecate Social"]
+
+[lib]
+name = "hecate_web_lib"
+crate-type = ["lib", "cdylib", "staticlib"]
+
+[[bin]]
+name = "hecate-web"
+path = "src/main.rs"
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = [] }
+tauri-plugin-shell = "2"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+tokio = { version = "1", features = ["net", "io-util", "rt", "macros"] }
+hyper = { version = "1", features = ["client", "http1"] }
+hyper-util = { version = "0.1", features = ["tokio", "client", "client-legacy", "http1"] }
+http-body-util = "0.1"
+bytes = "1"
+dirs = "6.0.0"
+
+[features]
+custom-protocol = ["tauri/custom-protocol"]

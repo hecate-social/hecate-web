@@ -1,0 +1,80 @@
+@import 'tailwindcss';
+
+@theme {
+	/* Hecate purple palette */
+	--color-hecate-50: #f5f0ff;
+	--color-hecate-100: #ede5ff;
+	--color-hecate-200: #ddd0ff;
+	--color-hecate-300: #c4a8ff;
+	--color-hecate-400: #a875ff;
+	--color-hecate-500: #8b47ff;
+	--color-hecate-600: #7c22ff;
+	--color-hecate-700: #6e10ef;
+	--color-hecate-800: #5c0ec8;
+	--color-hecate-900: #4c0fa3;
+	--color-hecate-950: #2d0070;
+
+	/* Surface colors (dark theme — high contrast) */
+	--color-surface-900: #0f0f14;
+	--color-surface-800: #16161d;
+	--color-surface-700: #1e1e28;
+	--color-surface-600: #303040;
+	--color-surface-500: #44445a;
+	--color-surface-400: #70708a;
+	--color-surface-300: #9494ae;
+	--color-surface-200: #b4b4cc;
+	--color-surface-100: #d8d8e8;
+	--color-surface-50: #f0f0f8;
+
+	/* Status colors */
+	--color-health-ok: #22c55e;
+	--color-health-warn: #eab308;
+	--color-health-err: #ef4444;
+	--color-health-loading: #60a5fa;
+
+	/* Event Storming sticky note colors */
+	--color-es-event: #f97316;
+	--color-es-command: #3b82f6;
+	--color-es-aggregate: #eab308;
+	--color-es-read-model: #22c55e;
+	--color-es-policy: #6b7280;
+	--color-es-hotspot: #ef4444;
+
+	/* Phase colors */
+	--color-phase-dna: #a78bfa;
+	--color-phase-anp: #60a5fa;
+	--color-phase-tni: #34d399;
+	--color-phase-dno: #fbbf24;
+}
+
+/* Base dark theme */
+:root {
+	color-scheme: dark;
+}
+
+body {
+	@apply bg-surface-900 text-surface-50 font-mono;
+	margin: 0;
+	padding: 0;
+	overflow: hidden;
+	user-select: none;
+	-webkit-user-select: none;
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+	width: 6px;
+}
+
+::-webkit-scrollbar-track {
+	background: var(--color-surface-800);
+}
+
+::-webkit-scrollbar-thumb {
+	background: var(--color-surface-500);
+	border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+	background: var(--color-surface-400);
+}

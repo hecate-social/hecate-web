@@ -1,0 +1,128 @@
+<script lang="ts">
+	import { page } from '$app/state';
+	import { health, connectionStatus } from '../stores/daemon.js';
+	import { getCurrentWindow } from '@tauri-apps/api/window';
+
+	interface Tab {
+		id: string;
+		name: string;
+		icon: string;
+		path: string;
+	}
+
+	const studios: Tab[] = [
+		{ id: 'llm', name: 'LLM', icon: '\u{1F916}', path: '/llm' },
+		{ id: 'devops', name: 'DevOps', icon: '\u{1F527}', path: '/devops' },
+		{ id: 'node', name: 'Node', icon: '\u{1F310}', path: '/node' },
+		{ id: 'social', name: 'Social', icon: '\u{1F4AC}', path: '/social' },
+		{ id: 'arcade', name: 'Arcade', icon: '\u{1F3AE}', path: '/arcade' }
+	];
+
+	function isActive(studioPath: string): boolean {
+		const current = page.url?.pathname ?? '/';
+		if (studioPath === '/') return current === '/';
+		return current.startsWith(studioPath);
+	}
+
+	function daemonLed(): string {
+		switch ($connectionStatus) {
+			case 'connected':
+				return 'text-health-ok';
+			case 'connecting':
+				return 'text-health-loading animate-pulse';
+			default:
+				return 'text-health-err';
+		}
+	}
+
+	async function minimize() {
+		await getCurrentWindow().minimize();
+	}
+
+	async function toggleMaximize() {
+		await getCurrentWindow().toggleMaximize();
+	}
+
+	async function close() {
+		await getCurrentWindow().close();
+	}
+</script>
+
+<nav
+	data-tauri-drag-region
+	class="flex items-center bg-surface-800 border-b border-surface-600 shrink-0 select-none"
+>
+	<!-- Sigil + Brand -->
+	<a
+		href="/"
+		class="flex items-center gap-1.5 px-3 h-10 hover:bg-surface-700/50 transition-colors
+			{isActive('/') && page.url?.pathname === '/'
+			? 'bg-surface-700'
+			: ''}"
+	>
+		<span class="text-base">{'\u{1F525}\u{1F5DD}\u{FE0F}\u{1F525}'}</span>
+		<span class="text-sm font-bold text-hecate-400">Hecate</span>
+		<span class="text-[10px] text-surface-400 font-mono">
+			v{$health?.version ?? '0.1.0'}
+		</span>
+		<span class={daemonLed()}>{'\u{25CF}'}</span>
+	</a>
+
+	<!-- Separator -->
+	<div class="w-px h-5 bg-surface-600"></div>
+
+	<!-- Studio Tabs -->
+	{#each studios as studio}
+		<a
+			href={studio.path}
+			class="flex items-center gap-1.5 px-3 h-10 text-xs transition-colors border-b-2
+				{isActive(studio.path)
+				? 'bg-surface-700 text-surface-50 font-bold border-hecate-500'
+				: 'text-surface-400 hover:text-surface-200 hover:bg-surface-700/50 border-transparent'}"
+		>
+			<span class="text-sm">{studio.icon}</span>
+			<span>{studio.name}</span>
+		</a>
+		{#if studio.id !== 'arcade'}
+			<div class="w-px h-4 bg-surface-700"></div>
+		{/if}
+	{/each}
+
+	<!-- Drag region spacer -->
+	<div class="flex-1"></div>
+
+	<!-- Window controls -->
+	<div class="flex items-center h-10">
+		<button
+			onclick={minimize}
+			class="w-10 h-10 flex items-center justify-center text-surface-400
+				hover:text-surface-100 hover:bg-surface-700 transition-colors"
+			aria-label="Minimize"
+		>
+			<svg width="10" height="1" viewBox="0 0 10 1" fill="currentColor">
+				<rect width="10" height="1" />
+			</svg>
+		</button>
+		<button
+			onclick={toggleMaximize}
+			class="w-10 h-10 flex items-center justify-center text-surface-400
+				hover:text-surface-100 hover:bg-surface-700 transition-colors"
+			aria-label="Maximize"
+		>
+			<svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1">
+				<rect x="0.5" y="0.5" width="9" height="9" />
+			</svg>
+		</button>
+		<button
+			onclick={close}
+			class="w-10 h-10 flex items-center justify-center text-surface-400
+				hover:text-surface-100 hover:bg-red-600 transition-colors"
+			aria-label="Close"
+		>
+			<svg width="10" height="10" viewBox="0 0 10 10" stroke="currentColor" stroke-width="1.2">
+				<line x1="0" y1="0" x2="10" y2="10" />
+				<line x1="10" y1="0" x2="0" y2="10" />
+			</svg>
+		</button>
+	</div>
+</nav>
