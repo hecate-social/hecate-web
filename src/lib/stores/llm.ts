@@ -44,31 +44,37 @@ function parseParamBillions(s?: string): number {
 	return m ? parseFloat(m[1]) : 0;
 }
 
+function selectBestModel(available: Model[]): string {
+	// 1. Capable local model (>= 20B) — self-hosted, no API keys
+	const local = available.filter((m) => m.provider === 'ollama');
+	const capable = local.filter((m) => parseParamBillions(m.parameter_size) >= MIN_LOCAL_PARAMS_B);
+	if (capable.length > 0) {
+		const best = [...capable].sort((a, b) => (b.size_bytes ?? 0) - (a.size_bytes ?? 0));
+		return best[0].name;
+	}
+	// 2. Preferred cloud model
+	const cloud = available.find((m) => m.name === PREFERRED_CLOUD_MODEL);
+	if (cloud) return cloud.name;
+	// 3. Any local model (small, but better than nothing)
+	if (local.length > 0) return local[0].name;
+	// 4. First available
+	return available[0]?.name ?? '';
+}
+
 export async function fetchModels(): Promise<void> {
 	try {
 		const resp = await api.get<{ ok: boolean; models: Model[] }>('/api/llm/models');
 		if (resp.ok && resp.models) {
 			models.set(resp.models);
-			// Prefer capable local models (>= 20B) — self-hosted, no API keys
-			const local = resp.models.filter((m) => m.provider === 'ollama');
-			const capable = local.filter((m) => parseParamBillions(m.parameter_size) >= MIN_LOCAL_PARAMS_B);
-			if (capable.length > 0) {
-				const best = capable.sort((a, b) => (b.size_bytes ?? 0) - (a.size_bytes ?? 0));
-				selectedModel.set(best[0].name);
-				return;
+			const best = selectBestModel(resp.models);
+			if (best) selectedModel.set(best);
+
+			// Cloud providers may load after Ollama. If we landed on a small
+			// local model, retry after a few seconds to pick up cloud models.
+			const hasCloud = resp.models.some((m) => m.provider !== 'ollama');
+			if (!hasCloud) {
+				setTimeout(() => fetchModels(), 3000);
 			}
-			// Fall back to preferred cloud model, then any local, then first available
-			const cloud = resp.models.find((m) => m.name === PREFERRED_CLOUD_MODEL);
-			if (cloud) {
-				selectedModel.set(cloud.name);
-				return;
-			}
-			if (local.length > 0) {
-				selectedModel.set(local[0].name);
-				return;
-			}
-			const first = resp.models[0]?.name ?? '';
-			if (first) selectedModel.set(first);
 		}
 	} catch {
 		models.set([]);
