@@ -1,6 +1,7 @@
 <script lang="ts">
 	import VentureHeader from '$lib/components/devops/VentureHeader.svelte';
 	import VisionOracle from '$lib/components/devops/VisionOracle.svelte';
+	import VentureSummary from '$lib/components/devops/VentureSummary.svelte';
 	import DivisionNav from '$lib/components/devops/DivisionNav.svelte';
 	import PhaseProgress from '$lib/components/devops/PhaseProgress.svelte';
 	import DnAView from '$lib/components/devops/DnAView.svelte';
@@ -233,44 +234,22 @@
 					{:else if $ventureStep === 'initiated' || $ventureStep === 'vision_refined'}
 						<VisionOracle />
 					{:else if $ventureStep === 'vision_submitted'}
-						<div class="flex items-center justify-center h-full">
-							<div class="text-center max-w-sm">
-								<div class="text-2xl mb-3 text-health-ok">{'\u{2713}'}</div>
-								<h3 class="text-sm font-semibold text-surface-100 mb-2">
-									Vision Submitted
-								</h3>
-								<p class="text-[11px] text-surface-400">
-									Your venture repo has been scaffolded. Start discovery to
-									begin Big Picture Event Storming.
-								</p>
+						<VentureSummary nextAction="discovery" />
+					{:else if $ventureStep === 'discovery_paused'}
+						<div class="flex h-full">
+							<div class="flex-1 overflow-hidden">
+								<BigPictureBoard />
 							</div>
+							{#if $showEventStream}
+								<div class="w-80 border-l border-surface-600 overflow-hidden shrink-0">
+									<EventStreamViewer />
+								</div>
+							{/if}
 						</div>
 					{:else if $ventureStep === 'discovery_completed'}
-						<div class="flex items-center justify-center h-full">
-							<div class="text-center max-w-sm">
-								<div class="text-2xl mb-3 text-health-ok">{'\u{2713}'}</div>
-								<h3 class="text-sm font-semibold text-surface-100 mb-2">
-									Discovery Complete
-								</h3>
-								<p class="text-[11px] text-surface-400">
-									No divisions were identified during discovery.
-									Use the header to identify divisions manually.
-								</p>
-							</div>
-						</div>
+						<VentureSummary nextAction="identify" />
 					{:else}
-						<div class="flex items-center justify-center h-full">
-							<div class="text-center max-w-sm">
-								<div class="text-2xl mb-3 text-surface-400">{'\u{25CB}'}</div>
-								<h3 class="text-sm font-semibold text-surface-100 mb-2">
-									No Divisions Yet
-								</h3>
-								<p class="text-[11px] text-surface-400">
-									Start discovery from the header to begin Big Picture
-									Event Storming.
-								</p>
-							</div>
-						</div>
+						<VentureSummary nextAction="discovery" />
 					{/if}
 				{:else}
 					<div
