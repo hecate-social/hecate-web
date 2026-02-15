@@ -11,6 +11,7 @@
 	import { systemPrompt } from '$lib/stores/personality.js';
 	import { visionOraclePrompt, applyVariables } from '$lib/stores/agents.js';
 	import { createStudioContext } from '$lib/context.js';
+	import type { ChatStream } from '$lib/context.js';
 	import { scaffoldVentureRepo } from '$lib/stores/devops.js';
 	import ModelSelector from '$lib/components/shared/ModelSelector.svelte';
 	import type { ChatMessage, StreamChunk } from '$lib/types.js';
@@ -27,6 +28,8 @@
 	let isScaffolding = $state(false);
 	let scaffoldError = $state('');
 	let repoPath = $state('');
+	let activeStream: ChatStream | null = $state(null);
+	let prevModel: string | null = $state(null);
 
 	// Resizable split pane
 	let splitPercent = $state(65);
@@ -35,17 +38,72 @@
 
 	// Strip vision markdown fences from chat display — show indicator instead
 	function stripVisionFences(content: string): string {
-		// Strip complete fences
 		let result = content.replace(
 			/```markdown\n[\s\S]*?```/g,
 			'\u{25C7} Vision updated \u{2197}'
 		);
-		// Strip partial/unclosed fence (during streaming)
 		result = result.replace(
 			/```markdown\n[\s\S]*$/,
 			'\u{25C7} Synthesizing vision... \u{2197}'
 		);
 		return result;
+	}
+
+	// Parse content into text and think parts (like ChatMessage.svelte)
+	interface ContentPart {
+		type: 'text' | 'think';
+		content: string;
+	}
+
+	function parseContentParts(raw: string): ContentPart[] {
+		const content = stripVisionFences(raw);
+		const result: ContentPart[] = [];
+		let remaining = content;
+
+		while (remaining.length > 0) {
+			const openIdx = remaining.indexOf('<think>');
+			if (openIdx === -1) {
+				if (remaining.trim()) result.push({ type: 'text', content: remaining });
+				break;
+			}
+			if (openIdx > 0) {
+				const before = remaining.slice(0, openIdx);
+				if (before.trim()) result.push({ type: 'text', content: before });
+			}
+			const closeIdx = remaining.indexOf('</think>', openIdx);
+			if (closeIdx === -1) {
+				const thinkContent = remaining.slice(openIdx + 7);
+				if (thinkContent.trim()) result.push({ type: 'think', content: thinkContent });
+				break;
+			}
+			const thinkContent = remaining.slice(openIdx + 7, closeIdx);
+			if (thinkContent.trim()) result.push({ type: 'think', content: thinkContent });
+			remaining = remaining.slice(closeIdx + 8);
+		}
+
+		return result.length > 0 ? result : [{ type: 'text', content }];
+	}
+
+	// Streaming: detect if currently inside an unclosed <think> block
+	function isStreamingThink(content: string): boolean {
+		return content.includes('<think>') && !content.includes('</think>');
+	}
+
+	function getStreamingVisibleContent(raw: string): string {
+		const content = stripVisionFences(raw);
+		if (!content.includes('</think>')) {
+			return content.includes('<think>') ? '' : content;
+		}
+		return (content.split('</think>').pop() || '').trim();
+	}
+
+	function getStreamingThinkContent(raw: string): string {
+		const content = stripVisionFences(raw);
+		const openIdx = content.indexOf('<think>');
+		if (openIdx === -1) return '';
+		const closeIdx = content.indexOf('</think>');
+		if (closeIdx === -1) return content.slice(openIdx + 7);
+		return content.slice(openIdx + 7, closeIdx);
 	}
 
 	// Extract latest vision from conversation
@@ -66,8 +124,12 @@
 		return null;
 	});
 
-	// Is the vision complete (all sections filled in)?
-	let visionComplete = $derived(extractedVision !== null && !extractedVision.includes('(Not yet explored)'));
+	// Is the vision complete (all sections confirmed, no hypotheticals remaining)?
+	let visionComplete = $derived(
+		extractedVision !== null &&
+		!extractedVision.includes('(Not yet explored)') &&
+		!extractedVision.includes('*(Hypothetical)*')
+	);
 
 	// Extract brief from vision (<!-- brief: ... --> tag)
 	let extractedBrief = $derived.by(() => {
@@ -99,6 +161,21 @@
 			const name = venture.name.toLowerCase().replace(/[^a-z0-9-]/g, '-');
 			repoPath = `${home}/${name}`;
 		}
+	});
+
+	// When model changes, cancel in-flight stream and reset conversation
+	$effect(() => {
+		const model = $aiModel;
+		if (prevModel !== null && prevModel !== model) {
+			if (activeStream) {
+				activeStream.cancel();
+				activeStream = null;
+			}
+			chatMessages = [];
+			streamingContent = '';
+			isStreaming = false;
+		}
+		prevModel = model;
 	});
 
 	// Auto-start Oracle greeting when chat is empty and venture is ready
@@ -153,6 +230,7 @@
 		let accumulated = '';
 
 		const stream = ctx.stream.chat(model, allMessages);
+		activeStream = stream;
 
 		stream
 			.onChunk((chunk: StreamChunk) => {
@@ -172,6 +250,7 @@
 				chatMessages = [...chatMessages, assistantMsg];
 				streamingContent = '';
 				isStreaming = false;
+				activeStream = null;
 			})
 			.onError((error: string) => {
 				const errorMsg: ChatMessage = {
@@ -181,6 +260,7 @@
 				chatMessages = [...chatMessages, errorMsg];
 				streamingContent = '';
 				isStreaming = false;
+				activeStream = null;
 			});
 
 		try {
@@ -316,7 +396,23 @@
 							bg-surface-700 text-surface-200 border border-surface-600
 							{msg.content.startsWith('Error:') ? 'border-health-err/30 text-health-err' : ''}"
 						>
-							<div class="whitespace-pre-wrap break-words">{stripVisionFences(msg.content)}</div>
+							{#each parseContentParts(msg.content) as part}
+								{#if part.type === 'think'}
+									<details class="mb-1.5 group">
+										<summary class="text-[10px] text-surface-400 cursor-pointer hover:text-surface-300
+											select-none flex items-center gap-1">
+											<span class="text-[9px] transition-transform group-open:rotate-90">{'\u{25B6}'}</span>
+											Reasoning
+										</summary>
+										<div class="mt-1 pl-2 border-l-2 border-surface-600 text-[10px] text-surface-400
+											whitespace-pre-wrap break-words max-h-32 overflow-y-auto">
+											{part.content.trim()}
+										</div>
+									</details>
+								{:else}
+									<div class="whitespace-pre-wrap break-words">{part.content.trim()}</div>
+								{/if}
+							{/each}
 						</div>
 					</div>
 				{/if}
@@ -328,11 +424,46 @@
 						class="max-w-[85%] rounded-lg px-3 py-2 text-[11px]
 						bg-surface-700 text-surface-200 border border-surface-600"
 					>
-						{#if streamingContent}
+						{#if streamingContent && isStreamingThink(streamingContent)}
+							<div class="flex items-center gap-2 text-surface-400 mb-1">
+								<span class="flex gap-1">
+									<span class="w-1.5 h-1.5 rounded-full bg-amber-500/60 animate-bounce" style="animation-delay: 0ms"></span>
+									<span class="w-1.5 h-1.5 rounded-full bg-amber-500/60 animate-bounce" style="animation-delay: 150ms"></span>
+									<span class="w-1.5 h-1.5 rounded-full bg-amber-500/60 animate-bounce" style="animation-delay: 300ms"></span>
+								</span>
+								<span class="text-[10px] text-amber-400/70">Reasoning...</span>
+							</div>
+							{#if getStreamingThinkContent(streamingContent).trim()}
+								<details class="group">
+									<summary class="text-[10px] text-surface-500 cursor-pointer hover:text-surface-400
+										select-none flex items-center gap-1">
+										<span class="text-[9px] transition-transform group-open:rotate-90">{'\u{25B6}'}</span>
+										Show reasoning
+									</summary>
+									<div class="mt-1 pl-2 border-l-2 border-surface-600 text-[10px] text-surface-400
+										whitespace-pre-wrap break-words max-h-32 overflow-y-auto">
+										{getStreamingThinkContent(streamingContent).trim()}<span
+											class="inline-block w-1 h-3 bg-amber-400/50 animate-pulse ml-0.5"></span>
+									</div>
+								</details>
+							{/if}
+						{:else if streamingContent}
+							{#if getStreamingThinkContent(streamingContent).trim()}
+								<details class="mb-1.5 group">
+									<summary class="text-[10px] text-surface-400 cursor-pointer hover:text-surface-300
+										select-none flex items-center gap-1">
+										<span class="text-[9px] transition-transform group-open:rotate-90">{'\u{25B6}'}</span>
+										Reasoning
+									</summary>
+									<div class="mt-1 pl-2 border-l-2 border-surface-600 text-[10px] text-surface-400
+										whitespace-pre-wrap break-words max-h-32 overflow-y-auto">
+										{getStreamingThinkContent(streamingContent).trim()}
+									</div>
+								</details>
+							{/if}
 							<div class="whitespace-pre-wrap break-words">
-								{stripVisionFences(streamingContent)}<span
-									class="inline-block w-1.5 h-3 bg-hecate-400 animate-pulse ml-0.5"
-								></span>
+								{getStreamingVisibleContent(streamingContent)}<span
+									class="inline-block w-1.5 h-3 bg-hecate-400 animate-pulse ml-0.5"></span>
 							</div>
 						{:else}
 							<div class="flex items-center gap-1.5 text-surface-400">
