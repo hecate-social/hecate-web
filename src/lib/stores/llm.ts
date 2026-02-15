@@ -61,6 +61,8 @@ function selectBestModel(available: Model[]): string {
 	return available[0]?.name ?? '';
 }
 
+let fetchRetries = 0;
+
 export async function fetchModels(): Promise<void> {
 	try {
 		const resp = await api.get<{ ok: boolean; models: Model[] }>('/api/llm/models');
@@ -69,10 +71,11 @@ export async function fetchModels(): Promise<void> {
 			const best = selectBestModel(resp.models);
 			if (best) selectedModel.set(best);
 
-			// Cloud providers may load after Ollama. If we landed on a small
-			// local model, retry after a few seconds to pick up cloud models.
-			const hasCloud = resp.models.some((m) => m.provider !== 'ollama');
-			if (!hasCloud) {
+			// Cloud providers (especially Groq) may load after Ollama.
+			// Retry a few times until the preferred model appears.
+			const hasPreferred = resp.models.some((m) => m.name === PREFERRED_CLOUD_MODEL);
+			if (!hasPreferred && fetchRetries < 5) {
+				fetchRetries++;
 				setTimeout(() => fetchModels(), 3000);
 			}
 		}
