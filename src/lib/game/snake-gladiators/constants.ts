@@ -24,7 +24,7 @@ export const DEFAULT_FITNESS_WEIGHTS: FitnessWeights = {
 	draw_bonus: 50.0,
 	kill_bonus: 100.0,
 	proximity_weight: 0.5,
-	circle_penalty: -0.2,
+	circle_penalty: -1.0,
 	wall_kill_bonus: 75.0
 };
 
@@ -99,7 +99,7 @@ export const PRESETS: FitnessPreset[] = [
 		description: 'High kill & win bonuses — bred to dominate',
 		weights: {
 			survival_weight: 0.1, food_weight: 20.0, win_bonus: 400.0,
-			draw_bonus: 50.0, kill_bonus: 250.0, proximity_weight: 0.5, circle_penalty: -0.2,
+			draw_bonus: 50.0, kill_bonus: 250.0, proximity_weight: 0.5, circle_penalty: -0.5,
 			wall_kill_bonus: 150.0
 		}
 	},
@@ -109,7 +109,7 @@ export const PRESETS: FitnessPreset[] = [
 		description: 'High food weight — bred to eat everything',
 		weights: {
 			survival_weight: 0.1, food_weight: 150.0, win_bonus: 50.0,
-			draw_bonus: 50.0, kill_bonus: 100.0, proximity_weight: 3.0, circle_penalty: -0.2,
+			draw_bonus: 50.0, kill_bonus: 100.0, proximity_weight: 3.0, circle_penalty: -1.0,
 			wall_kill_bonus: 25.0
 		}
 	},
