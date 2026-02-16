@@ -1,3 +1,13 @@
+export interface FitnessWeights {
+	survival_weight: number;
+	food_weight: number;
+	win_bonus: number;
+	draw_bonus: number;
+	kill_bonus: number;
+	proximity_weight: number;
+	circle_penalty: number;
+}
+
 export interface Stable {
 	stable_id: string;
 	status: 'training' | 'completed' | 'halted';
@@ -9,6 +19,7 @@ export interface Stable {
 	generations_completed: number;
 	started_at: number;
 	completed_at: number | null;
+	fitness_weights: FitnessWeights | null;
 }
 
 export interface GenerationStats {
@@ -29,6 +40,18 @@ export interface Champion {
 	losses: number;
 	draws: number;
 	exported_at: number;
+}
+
+export interface Hero {
+	hero_id: string;
+	name: string;
+	fitness: number;
+	origin_stable_id: string;
+	generation: number;
+	wins: number;
+	losses: number;
+	draws: number;
+	promoted_at: number;
 }
 
 /** SSE progress event from training stream */

@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { COLORS } from '$lib/game/snake-gladiators/constants';
-	import { exportChampion, fetchChampion } from '$lib/game/snake-gladiators/client';
+	import { exportChampion, fetchChampion, promoteChampion } from '$lib/game/snake-gladiators/client';
 	import type { Champion } from '$lib/game/snake-gladiators/types';
 
 	interface Props {
@@ -8,14 +8,19 @@
 		champion: Champion | null;
 		onTestDuel?: (stableId: string) => void;
 		onContinueTraining?: (stableId: string) => void;
+		onPromoted?: () => void;
 	}
 
-	let { stableId, champion = $bindable(), onTestDuel, onContinueTraining }: Props = $props();
+	let { stableId, champion = $bindable(), onTestDuel, onContinueTraining, onPromoted }: Props = $props();
 
 	let exporting = $state(false);
 	let exported = $state(false);
 	let error = $state<string | null>(null);
 	let loading = $state(false);
+	let promoting = $state(false);
+	let promoted = $state(false);
+	let heroName = $state('');
+	let showPromoteForm = $state(false);
 
 	async function handleExport(): Promise<void> {
 		exporting = true;
@@ -38,6 +43,21 @@
 			error = 'Champion not found yet. Training may still be finalizing.';
 		}
 		loading = false;
+	}
+
+	async function handlePromote(): Promise<void> {
+		if (!heroName.trim()) return;
+		promoting = true;
+		error = null;
+		try {
+			await promoteChampion(stableId, heroName.trim());
+			promoted = true;
+			showPromoteForm = false;
+			onPromoted?.();
+		} catch (e) {
+			error = e instanceof Error ? e.message : String(e);
+		}
+		promoting = false;
 	}
 
 	const winRate = $derived(
@@ -132,7 +152,42 @@
 					Continue Training
 				</button>
 			{/if}
+			{#if !promoted}
+				<button
+					onclick={() => { showPromoteForm = !showPromoteForm; }}
+					class="flex-1 px-3 py-2 rounded-lg text-[11px] font-semibold transition-all duration-200
+						bg-amber-600/20 hover:bg-amber-600/30 text-amber-400 border border-amber-500/30
+						hover:border-amber-500/50"
+				>
+					Promote to Hero
+				</button>
+			{:else}
+				<span class="text-[11px] font-semibold text-amber-400">Promoted!</span>
+			{/if}
 		</div>
+
+		<!-- Promote Form -->
+		{#if showPromoteForm && !promoted}
+			<div class="mt-3 flex items-center gap-2">
+				<input
+					type="text"
+					bind:value={heroName}
+					placeholder="Hero name..."
+					maxlength="30"
+					class="flex-1 px-3 py-1.5 rounded-lg text-[11px] bg-surface-900 border border-amber-500/30
+						text-surface-100 placeholder:text-surface-600 focus:border-amber-500/50 focus:outline-none"
+				/>
+				<button
+					onclick={handlePromote}
+					disabled={promoting || !heroName.trim()}
+					class="px-3 py-1.5 rounded-lg text-[11px] font-semibold transition-all duration-200
+						bg-amber-600 hover:bg-amber-500 text-white
+						disabled:opacity-50 disabled:cursor-not-allowed"
+				>
+					{promoting ? 'Promoting...' : 'Confirm'}
+				</button>
+			</div>
+		{/if}
 	</div>
 {:else}
 	<div class="rounded-xl bg-surface-800/80 border border-surface-600/50 p-5 text-center">

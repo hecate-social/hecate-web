@@ -4,7 +4,7 @@
 import { get, post } from '$lib/api';
 import { invoke } from '@tauri-apps/api/core';
 import { listen, type UnlistenFn } from '@tauri-apps/api/event';
-import type { Stable, Champion, GenerationStats, TrainingProgress } from './types';
+import type { Stable, Champion, GenerationStats, TrainingProgress, Hero, FitnessWeights } from './types';
 
 interface InitiateStableResponse {
 	ok: boolean;
@@ -44,6 +44,10 @@ export async function initiateStable(config: {
 	opponent_af: number;
 	episodes_per_eval: number;
 	seed_stable_id?: string;
+	training_config?: {
+		fitness_weights?: FitnessWeights;
+		fitness_preset?: string;
+	};
 }): Promise<string> {
 	const resp = await post<InitiateStableResponse>(
 		'/api/arcade/gladiators/stables',
@@ -74,6 +78,47 @@ export async function haltTraining(stableId: string): Promise<void> {
 export async function exportChampion(stableId: string): Promise<Champion> {
 	return post<Champion>(`/api/arcade/gladiators/stables/${stableId}/export`, {});
 }
+
+// ─── Heroes API ──────────────────────────────────────────────────
+
+/** List all heroes. */
+export async function fetchHeroes(): Promise<Hero[]> {
+	const resp = await get<{ ok: boolean; heroes: Hero[] }>(
+		'/api/arcade/gladiators/heroes'
+	);
+	return resp.heroes ?? [];
+}
+
+/** Get a single hero by ID. */
+export async function fetchHero(heroId: string): Promise<Hero> {
+	return get<Hero>(`/api/arcade/gladiators/heroes/${heroId}`);
+}
+
+/** Promote a champion to a permanent hero. */
+export async function promoteChampion(
+	stableId: string,
+	name: string
+): Promise<Hero> {
+	return post<Hero>('/api/arcade/gladiators/heroes', {
+		stable_id: stableId,
+		name
+	});
+}
+
+/** Start a hero duel vs AI. Returns match_id for SSE streaming. */
+export async function startHeroDuel(
+	heroId: string,
+	opponentAf: number,
+	tickMs: number
+): Promise<string> {
+	const resp = await post<{ ok: boolean; match_id: string }>(
+		`/api/arcade/gladiators/heroes/${heroId}`,
+		{ opponent_af: opponentAf, tick_ms: tickMs }
+	);
+	return resp.match_id;
+}
+
+// ─── SSE Streams ─────────────────────────────────────────────────
 
 /** Connect to the SSE stream for live training progress via Tauri command.
  *  Returns a cleanup function that removes listeners.

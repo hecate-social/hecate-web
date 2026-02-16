@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { onMount, onDestroy } from 'svelte';
-	import { COLORS } from '$lib/game/snake-gladiators/constants';
+	import { COLORS, PRESETS, DEFAULT_FITNESS_WEIGHTS } from '$lib/game/snake-gladiators/constants';
 	import {
 		connectTrainingStream,
 		fetchStable,
@@ -201,6 +201,14 @@
 	const maxGens = $derived(stable?.max_generations ?? 0);
 	const shortId = $derived(stableId.length > 8 ? stableId.slice(0, 8) : stableId);
 
+	const presetLabel = $derived.by(() => {
+		if (!stable?.fitness_weights) return 'Balanced';
+		for (const p of PRESETS) {
+			if (JSON.stringify(stable.fitness_weights) === JSON.stringify(p.weights)) return p.label;
+		}
+		return 'Custom';
+	});
+
 	function statusLabel(s: typeof status): string {
 		if (s === 'connecting') return 'Connecting...';
 		if (s === 'training') return 'Training';
@@ -280,6 +288,22 @@
 					<div class="text-[9px] text-surface-500 uppercase tracking-wider">Status</div>
 				</div>
 			</div>
+
+			<!-- Fitness Philosophy Badge -->
+			{#if stable}
+				<div class="flex items-center gap-2">
+					<span class="text-[9px] px-2 py-0.5 rounded bg-purple-900/30 text-purple-300 font-semibold">
+						{presetLabel}
+					</span>
+					{#if stable.fitness_weights && presetLabel === 'Custom'}
+						<span class="text-[9px] text-surface-500">
+							W:{stable.fitness_weights.win_bonus}
+							K:{stable.fitness_weights.kill_bonus}
+							F:{stable.fitness_weights.food_weight}
+						</span>
+					{/if}
+				</div>
+			{/if}
 
 			{#if error}
 				<div class="rounded-lg bg-red-900/30 border border-red-800/50 px-4 py-3 text-[11px] text-red-300">
