@@ -3,7 +3,7 @@ use std::io::{BufRead, BufReader, Read, Write};
 use std::os::unix::net::UnixStream;
 use tauri::{AppHandle, Emitter};
 
-const SOCKET_PATH: &str = "/run/hecate/daemon.sock";
+use crate::socket_proxy::resolve_socket_path;
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct ChatMessage {
@@ -125,7 +125,8 @@ fn do_stream(
     done_event: &str,
     body: &[u8],
 ) -> Result<(), Box<dyn std::error::Error>> {
-    let mut stream = UnixStream::connect(SOCKET_PATH)?;
+    let socket_path = resolve_socket_path();
+    let mut stream = UnixStream::connect(&socket_path)?;
     stream.set_read_timeout(Some(std::time::Duration::from_secs(120)))?;
 
     let http_req = format!(

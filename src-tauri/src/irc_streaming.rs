@@ -2,7 +2,7 @@ use std::io::{BufRead, BufReader, Read, Write};
 use std::os::unix::net::UnixStream;
 use tauri::{AppHandle, Emitter};
 
-const SOCKET_PATH: &str = "/run/hecate/daemon.sock";
+use crate::socket_proxy::resolve_socket_path;
 
 #[tauri::command]
 pub async fn irc_stream(app: AppHandle, stream_id: String) -> Result<(), String> {
@@ -51,7 +51,8 @@ fn do_irc_stream(
     app: &AppHandle,
     event_name: &str,
 ) -> Result<(), Box<dyn std::error::Error>> {
-    let mut stream = UnixStream::connect(SOCKET_PATH)?;
+    let socket_path = resolve_socket_path();
+    let mut stream = UnixStream::connect(&socket_path)?;
     // No read timeout — SSE stream is long-lived, heartbeats keep it alive
     // Timeout causes WouldBlock on Linux which kills the stream
     stream.set_read_timeout(None)?;

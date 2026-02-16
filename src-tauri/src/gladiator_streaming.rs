@@ -2,7 +2,7 @@ use std::io::{BufRead, BufReader, Read, Write};
 use std::os::unix::net::UnixStream;
 use tauri::{AppHandle, Emitter};
 
-const SOCKET_PATH: &str = "/run/hecate/daemon.sock";
+use crate::socket_proxy::resolve_socket_path;
 
 #[tauri::command]
 pub async fn gladiator_training_stream(
@@ -61,7 +61,8 @@ fn do_gladiator_stream(
     progress_event: &str,
     stable_id: &str,
 ) -> Result<(), Box<dyn std::error::Error>> {
-    let mut stream = UnixStream::connect(SOCKET_PATH)?;
+    let socket_path = resolve_socket_path();
+    let mut stream = UnixStream::connect(&socket_path)?;
     stream.set_read_timeout(None)?;
 
     let http_req = format!(

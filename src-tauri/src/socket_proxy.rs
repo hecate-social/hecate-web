@@ -1,8 +1,31 @@
 use std::io::{BufRead, BufReader, Read, Write};
 use std::os::unix::net::UnixStream;
+use std::path::Path;
 use tauri::http::{Request, Response};
 
-const SOCKET_PATH: &str = "/run/hecate/daemon.sock";
+/// Resolve the daemon socket path.
+/// Priority: HECATE_SOCKET_PATH env > /run/hecate/ > $HOME/.hecate/
+pub fn resolve_socket_path() -> String {
+    if let Ok(p) = std::env::var("HECATE_SOCKET_PATH") {
+        if !p.is_empty() && Path::new(&p).exists() {
+            return p;
+        }
+    }
+    let system = "/run/hecate/daemon.sock";
+    if Path::new(system).exists() {
+        return system.to_string();
+    }
+    // Local dev default: $HOME/.hecate/ (multi-user safe, no root needed)
+    if let Ok(home) = std::env::var("HOME") {
+        let home_socket = Path::new(&home).join(".hecate").join("daemon.sock");
+        if home_socket.exists() {
+            return home_socket.to_string_lossy().to_string();
+        }
+        // Even if socket doesn't exist yet, prefer this path for connection attempts
+        return home_socket.to_string_lossy().to_string();
+    }
+    "/run/hecate/daemon.sock".to_string()
+}
 
 pub fn proxy_request(
     request: &Request<Vec<u8>>,
@@ -12,7 +35,8 @@ pub fn proxy_request(
     let query = uri.query().unwrap_or("");
     let method = request.method().as_str();
 
-    let mut stream = UnixStream::connect(SOCKET_PATH)?;
+    let socket_path = resolve_socket_path();
+    let mut stream = UnixStream::connect(&socket_path)?;
     stream.set_read_timeout(Some(std::time::Duration::from_secs(30)))?;
 
     // Build the request path

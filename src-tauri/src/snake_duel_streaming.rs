@@ -2,7 +2,7 @@ use std::io::{BufRead, BufReader, Read, Write};
 use std::os::unix::net::UnixStream;
 use tauri::{AppHandle, Emitter};
 
-const SOCKET_PATH: &str = "/run/hecate/daemon.sock";
+use crate::socket_proxy::resolve_socket_path;
 
 #[tauri::command]
 pub async fn snake_duel_stream(
@@ -61,7 +61,8 @@ fn do_snake_duel_stream(
     state_event: &str,
     match_id: &str,
 ) -> Result<(), Box<dyn std::error::Error>> {
-    let mut stream = UnixStream::connect(SOCKET_PATH)?;
+    let socket_path = resolve_socket_path();
+    let mut stream = UnixStream::connect(&socket_path)?;
     // No read timeout — SSE stream is long-lived, heartbeats keep it alive
     stream.set_read_timeout(None)?;
 
