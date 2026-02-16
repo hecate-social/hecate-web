@@ -3,11 +3,12 @@
 // --- Health ---
 
 export interface DaemonHealth {
-	status: 'healthy' | 'unhealthy';
+	status: 'healthy' | 'starting' | 'unhealthy';
+	ready: boolean;
 	service: string;
 	version: string;
 	uptime_seconds: number;
-	identity: 'initialized' | 'not_initialized';
+	identity?: 'initialized' | 'not_initialized';
 }
 
 // --- LLM ---

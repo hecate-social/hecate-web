@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { page } from '$app/state';
-	import { connectionStatus, health, llmHealth } from '../stores/daemon.js';
+	import { connectionStatus, health, llmHealth, isStarting } from '../stores/daemon.js';
 	import { selectedModel, isStreaming, lastUsage } from '../stores/llm.js';
 	import { aiModel, selectedPhase } from '../stores/devops.js';
 	import ThemeToggle from './ThemeToggle.svelte';
@@ -64,8 +64,13 @@
 >
 	<!-- Daemon status -->
 	<div class="flex items-center gap-1.5">
-		<span class={statusLed($connectionStatus)}>●</span>
-		<span>{statusLabel($connectionStatus)}</span>
+		{#if $isStarting}
+			<span class="text-health-warn animate-pulse">●</span>
+			<span>Starting...</span>
+		{:else}
+			<span class={statusLed($connectionStatus)}>●</span>
+			<span>{statusLabel($connectionStatus)}</span>
+		{/if}
 	</div>
 
 	{#if $health}

@@ -8,7 +8,8 @@ export const connectionStatus = writable<ConnectionStatus>('connecting');
 export const lastError = writable<string | null>(null);
 
 export const isConnected = derived(connectionStatus, ($s) => $s === 'connected');
-export const isHealthy = derived(health, ($h) => $h?.status === 'healthy');
+export const isHealthy = derived(health, ($h) => $h?.status === 'healthy' && $h?.ready === true);
+export const isStarting = derived(health, ($h) => $h?.status === 'starting' || ($h !== null && !$h.ready));
 
 let pollTimer: ReturnType<typeof setInterval> | null = null;
 
