@@ -2,6 +2,7 @@
 	import '../app.css';
 	import StudioTabs from '$lib/components/StudioTabs.svelte';
 	import StatusBar from '$lib/components/StatusBar.svelte';
+	import DaemonStartingOverlay from '$lib/components/DaemonStartingOverlay.svelte';
 	import { startPolling, stopPolling } from '$lib/stores/daemon.js';
 	import { fetchModels } from '$lib/stores/llm.js';
 	import { fetchIdentity, fetchProviders } from '$lib/stores/node.js';
@@ -17,7 +18,7 @@
 	const studioPaths = ['/', '/llm', '/node', '/social', '/arcade'];
 
 	onMount(() => {
-		startPolling(10000);
+		startPolling();
 		fetchModels();
 		fetchIdentity();
 		fetchProviders();
@@ -47,6 +48,8 @@
 </script>
 
 <svelte:window onkeydown={handleGlobalKeydown} />
+
+<DaemonStartingOverlay />
 
 <div class="flex flex-col h-screen w-screen overflow-hidden">
 	<StudioTabs />
