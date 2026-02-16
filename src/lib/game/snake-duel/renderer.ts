@@ -1,5 +1,5 @@
-import { COLORS, GRID_WIDTH, GRID_HEIGHT } from './constants';
-import type { GameState, Point } from './types';
+import { COLORS, GRID_WIDTH, GRID_HEIGHT, WALL_TTL } from './constants';
+import type { GameState, Point, WallTile } from './types';
 
 export function drawFrame(ctx: CanvasRenderingContext2D, state: GameState): void {
 	const cw = ctx.canvas.width;
@@ -9,6 +9,9 @@ export function drawFrame(ctx: CanvasRenderingContext2D, state: GameState): void
 
 	drawBackground(ctx, cw, ch);
 	drawGrid(ctx, cw, ch, cellW, cellH);
+	for (const wall of state.walls) {
+		drawWallTile(ctx, wall, cellW, cellH);
+	}
 	for (const pa of state.poisonApples) {
 		drawPoisonApple(ctx, pa.pos, cellW, cellH);
 	}
@@ -79,6 +82,53 @@ function drawPoisonApple(ctx: CanvasRenderingContext2D, pos: Point, cellW: numbe
 	ctx.moveTo(cx + xr, cy - xr);
 	ctx.lineTo(cx - xr, cy + xr);
 	ctx.stroke();
+	ctx.restore();
+}
+
+function drawWallTile(
+	ctx: CanvasRenderingContext2D,
+	wall: WallTile,
+	cellW: number,
+	cellH: number
+): void {
+	const [x, y] = wall.pos;
+	const gap = 1;
+	const px = x * cellW + gap;
+	const py = y * cellH + gap;
+	const sw = cellW - gap * 2;
+	const sh = cellH - gap * 2;
+
+	const opacity = 0.3 + 0.7 * (wall.ttl / WALL_TTL);
+	const borderColor = wall.owner === 'player1' ? COLORS.player1 : COLORS.player2;
+
+	ctx.save();
+	ctx.globalAlpha = opacity;
+
+	// Filled rectangle
+	ctx.fillStyle = COLORS.wall;
+	ctx.fillRect(px, py, sw, sh);
+
+	// Brick cross-hatch pattern
+	ctx.strokeStyle = COLORS.wallDecay;
+	ctx.lineWidth = 0.5;
+	const midX = px + sw / 2;
+	const midY = py + sh / 2;
+	ctx.beginPath();
+	ctx.moveTo(px, midY);
+	ctx.lineTo(px + sw, midY);
+	ctx.moveTo(midX, py);
+	ctx.lineTo(midX, midY);
+	ctx.moveTo(px, py + sh * 0.25);
+	ctx.lineTo(px + sw, py + sh * 0.25);
+	ctx.moveTo(px, py + sh * 0.75);
+	ctx.lineTo(px + sw, py + sh * 0.75);
+	ctx.stroke();
+
+	// Owner-colored border
+	ctx.strokeStyle = borderColor;
+	ctx.lineWidth = 1.5;
+	ctx.strokeRect(px, py, sw, sh);
+
 	ctx.restore();
 }
 

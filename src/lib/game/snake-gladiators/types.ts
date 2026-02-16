@@ -6,6 +6,7 @@ export interface FitnessWeights {
 	kill_bonus: number;
 	proximity_weight: number;
 	circle_penalty: number;
+	wall_kill_bonus: number;
 }
 
 export interface Stable {

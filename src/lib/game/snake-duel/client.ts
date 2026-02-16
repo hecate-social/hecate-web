@@ -5,7 +5,7 @@
 import { get, post } from '$lib/api';
 import { invoke } from '@tauri-apps/api/core';
 import { listen, type UnlistenFn } from '@tauri-apps/api/event';
-import type { GameState } from './types';
+import type { GameState, GameEvent } from './types';
 
 interface StartMatchResponse {
 	ok: boolean;
@@ -92,6 +92,11 @@ function daemonToGameState(data: Record<string, unknown>): GameState {
 			pos: p.pos as [number, number],
 			owner: String(p.owner) as 'player1' | 'player2'
 		})),
+		walls: ((data.walls as Array<Record<string, unknown>>) ?? []).map((w) => ({
+			pos: w.pos as [number, number],
+			owner: String(w.owner) as 'player1' | 'player2',
+			ttl: w.ttl as number
+		})),
 		status: String(data.status) as GameState['status'],
 		winner:
 			data.winner === 'none' || data.winner === null
@@ -118,16 +123,18 @@ function daemonToSnake(s: Record<string, unknown>): GameState['snake1'] {
 
 function mapEventType(
 	t: string
-): 'food' | 'turn' | 'collision' | 'win' | 'poison-drop' | 'poison-eat' {
+): GameEvent['type'] {
 	const mapping: Record<string, string> = {
 		food: 'food',
 		turn: 'turn',
 		collision: 'collision',
 		win: 'win',
 		poison_drop: 'poison-drop',
-		poison_eat: 'poison-eat'
+		poison_eat: 'poison-eat',
+		wall_drop: 'wall-drop',
+		wall_hit: 'wall-hit'
 	};
-	return (mapping[t] || t) as 'food' | 'turn' | 'collision' | 'win' | 'poison-drop' | 'poison-eat';
+	return (mapping[t] || t) as GameEvent['type'];
 }
 
 // --- Query endpoints (history, leaderboard) ---

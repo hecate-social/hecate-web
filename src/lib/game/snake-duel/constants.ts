@@ -5,6 +5,8 @@ export const CANVAS_WIDTH = GRID_WIDTH * CELL_SIZE;
 export const CANVAS_HEIGHT = GRID_HEIGHT * CELL_SIZE;
 export const DEFAULT_TICK_MS = 100;
 
+export const WALL_TTL = 25;
+
 export const COLORS = {
 	background: '#0f0f1a',
 	grid: '#2a2a50',
@@ -15,6 +17,9 @@ export const COLORS = {
 	food: '#fbbf24',
 	poison: '#a855f7',
 	poisonGlow: '#7c3aed',
+	wall: '#f97316',
+	wallGlow: '#ea580c',
+	wallDecay: '#78350f',
 	eye: '#ffffff'
 } as const;
 

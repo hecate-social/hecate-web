@@ -1,5 +1,5 @@
 import { GRID_WIDTH, GRID_HEIGHT } from './constants';
-import type { Snake, Point, Direction, PoisonApple } from './types';
+import type { Snake, Point, Direction, PoisonApple, WallTile } from './types';
 
 const DIRECTIONS: Direction[] = ['up', 'down', 'left', 'right'];
 const OPPOSITE: Record<Direction, Direction> = {
@@ -14,14 +14,16 @@ export function chooseDirection(
 	opponent: Snake,
 	food: Point,
 	poisonApples: PoisonApple[],
-	ownTag: 'player1' | 'player2'
+	ownTag: 'player1' | 'player2',
+	walls: WallTile[] = []
 ): Direction {
 	const validDirs = DIRECTIONS.filter((d) => d !== OPPOSITE[snake.direction]);
 
 	let bestDir = snake.direction;
 	let bestScore = -Infinity;
 
-	const obstacles = buildObstacleSet(snake.body.slice(1), opponent.body);
+	const wallPositions: Point[] = walls.map((w) => w.pos);
+	const obstacles = buildObstacleSet(snake.body.slice(1), opponent.body, wallPositions);
 	const ownPoisons = new Set(
 		poisonApples.filter((p) => p.owner === ownTag).map((p) => `${p.pos[0]},${p.pos[1]}`)
 	);
@@ -66,6 +68,23 @@ export function shouldDropPoison(
 	if (ownCount >= 2) return false;
 
 	return Math.random() < baseChance + proximityBonus;
+}
+
+/** Decide whether the snake should drop its tail as a wall tile */
+export function shouldDropWall(
+	snake: Snake,
+	walls: WallTile[],
+	ownTag: 'player1' | 'player2'
+): boolean {
+	const af = snake.assholeFactor / 100;
+	if (af < 0.3) return false;
+	if (snake.body.length < 6) return false;
+
+	const ownCount = walls.filter((w) => w.owner === ownTag).length;
+	if (ownCount >= 3) return false;
+
+	const baseChance = af * 0.02;
+	return Math.random() < baseChance;
 }
 
 function scoreDirection(

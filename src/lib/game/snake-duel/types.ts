@@ -15,8 +15,14 @@ export interface PoisonApple {
 	owner: 'player1' | 'player2';
 }
 
+export interface WallTile {
+	pos: Point;
+	owner: 'player1' | 'player2';
+	ttl: number;
+}
+
 export interface GameEvent {
-	type: 'food' | 'turn' | 'collision' | 'win' | 'poison-drop' | 'poison-eat';
+	type: 'food' | 'turn' | 'collision' | 'win' | 'poison-drop' | 'poison-eat' | 'wall-drop' | 'wall-hit';
 	value: string;
 	tick: number;
 }
@@ -26,6 +32,7 @@ export interface GameState {
 	snake2: Snake;
 	food: Point;
 	poisonApples: PoisonApple[];
+	walls: WallTile[];
 	status: GameStatus;
 	winner: 'player1' | 'player2' | 'draw' | null;
 	tick: number;

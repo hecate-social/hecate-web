@@ -1,6 +1,6 @@
-import { GRID_WIDTH, GRID_HEIGHT, INITIAL_SNAKE_1, INITIAL_SNAKE_2 } from './constants';
-import { chooseDirection, shouldDropPoison } from './ai';
-import type { GameState, Snake, Point, Direction, PoisonApple, GameEvent } from './types';
+import { GRID_WIDTH, GRID_HEIGHT, INITIAL_SNAKE_1, INITIAL_SNAKE_2, WALL_TTL } from './constants';
+import { chooseDirection, shouldDropPoison, shouldDropWall } from './ai';
+import type { GameState, Snake, Point, Direction, PoisonApple, WallTile, GameEvent } from './types';
 
 export function createGame(af1: number, af2: number): GameState {
 	return {
@@ -8,6 +8,7 @@ export function createGame(af1: number, af2: number): GameState {
 		snake2: createSnake(INITIAL_SNAKE_2, 'left', af2),
 		food: spawnFood(INITIAL_SNAKE_1, INITIAL_SNAKE_2),
 		poisonApples: [],
+		walls: [],
 		status: 'idle',
 		winner: null,
 		tick: 0,
@@ -31,15 +32,18 @@ export function tickGame(state: GameState): GameState {
 	const tick = state.tick + 1;
 	let poisonApples = [...state.poisonApples];
 
-	// AI chooses directions (now poison-aware)
-	const dir1 = chooseDirection(state.snake1, state.snake2, state.food, poisonApples, 'player1');
-	const dir2 = chooseDirection(state.snake2, state.snake1, state.food, poisonApples, 'player2');
+	// Decay walls (before movement)
+	let walls = decayWalls(state.walls);
+
+	// AI chooses directions (wall-aware)
+	const dir1 = chooseDirection(state.snake1, state.snake2, state.food, poisonApples, 'player1', walls);
+	const dir2 = chooseDirection(state.snake2, state.snake1, state.food, poisonApples, 'player2', walls);
 
 	const s1 = moveSnake(state.snake1, dir1, tick);
 	const s2 = moveSnake(state.snake2, dir2, tick);
 
-	// Check collisions (walls, self, opponent)
-	const collision = checkCollisions(s1, s2);
+	// Check collisions (walls, self, opponent, wall tiles)
+	const collision = checkCollisions(s1, s2, walls);
 	if (collision) {
 		addEvent(collision.loser === 'draw' ? s1 : collision.loser === 'player1' ? s1 : s2, {
 			type: 'collision',
@@ -56,6 +60,7 @@ export function tickGame(state: GameState): GameState {
 			snake1: s1,
 			snake2: s2,
 			poisonApples,
+			walls,
 			tick,
 			status: 'finished',
 			winner:
@@ -87,7 +92,7 @@ export function tickGame(state: GameState): GameState {
 		addEvent(s2, { type: 'food', value: `Ate food (${s2.score})`, tick });
 	}
 	if (ate1 || ate2) {
-		food = spawnFood(s1.body, s2.body);
+		food = spawnFood(s1.body, s2.body, walls);
 	}
 
 	// AI decides whether to drop poison apples
@@ -106,7 +111,34 @@ export function tickGame(state: GameState): GameState {
 		addEvent(s2, { type: 'poison-drop', value: `Dropped poison (${s2.score})`, tick });
 	}
 
-	return { ...state, snake1: s1, snake2: s2, food, poisonApples, tick };
+	// AI decides whether to drop tail as wall
+	walls = maybeDropWall(s1, 'player1', walls, tick);
+	walls = maybeDropWall(s2, 'player2', walls, tick);
+
+	return { ...state, snake1: s1, snake2: s2, food, poisonApples, walls, tick };
+}
+
+function decayWalls(walls: WallTile[]): WallTile[] {
+	return walls
+		.map((w) => ({ ...w, ttl: w.ttl - 1 }))
+		.filter((w) => w.ttl > 0);
+}
+
+function maybeDropWall(
+	snake: Snake,
+	tag: 'player1' | 'player2',
+	walls: WallTile[],
+	tick: number
+): WallTile[] {
+	if (!shouldDropWall(snake, walls, tag)) return walls;
+
+	const dropPos = snake.body[snake.body.length - 1];
+	const wallSet = new Set(walls.map((w) => `${w.pos[0]},${w.pos[1]}`));
+	if (wallSet.has(`${dropPos[0]},${dropPos[1]}`)) return walls;
+
+	if (snake.body.length > 1) snake.body.pop();
+	addEvent(snake, { type: 'wall-drop', value: 'Dropped wall', tick });
+	return [...walls, { pos: dropPos, owner: tag, ttl: WALL_TTL }];
 }
 
 function checkPoisonConsumption(
@@ -170,7 +202,7 @@ function scoreBreaker(s1: Snake, s2: Snake, reason: string): CollisionResult {
 	return { loser: 'draw', reason };
 }
 
-function checkCollisions(s1: Snake, s2: Snake): CollisionResult | null {
+function checkCollisions(s1: Snake, s2: Snake, walls: WallTile[]): CollisionResult | null {
 	const h1 = s1.body[0];
 	const h2 = s2.body[0];
 
@@ -181,6 +213,14 @@ function checkCollisions(s1: Snake, s2: Snake): CollisionResult | null {
 	if (h1Wall && h2Wall) return scoreBreaker(s1, s2, 'Both hit walls');
 	if (h1Wall) return { loser: 'player1', reason: 'Hit wall' };
 	if (h2Wall) return { loser: 'player2', reason: 'Hit wall' };
+
+	// Wall tile collisions
+	const wallSet = new Set(walls.map((w) => `${w.pos[0]},${w.pos[1]}`));
+	const h1WallTile = wallSet.has(`${h1[0]},${h1[1]}`);
+	const h2WallTile = wallSet.has(`${h2[0]},${h2[1]}`);
+	if (h1WallTile && h2WallTile) return scoreBreaker(s1, s2, 'Both hit wall tiles');
+	if (h1WallTile) return { loser: 'player1', reason: 'Hit wall tile' };
+	if (h2WallTile) return { loser: 'player2', reason: 'Hit wall tile' };
 
 	const h1Self = hitsBody(h1, s1.body.slice(1));
 	const h2Self = hitsBody(h2, s2.body.slice(1));
@@ -216,8 +256,9 @@ function addEvent(
 	snake.events = [event, ...snake.events].slice(0, 10);
 }
 
-export function spawnFood(body1: Point[], body2: Point[]): Point {
-	const occupied = new Set([...body1, ...body2].map(([x, y]) => `${x},${y}`));
+export function spawnFood(body1: Point[], body2: Point[], walls: WallTile[] = []): Point {
+	const wallPositions = walls.map((w) => `${w.pos[0]},${w.pos[1]}`);
+	const occupied = new Set([...body1, ...body2].map(([x, y]) => `${x},${y}`).concat(wallPositions));
 	let attempts = 0;
 	while (attempts < 1000) {
 		const x = Math.floor(Math.random() * GRID_WIDTH);
