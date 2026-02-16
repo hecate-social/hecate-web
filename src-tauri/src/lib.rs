@@ -1,3 +1,4 @@
+mod gladiator_streaming;
 mod irc_streaming;
 mod personality;
 mod snake_duel_streaming;
@@ -46,6 +47,7 @@ pub fn run() {
             streaming::chat_stream,
             irc_streaming::irc_stream,
             snake_duel_streaming::snake_duel_stream,
+            gladiator_streaming::gladiator_training_stream,
             personality::get_personality_info,
             personality::build_system_prompt,
             personality::list_roles,

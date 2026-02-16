@@ -1,5 +1,6 @@
 <script lang="ts">
 	import SnakeDuelView from '$lib/components/arcade/SnakeDuelView.svelte';
+	import SnakeGladiatorsView from '$lib/components/arcade/SnakeGladiatorsView.svelte';
 
 	interface ArcadeGame {
 		id: string;
@@ -11,6 +12,7 @@
 
 	const games: ArcadeGame[] = [
 		{ id: 'snake-duel', name: 'Snake Duel', icon: '\u{1F40D}', description: '2 AI snakes battle in an arena', active: true },
+		{ id: 'snake-gladiators', name: 'Snake Gladiators', icon: '\u{1F9EC}', description: 'Breed neural network snakes', active: true },
 		{ id: 'more', name: 'More Games', icon: '\u{1F3B2}', description: 'More games coming', active: false }
 	];
 
@@ -19,6 +21,8 @@
 
 {#if activeApp === 'snake-duel'}
 	<SnakeDuelView onBack={() => (activeApp = null)} />
+{:else if activeApp === 'snake-gladiators'}
+	<SnakeGladiatorsView onBack={() => (activeApp = null)} />
 {:else}
 	<div class="flex flex-col items-center h-full overflow-y-auto py-8 px-6 gap-6">
 		<div class="flex flex-col items-center gap-2">
