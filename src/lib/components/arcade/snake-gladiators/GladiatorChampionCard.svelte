@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { COLORS, DEFAULT_FITNESS_WEIGHTS, WEIGHT_BOUNDS } from '$lib/game/snake-gladiators/constants';
-	import { exportChampion, fetchChampions, promoteChampion } from '$lib/game/snake-gladiators/client';
-	import type { Champion, Stable, FitnessWeights } from '$lib/game/snake-gladiators/types';
+	import { exportChampion, fetchChampions, promoteChampion, batchTestChampion } from '$lib/game/snake-gladiators/client';
+	import type { Champion, Stable, FitnessWeights, BatchTestResult } from '$lib/game/snake-gladiators/types';
 
 	interface Props {
 		stableId: string;
@@ -23,6 +23,13 @@
 	let promoted = $state(false);
 	let heroName = $state('');
 	let showPromoteForm = $state(false);
+
+	// Batch test state
+	let batchTesting = $state(false);
+	let batchResult = $state<BatchTestResult | null>(null);
+	let batchDuels = $state(20);
+	let batchOpponentAf = $state(50);
+	let prevSelectedRank = $state(1);
 
 	const selectedChampion = $derived(
 		champions.find((c) => c.rank === selectedRank) ?? champions[0] ?? null
@@ -65,6 +72,34 @@
 		}
 		promoting = false;
 	}
+
+	async function handleBatchTest(): Promise<void> {
+		batchTesting = true;
+		error = null;
+		batchResult = null;
+		try {
+			batchResult = await batchTestChampion(stableId, selectedRank, batchOpponentAf, batchDuels);
+		} catch (e) {
+			error = e instanceof Error ? e.message : String(e);
+		}
+		batchTesting = false;
+	}
+
+	// Clear batch results when rank changes
+	$effect(() => {
+		if (selectedRank !== prevSelectedRank) {
+			batchResult = null;
+			prevSelectedRank = selectedRank;
+		}
+	});
+
+	const batchWinRateColor = $derived(
+		batchResult
+			? batchResult.win_rate >= 60 ? '#22c55e'
+			  : batchResult.win_rate >= 40 ? '#eab308'
+			  : '#ef4444'
+			: '#6b7280'
+	);
 
 	const winRate = $derived(
 		selectedChampion && selectedChampion.wins + selectedChampion.losses + selectedChampion.draws > 0
@@ -392,6 +427,16 @@
 					Test #{selectedRank} in Duel
 				</button>
 			{/if}
+			<button
+				onclick={handleBatchTest}
+				disabled={batchTesting}
+				class="flex-1 px-3 py-2 rounded-lg text-[11px] font-semibold transition-all duration-200
+					bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-400 border border-emerald-500/30
+					hover:border-emerald-500/50
+					disabled:opacity-50 disabled:cursor-not-allowed"
+			>
+				{batchTesting ? `Testing (${batchDuels})...` : `Batch Test #{selectedRank}`}
+			</button>
 			{#if onContinueTraining}
 				<button
 					onclick={() => onContinueTraining?.(stableId)}
@@ -415,6 +460,63 @@
 				<span class="text-[11px] font-semibold text-amber-400">Promoted!</span>
 			{/if}
 		</div>
+
+		<!-- Batch Test Config -->
+		<div class="flex items-center gap-3 mt-2 text-[10px] text-surface-400">
+			<label class="flex items-center gap-1.5">
+				<span>Opponent AF:</span>
+				<select
+					bind:value={batchOpponentAf}
+					class="bg-surface-900 border border-surface-700/50 rounded px-1.5 py-0.5 text-[10px] text-surface-200
+						focus:border-emerald-500/50 focus:outline-none"
+				>
+					{#each [10, 20, 30, 40, 50, 60, 70, 80, 90, 100] as af}
+						<option value={af}>{af}</option>
+					{/each}
+				</select>
+			</label>
+			<label class="flex items-center gap-1.5">
+				<span>Duels:</span>
+				<select
+					bind:value={batchDuels}
+					class="bg-surface-900 border border-surface-700/50 rounded px-1.5 py-0.5 text-[10px] text-surface-200
+						focus:border-emerald-500/50 focus:outline-none"
+				>
+					{#each [10, 20, 30, 50] as n}
+						<option value={n}>{n}</option>
+					{/each}
+				</select>
+			</label>
+		</div>
+
+		<!-- Batch Test Results -->
+		{#if batchResult}
+			<div class="mt-3 rounded-lg bg-surface-900/60 border border-surface-700/40 p-3">
+				<div class="flex items-center justify-between mb-2">
+					<span class="text-[9px] text-surface-500 uppercase tracking-wider">
+						Batch Test Results ({batchResult.total} duels)
+					</span>
+					<span class="text-[9px] text-surface-500">
+						vs AF {batchOpponentAf}
+					</span>
+				</div>
+				<div class="flex items-baseline gap-3">
+					<div class="text-2xl font-bold tabular-nums" style:color={batchWinRateColor}>
+						{batchResult.win_rate}%
+					</div>
+					<div class="flex items-center gap-2 text-[11px]">
+						<span class="text-emerald-400 tabular-nums">{batchResult.wins}W</span>
+						<span class="text-red-400 tabular-nums">{batchResult.losses}L</span>
+						<span class="text-surface-400 tabular-nums">{batchResult.draws}D</span>
+					</div>
+				</div>
+				<div class="flex items-center gap-4 mt-1.5 text-[10px] text-surface-500">
+					<span>Avg ticks: <span class="text-surface-300 tabular-nums">{batchResult.avg_ticks}</span></span>
+					<span>Avg food: <span class="text-surface-300 tabular-nums">{batchResult.avg_food}</span></span>
+					<span>Wall kills: <span class="text-surface-300 tabular-nums">{batchResult.wall_kills}</span></span>
+				</div>
+			</div>
+		{/if}
 
 		<!-- Promote Form -->
 		{#if showPromoteForm && !promoted}

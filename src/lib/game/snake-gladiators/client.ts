@@ -4,7 +4,7 @@
 import { get, post } from '$lib/api';
 import { invoke } from '@tauri-apps/api/core';
 import { listen, type UnlistenFn } from '@tauri-apps/api/event';
-import type { Stable, Champion, GenerationStats, TrainingProgress, Hero, FitnessWeights } from './types';
+import type { Stable, Champion, GenerationStats, TrainingProgress, Hero, FitnessWeights, BatchTestResult } from './types';
 
 interface InitiateStableResponse {
 	ok: boolean;
@@ -79,6 +79,20 @@ export async function startChampionDuel(
 		{ opponent_af: opponentAf, tick_ms: tickMs, rank }
 	);
 	return resp.match_id;
+}
+
+/** Run N headless duels and return aggregated stats. */
+export async function batchTestChampion(
+	stableId: string,
+	rank: number,
+	opponentAf: number,
+	numDuels: number
+): Promise<BatchTestResult> {
+	const resp = await post<{ ok: boolean; results: BatchTestResult }>(
+		`/api/arcade/gladiators/stables/${stableId}/batch-test`,
+		{ rank, opponent_af: opponentAf, num_duels: numDuels }
+	);
+	return resp.results;
 }
 
 /** Halt an active training run. */

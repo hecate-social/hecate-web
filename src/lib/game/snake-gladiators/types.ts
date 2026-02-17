@@ -59,6 +59,18 @@ export interface Hero {
 	promoted_at: number;
 }
 
+/** Aggregated results from a batch of headless duels */
+export interface BatchTestResult {
+	wins: number;
+	losses: number;
+	draws: number;
+	total: number;
+	win_rate: number;
+	avg_ticks: number;
+	avg_food: number;
+	wall_kills: number;
+}
+
 /** SSE progress event from training stream */
 export interface TrainingProgress {
 	generation: number;
