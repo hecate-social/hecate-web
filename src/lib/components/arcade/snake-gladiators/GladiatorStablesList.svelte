@@ -27,7 +27,7 @@
 	let opponentAf = $state(DEFAULTS.opponentAf);
 	let episodesPerEval = $state(DEFAULTS.episodesPerEval);
 	let championCount = $state(DEFAULTS.championCount);
-	let enableLtc = $state(false);
+	let enableLtc = $state(true);
 
 	// Fitness weight state
 	let selectedPreset = $state(0); // index into PRESETS
