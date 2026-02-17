@@ -2,9 +2,9 @@ import type { FitnessWeights } from './types';
 
 export const DEFAULTS = {
 	populationSize: 50,
-	maxGenerations: 30,
-	opponentAf: 30,
-	episodesPerEval: 3,
+	maxGenerations: 100,
+	opponentAf: 50,
+	episodesPerEval: 5,
 	championCount: 3
 };
 

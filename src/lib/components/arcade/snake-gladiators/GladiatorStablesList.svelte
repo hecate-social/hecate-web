@@ -28,7 +28,7 @@
 	let episodesPerEval = $state(DEFAULTS.episodesPerEval);
 	let championCount = $state(DEFAULTS.championCount);
 	let enableLtc = $state(true);
-	let enableLcChain = $state(false);
+	let enableLcChain = $state(true);
 
 	// Fitness weight state
 	let selectedPreset = $state(0); // index into PRESETS
@@ -252,9 +252,9 @@
 						<span class="w-24">Generations</span>
 						<input
 							type="range"
-							min="5"
-							max="100"
-							step="5"
+							min="10"
+							max="300"
+							step="10"
 							bind:value={maxGenerations}
 							class="flex-1 accent-purple-500"
 						/>
