@@ -28,6 +28,7 @@
 	let episodesPerEval = $state(DEFAULTS.episodesPerEval);
 	let championCount = $state(DEFAULTS.championCount);
 	let enableLtc = $state(true);
+	let enableLcChain = $state(false);
 
 	// Fitness weight state
 	let selectedPreset = $state(0); // index into PRESETS
@@ -88,13 +89,14 @@
 			}
 			// Include fitness config if not balanced/defaults
 			const isDefault = selectedPreset === 0 && !showAdvanced;
-			if (!isDefault || enableLtc) {
-				if (selectedPreset > 0 && !showAdvanced && !enableLtc) {
+			if (!isDefault || enableLtc || enableLcChain) {
+				if (selectedPreset > 0 && !showAdvanced && !enableLtc && !enableLcChain) {
 					config.training_config = { fitness_preset: PRESETS[selectedPreset].name };
 				} else {
 					config.training_config = {
 						fitness_weights: weights,
-						...(enableLtc ? { enable_ltc: true } : {})
+						...(enableLtc ? { enable_ltc: true } : {}),
+						...(enableLcChain ? { enable_lc_chain: true } : {})
 					};
 				}
 			}
@@ -322,6 +324,28 @@
 							</span>
 						{/if}
 					</label>
+
+					<label class="flex items-center gap-2 text-[11px] text-surface-300">
+						<span class="w-24">LC Chain</span>
+						<button
+							onclick={() => { enableLcChain = !enableLcChain; }}
+							class="relative w-9 h-5 rounded-full transition-colors duration-200
+								{enableLcChain ? 'bg-emerald-600' : 'bg-surface-700'}"
+						>
+							<span
+								class="absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white transition-transform duration-200
+									{enableLcChain ? 'translate-x-4' : ''}"
+							></span>
+						</button>
+						<span class="text-surface-500 text-[10px]">
+							{enableLcChain ? 'Enabled' : 'Off'}
+						</span>
+						{#if enableLcChain}
+							<span class="text-[9px] px-1.5 py-0.5 rounded bg-emerald-900/40 text-emerald-300 font-semibold border border-emerald-700/30">
+								adaptive
+							</span>
+						{/if}
+					</label>
 				</div>
 
 				<!-- Fitness Preset Selector -->
@@ -461,6 +485,12 @@
 								{#if stable.enable_ltc}
 									<span class="text-[9px] px-1.5 py-0.5 rounded bg-cyan-900/40 text-cyan-300 font-semibold border border-cyan-700/30">
 										LTC
+									</span>
+								{/if}
+
+								{#if stable.enable_lc_chain}
+									<span class="text-[9px] px-1.5 py-0.5 rounded bg-emerald-900/40 text-emerald-300 font-semibold border border-emerald-700/30">
+										LC
 									</span>
 								{/if}
 

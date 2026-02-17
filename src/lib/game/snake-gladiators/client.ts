@@ -57,6 +57,7 @@ export async function initiateStable(config: {
 		fitness_weights?: FitnessWeights;
 		fitness_preset?: string;
 		enable_ltc?: boolean;
+		enable_lc_chain?: boolean;
 	};
 }): Promise<string> {
 	const resp = await post<InitiateStableResponse>(

@@ -23,6 +23,7 @@ export interface Stable {
 	fitness_weights: FitnessWeights | null;
 	champion_count: number;
 	enable_ltc: boolean;
+	enable_lc_chain: boolean;
 }
 
 export interface GenerationStats {
