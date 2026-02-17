@@ -24,9 +24,17 @@ export async function fetchStable(stableId: string): Promise<Stable> {
 	return get<Stable>(`/api/arcade/gladiators/stables/${stableId}`);
 }
 
-/** Get the champion from a completed stable. */
+/** Get the rank-1 champion from a completed stable. */
 export async function fetchChampion(stableId: string): Promise<Champion> {
 	return get<Champion>(`/api/arcade/gladiators/stables/${stableId}/champion`);
+}
+
+/** Get all ranked champions from a completed stable. */
+export async function fetchChampions(stableId: string): Promise<Champion[]> {
+	const resp = await get<{ ok: boolean; champions: Champion[] }>(
+		`/api/arcade/gladiators/stables/${stableId}/champions`
+	);
+	return resp.champions ?? [];
 }
 
 /** Get generation-by-generation stats for a stable. */
@@ -43,10 +51,12 @@ export async function initiateStable(config: {
 	max_generations: number;
 	opponent_af: number;
 	episodes_per_eval: number;
+	champion_count?: number;
 	seed_stable_id?: string;
 	training_config?: {
 		fitness_weights?: FitnessWeights;
 		fitness_preset?: string;
+		enable_ltc?: boolean;
 	};
 }): Promise<string> {
 	const resp = await post<InitiateStableResponse>(
@@ -60,11 +70,12 @@ export async function initiateStable(config: {
 export async function startChampionDuel(
 	stableId: string,
 	opponentAf: number,
-	tickMs: number
+	tickMs: number,
+	rank: number = 1
 ): Promise<string> {
 	const resp = await post<{ ok: boolean; match_id: string }>(
 		`/api/arcade/gladiators/stables/${stableId}/duel`,
-		{ opponent_af: opponentAf, tick_ms: tickMs }
+		{ opponent_af: opponentAf, tick_ms: tickMs, rank }
 	);
 	return resp.match_id;
 }

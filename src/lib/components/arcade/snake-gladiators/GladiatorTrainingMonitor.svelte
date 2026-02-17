@@ -5,7 +5,7 @@
 		connectTrainingStream,
 		fetchStable,
 		fetchGenerations,
-		fetchChampion,
+		fetchChampions,
 		haltTraining
 	} from '$lib/game/snake-gladiators/client';
 	import type { Stable, GenerationStats, Champion, TrainingProgress } from '$lib/game/snake-gladiators/types';
@@ -22,10 +22,11 @@
 
 	let stable = $state<Stable | null>(null);
 	let generations = $state<GenerationStats[]>([]);
-	let champion = $state<Champion | null>(null);
+	let champions = $state<Champion[]>([]);
 	let status = $state<'connecting' | 'training' | 'completed' | 'halted' | 'error'>('connecting');
 	let error = $state<string | null>(null);
 	let halting = $state(false);
+	let logExpanded = $state(true);
 
 	// Live progress data accumulated from SSE
 	let progressData = $state<TrainingProgress[]>([]);
@@ -42,16 +43,18 @@
 
 			if (stable.status === 'completed') {
 				status = 'completed';
+				logExpanded = false;
 				try {
-					champion = await fetchChampion(stableId);
+					champions = await fetchChampions(stableId);
 				} catch {
-					// champion may not be exported yet
+					// champions may not be exported yet
 				}
 				return;
 			}
 
 			if (stable.status === 'halted') {
 				status = 'halted';
+				logExpanded = false;
 				return;
 			}
 
@@ -94,6 +97,7 @@
 	function markComplete(): void {
 		if (status === 'completed' || status === 'halted') return;
 		status = 'completed';
+		logExpanded = false;
 		if (cleanup) { cleanup(); cleanup = null; }
 
 		// Fetch latest stable in background
@@ -102,18 +106,19 @@
 			if (fresh.status === 'halted') status = 'halted';
 		}).catch(() => {});
 
-		// Champion may not be recorded yet (training_complete fires after last generation_complete).
+		// Champions may not be recorded yet (training_complete fires after last generation_complete).
 		// Retry with increasing delays.
-		loadChampion(0);
+		loadChampions(0);
 	}
 
-	function loadChampion(attempt: number): void {
+	function loadChampions(attempt: number): void {
 		const delay = attempt === 0 ? 500 : attempt === 1 ? 2000 : 5000;
 		setTimeout(() => {
-			fetchChampion(stableId).then((c) => {
-				champion = c;
+			fetchChampions(stableId).then((c) => {
+				if (c.length > 0) champions = c;
+				else if (attempt < 3) loadChampions(attempt + 1);
 			}).catch(() => {
-				if (attempt < 3) loadChampion(attempt + 1);
+				if (attempt < 3) loadChampions(attempt + 1);
 			});
 		}, delay);
 	}
@@ -394,30 +399,41 @@
 					</div>
 				</div>
 
-				<!-- Generation Log -->
-				<div class="rounded-xl bg-surface-800/80 border border-surface-600/50 p-4">
-					<h3 class="text-xs font-semibold text-surface-300 mb-3 uppercase tracking-wider">
-						Generation Log
-					</h3>
+				<!-- Generation Log (collapsible) -->
+				<div class="rounded-xl bg-surface-800/80 border border-surface-600/50">
+					<button
+						onclick={() => { logExpanded = !logExpanded; }}
+						class="w-full flex items-center justify-between p-4 text-left hover:bg-surface-700/20 transition-colors rounded-xl"
+					>
+						<h3 class="text-xs font-semibold text-surface-300 uppercase tracking-wider">
+							Generation Log
+							<span class="text-surface-500 normal-case font-normal ml-1">({rows.length})</span>
+						</h3>
+						<span class="text-surface-500 text-xs transition-transform duration-200"
+							class:rotate-180={logExpanded}
+						>&darr;</span>
+					</button>
 
-					<div class="max-h-48 overflow-y-auto">
-						<div class="flex flex-col gap-1">
-							{#each [...rows].reverse() as row}
-								<div class="flex items-center gap-4 px-3 py-1.5 rounded-lg bg-surface-900/50 text-[11px]">
-									<span class="text-surface-500 w-12 tabular-nums">Gen {row.gen}</span>
-									<span class="tabular-nums" style:color={COLORS.fitness}>
-										{row.best.toFixed(1)}
-									</span>
-									<span class="tabular-nums" style:color={COLORS.avgFitness}>
-										{row.avg.toFixed(1)}
-									</span>
-									<span class="tabular-nums" style:color={COLORS.worstFitness}>
-										{row.worst.toFixed(1)}
-									</span>
-								</div>
-							{/each}
+					{#if logExpanded}
+						<div class="max-h-48 overflow-y-auto px-4 pb-4">
+							<div class="flex flex-col gap-1">
+								{#each [...rows].reverse() as row}
+									<div class="flex items-center gap-4 px-3 py-1.5 rounded-lg bg-surface-900/50 text-[11px]">
+										<span class="text-surface-500 w-12 tabular-nums">Gen {row.gen}</span>
+										<span class="tabular-nums" style:color={COLORS.fitness}>
+											{row.best.toFixed(1)}
+										</span>
+										<span class="tabular-nums" style:color={COLORS.avgFitness}>
+											{row.avg.toFixed(1)}
+										</span>
+										<span class="tabular-nums" style:color={COLORS.worstFitness}>
+											{row.worst.toFixed(1)}
+										</span>
+									</div>
+								{/each}
+							</div>
 						</div>
-					</div>
+					{/if}
 				</div>
 			{:else}
 				<div class="rounded-xl bg-surface-800/80 border border-surface-600/50 p-4">
@@ -432,7 +448,7 @@
 
 			<!-- Champion Card (when completed) -->
 			{#if status === 'completed'}
-				<GladiatorChampionCard {stableId} {champion} {onTestDuel} {onContinueTraining} />
+				<GladiatorChampionCard {stableId} {champions} {stable} {onTestDuel} {onContinueTraining} />
 			{/if}
 		</div>
 	</div>

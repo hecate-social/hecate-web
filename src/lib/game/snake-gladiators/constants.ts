@@ -4,7 +4,8 @@ export const DEFAULTS = {
 	populationSize: 50,
 	maxGenerations: 30,
 	opponentAf: 30,
-	episodesPerEval: 3
+	episodesPerEval: 3,
+	championCount: 3
 };
 
 export const COLORS = {

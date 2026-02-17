@@ -9,10 +9,11 @@
 
 	interface Props {
 		stableId: string;
+		rank?: number;
 		onBack: () => void;
 	}
 
-	let { stableId, onBack }: Props = $props();
+	let { stableId, rank = 1, onBack }: Props = $props();
 
 	type Phase = 'configure' | 'playing' | 'result';
 
@@ -42,7 +43,7 @@
 		starting = true;
 		error = null;
 		try {
-			const matchId = await startChampionDuel(stableId, opponentAf, tickMs);
+			const matchId = await startChampionDuel(stableId, opponentAf, tickMs, rank);
 			phase = 'playing';
 
 			// Wait for canvas to mount before connecting stream

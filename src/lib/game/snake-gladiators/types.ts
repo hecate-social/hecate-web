@@ -21,6 +21,8 @@ export interface Stable {
 	started_at: number;
 	completed_at: number | null;
 	fitness_weights: FitnessWeights | null;
+	champion_count: number;
+	enable_ltc: boolean;
 }
 
 export interface GenerationStats {
@@ -34,6 +36,7 @@ export interface GenerationStats {
 
 export interface Champion {
 	stable_id: string;
+	rank: number;
 	network_json: string;
 	fitness: number;
 	generation: number;

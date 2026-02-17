@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import {
-		DEFAULTS, COLORS, PRESETS, WEIGHT_BOUNDS, DEFAULT_FITNESS_WEIGHTS,
+		DEFAULTS, COLORS, PRESETS, WEIGHT_BOUNDS, WEIGHT_GROUPS, DEFAULT_FITNESS_WEIGHTS,
 		TUNING_BUDGET, computeTuningCost
 	} from '$lib/game/snake-gladiators/constants';
 	import { fetchStables, initiateStable } from '$lib/game/snake-gladiators/client';
@@ -20,15 +20,18 @@
 	let stables = $state<Stable[]>([]);
 	let loading = $state(true);
 	let starting = $state(false);
+	let startError = $state<string | null>(null);
 
 	let populationSize = $state(DEFAULTS.populationSize);
 	let maxGenerations = $state(DEFAULTS.maxGenerations);
 	let opponentAf = $state(DEFAULTS.opponentAf);
 	let episodesPerEval = $state(DEFAULTS.episodesPerEval);
+	let championCount = $state(DEFAULTS.championCount);
+	let enableLtc = $state(false);
 
 	// Fitness weight state
 	let selectedPreset = $state(0); // index into PRESETS
-	let showAdvanced = $state(false);
+	let showAdvanced = $state(true);
 	let weights = $state<FitnessWeights>({ ...DEFAULT_FITNESS_WEIGHTS });
 
 	const tuningCost = $derived(computeTuningCost(weights));
@@ -71,23 +74,28 @@
 	async function handleStartTraining(): Promise<void> {
 		if (overBudget) return;
 		starting = true;
+		startError = null;
 		try {
 			const config: Parameters<typeof initiateStable>[0] = {
 				population_size: populationSize,
 				max_generations: maxGenerations,
 				opponent_af: opponentAf,
-				episodes_per_eval: episodesPerEval
+				episodes_per_eval: episodesPerEval,
+				champion_count: championCount
 			};
 			if (seedStableId) {
 				config.seed_stable_id = seedStableId;
 			}
 			// Include fitness config if not balanced/defaults
 			const isDefault = selectedPreset === 0 && !showAdvanced;
-			if (!isDefault) {
-				if (selectedPreset > 0 && !showAdvanced) {
+			if (!isDefault || enableLtc) {
+				if (selectedPreset > 0 && !showAdvanced && !enableLtc) {
 					config.training_config = { fitness_preset: PRESETS[selectedPreset].name };
 				} else {
-					config.training_config = { fitness_weights: weights };
+					config.training_config = {
+						fitness_weights: weights,
+						...(enableLtc ? { enable_ltc: true } : {})
+					};
 				}
 			}
 			const stableId = await initiateStable(config);
@@ -95,6 +103,7 @@
 			onSelectStable(stableId, 'training');
 		} catch (e) {
 			console.error('[gladiators] Failed to start training:', e);
+			startError = e instanceof Error ? e.message : String(e);
 		}
 		starting = false;
 	}
@@ -216,6 +225,12 @@
 					</div>
 				{/if}
 
+				{#if startError}
+					<div class="px-3 py-2 rounded-lg bg-red-900/30 border border-red-800/50 text-[11px] text-red-300">
+						Failed to start training: {startError}
+					</div>
+				{/if}
+
 				<!-- Training Settings -->
 				<div class="flex flex-col gap-2.5">
 					<label class="flex items-center gap-2 text-[11px] text-surface-300">
@@ -271,6 +286,41 @@
 							class="flex-1 accent-purple-500"
 						/>
 						<span class="text-surface-500 w-10 text-right tabular-nums">{episodesPerEval}</span>
+					</label>
+
+					<label class="flex items-center gap-2 text-[11px] text-surface-300">
+						<span class="w-24">Champions</span>
+						<input
+							type="range"
+							min="1"
+							max="10"
+							step="1"
+							bind:value={championCount}
+							class="flex-1 accent-amber-500"
+						/>
+						<span class="text-surface-500 w-10 text-right tabular-nums">{championCount}</span>
+					</label>
+
+					<label class="flex items-center gap-2 text-[11px] text-surface-300">
+						<span class="w-24">LTC Neurons</span>
+						<button
+							onclick={() => { enableLtc = !enableLtc; }}
+							class="relative w-9 h-5 rounded-full transition-colors duration-200
+								{enableLtc ? 'bg-cyan-600' : 'bg-surface-700'}"
+						>
+							<span
+								class="absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white transition-transform duration-200
+									{enableLtc ? 'translate-x-4' : ''}"
+							></span>
+						</button>
+						<span class="text-surface-500 text-[10px]">
+							{enableLtc ? 'Enabled' : 'Off'}
+						</span>
+						{#if enableLtc}
+							<span class="text-[9px] px-1.5 py-0.5 rounded bg-cyan-900/40 text-cyan-300 font-semibold border border-cyan-700/30">
+								experimental
+							</span>
+						{/if}
 					</label>
 				</div>
 
@@ -329,26 +379,37 @@
 					{showAdvanced ? 'Hide' : 'Show'} Advanced Weights
 				</button>
 
-				<!-- Advanced Weight Sliders -->
+				<!-- Advanced Weight Sliders (Grouped) -->
 				{#if showAdvanced}
-					<div class="mt-3 flex flex-col gap-2 pl-2 border-l-2 border-purple-500/20">
-						{#each Object.entries(WEIGHT_BOUNDS) as [key, bound]}
-							{@const k = key as keyof FitnessWeights}
-							<label class="flex items-center gap-2 text-[10px] text-surface-300">
-								<span class="w-24">{bound.label}</span>
-								<input
-									type="range"
-									min={bound.min}
-									max={bound.max}
-									step={bound.step}
-									bind:value={weights[k]}
-									oninput={() => { selectedPreset = -1; }}
-									class="flex-1 accent-purple-500"
-								/>
-								<span class="text-surface-500 w-14 text-right tabular-nums">
-									{weights[k].toFixed(bound.step < 1 ? 1 : 0)}
+					<div class="mt-3 flex flex-col gap-4">
+						{#each WEIGHT_GROUPS as group}
+							<div class="flex flex-col gap-2 pl-2 border-l-2" style:border-color="{group.color}40">
+								<span class="text-[9px] uppercase tracking-wider font-semibold" style:color={group.color}>
+									{group.label}
 								</span>
-							</label>
+								{#each group.keys as key}
+									{@const bound = WEIGHT_BOUNDS[key]}
+									<label class="flex items-center gap-2 text-[10px] text-surface-300">
+										<span class="w-24">{bound.label}</span>
+										<input
+											type="range"
+											min={bound.min}
+											max={bound.max}
+											step={bound.step}
+											value={bound.invert ? -weights[key] : weights[key]}
+											oninput={(e) => {
+												const v = parseFloat((e.target as HTMLInputElement).value);
+												weights[key] = bound.invert ? -v : v;
+												selectedPreset = -1;
+											}}
+											class="flex-1 accent-purple-500"
+										/>
+										<span class="text-surface-500 w-14 text-right tabular-nums">
+											{(bound.invert ? -weights[key] : weights[key]).toFixed(bound.step < 1 ? 1 : 0)}
+										</span>
+									</label>
+								{/each}
+							</div>
 						{/each}
 					</div>
 				{/if}
@@ -396,6 +457,12 @@
 								<span class="text-[9px] px-1.5 py-0.5 rounded bg-purple-900/30 text-purple-300">
 									{presetBadge(stable)}
 								</span>
+
+								{#if stable.enable_ltc}
+									<span class="text-[9px] px-1.5 py-0.5 rounded bg-cyan-900/40 text-cyan-300 font-semibold border border-cyan-700/30">
+										LTC
+									</span>
+								{/if}
 
 								<!-- Config -->
 								<span class="text-surface-600 tabular-nums">

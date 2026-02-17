@@ -13,14 +13,16 @@
 
 	let view: 'stables' | 'training' | 'duel' | 'heroes' = $state('stables');
 	let selectedStableId = $state<string | null>(null);
+	let duelRank = $state(1);
 
 	function handleSelectStable(stableId: string, _status: Stable['status']): void {
 		selectedStableId = stableId;
 		view = 'training';
 	}
 
-	function handleTestDuel(stableId: string): void {
+	function handleTestDuel(stableId: string, rank?: number): void {
 		selectedStableId = stableId;
+		duelRank = rank ?? 1;
 		view = 'duel';
 	}
 
@@ -32,6 +34,10 @@
 	function handleBackToStables(): void {
 		view = 'stables';
 		selectedStableId = null;
+	}
+
+	function handleBackFromDuel(): void {
+		view = 'training';
 	}
 
 	function handleViewHeroes(): void {
@@ -47,7 +53,8 @@
 {#if view === 'duel' && selectedStableId}
 	<GladiatorDuelView
 		stableId={selectedStableId}
-		onBack={handleBackToStables}
+		rank={duelRank}
+		onBack={handleBackFromDuel}
 	/>
 {:else if view === 'training' && selectedStableId}
 	<GladiatorTrainingMonitor
