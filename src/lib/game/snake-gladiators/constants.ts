@@ -133,6 +133,16 @@ export const PRESETS: FitnessPreset[] = [
 			draw_bonus: 0.0, kill_bonus: 300.0, proximity_weight: 0.0, circle_penalty: 0.0,
 			wall_kill_bonus: 200.0
 		}
+	},
+	{
+		name: 'hybrid',
+		label: 'Hybrid',
+		description: 'Win-focused with food awareness — best duel win rate',
+		weights: {
+			survival_weight: 0.1, food_weight: 15.0, win_bonus: 500.0,
+			draw_bonus: 25.0, kill_bonus: 250.0, proximity_weight: 0.3, circle_penalty: -0.3,
+			wall_kill_bonus: 150.0
+		}
 	}
 ];
 
