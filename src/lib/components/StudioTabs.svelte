@@ -15,7 +15,8 @@
 		{ id: 'node', name: 'Node', icon: '\u{1F310}', path: '/node' },
 		{ id: 'social', name: 'Social', icon: '\u{1F4AC}', path: '/social' },
 		{ id: 'devops', name: 'Martha', icon: '\u{2699}\u{FE0F}', path: '/devops' },
-		{ id: 'arcade', name: 'Arcade', icon: '\u{1F3AE}', path: '/arcade' }
+		{ id: 'arcade', name: 'Arcade', icon: '\u{1F3AE}', path: '/arcade' },
+		{ id: 'trader', name: 'Trader', icon: '\u{1F4C8}', path: '/trader' }
 	];
 
 	function isActive(studioPath: string): boolean {

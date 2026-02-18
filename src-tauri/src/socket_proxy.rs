@@ -62,7 +62,7 @@ pub fn check_daemon_health() -> Result<serde_json::Value, String> {
     serde_json::from_slice(&body).map_err(|e| e.to_string())
 }
 
-/// Resolve the daemon socket path.
+/// Resolve the daemon socket path for the main hecate-daemon.
 /// Priority: HECATE_SOCKET_PATH env > /run/hecate/ > $HOME/.hecate/hecate-daemon/sockets/
 pub fn resolve_socket_path() -> String {
     if let Ok(p) = std::env::var("HECATE_SOCKET_PATH") {
@@ -86,6 +86,39 @@ pub fn resolve_socket_path() -> String {
     "/run/hecate/api.sock".to_string()
 }
 
+/// Resolve socket path for a plugin daemon by name.
+/// Looks for: $HOME/.hecate/hecate-{name}d/sockets/api.sock
+fn resolve_plugin_socket_path(plugin_name: &str) -> String {
+    let daemon_name = format!("hecate-{}d", plugin_name);
+    if let Ok(home) = std::env::var("HOME") {
+        return Path::new(&home)
+            .join(".hecate")
+            .join(&daemon_name)
+            .join("sockets")
+            .join("api.sock")
+            .to_string_lossy()
+            .to_string();
+    }
+    format!("/run/{}/api.sock", daemon_name)
+}
+
+/// Route a request path to the correct socket.
+/// /plugin/trader/* -> hecate-traderd socket (path rewritten to /*)
+/// Everything else  -> hecate-daemon socket (path unchanged)
+fn resolve_socket_for_path(path: &str) -> (String, String) {
+    if let Some(rest) = path.strip_prefix("/plugin/") {
+        if let Some(slash_pos) = rest.find('/') {
+            let plugin_name = &rest[..slash_pos];
+            let rewritten_path = &rest[slash_pos..];
+            return (resolve_plugin_socket_path(plugin_name), rewritten_path.to_string());
+        }
+        // /plugin/trader with no trailing path -> /
+        let plugin_name = rest;
+        return (resolve_plugin_socket_path(plugin_name), "/".to_string());
+    }
+    (resolve_socket_path(), path.to_string())
+}
+
 pub fn proxy_request(
     request: &Request<Vec<u8>>,
 ) -> Result<Response<Vec<u8>>, Box<dyn std::error::Error>> {
@@ -94,15 +127,15 @@ pub fn proxy_request(
     let query = uri.query().unwrap_or("");
     let method = request.method().as_str();
 
-    let socket_path = resolve_socket_path();
+    let (socket_path, rewritten_path) = resolve_socket_for_path(path);
     let mut stream = UnixStream::connect(&socket_path)?;
     stream.set_read_timeout(Some(std::time::Duration::from_secs(30)))?;
 
-    // Build the request path
+    // Build the request path (using rewritten path for plugin routing)
     let full_path = if query.is_empty() {
-        path.to_string()
+        rewritten_path
     } else {
-        format!("{}?{}", path, query)
+        format!("{}?{}", rewritten_path, query)
     };
 
     let body = request.body();

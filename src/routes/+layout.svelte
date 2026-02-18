@@ -15,7 +15,7 @@
 
 	let { children } = $props();
 
-	const studioPaths = ['/', '/llm', '/node', '/social', '/devops', '/arcade'];
+	const studioPaths = ['/', '/llm', '/node', '/social', '/devops', '/arcade', '/trader'];
 
 	onMount(() => {
 		startPolling();
