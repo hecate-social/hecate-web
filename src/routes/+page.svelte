@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { health, connectionStatus } from '$lib/stores/daemon.js';
+	import { health, connectionStatus, isStarting } from '$lib/stores/daemon.js';
 	import { models } from '$lib/stores/llm.js';
 	import { identity } from '$lib/stores/node.js';
 	const DONATE_URL = 'https://buymeacoffee.com/rlefever';
@@ -36,6 +36,14 @@
 			icon: '\u{1F4AC}',
 			path: '/social',
 			description: 'IRC, forums, feeds, community',
+			ready: true
+		},
+		{
+			id: 'devops',
+			name: 'Martha Studio',
+			icon: '\u{2699}\u{FE0F}',
+			path: '/devops',
+			description: 'Venture initiation, division planning, deployment',
 			ready: true
 		},
 		{
@@ -91,6 +99,9 @@
 				<span class="text-surface-500">|</span>
 				<span class="text-accent-400">{$models.length} model{$models.length !== 1 ? 's' : ''}</span>
 			{/if}
+		{:else if $isStarting}
+			<span class="text-health-warn animate-pulse">{'\u{25CF}'}</span>
+			<span class="text-surface-300">Daemon starting...</span>
 		{:else if $connectionStatus === 'connecting'}
 			<span class="text-health-loading animate-pulse">{'\u{25CF}'}</span>
 			<span class="text-surface-300">Connecting to daemon...</span>

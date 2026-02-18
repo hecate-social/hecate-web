@@ -1,3 +1,4 @@
+mod daemon_watcher;
 mod gladiator_streaming;
 mod irc_streaming;
 mod personality;
@@ -24,6 +25,7 @@ pub fn run() {
                     }
                 }).ok();
             }
+            daemon_watcher::start(app.handle().clone());
             Ok(())
         })
         .register_asynchronous_uri_scheme_protocol("hecate", |_ctx, request, responder| {
@@ -44,6 +46,7 @@ pub fn run() {
             });
         })
         .invoke_handler(tauri::generate_handler![
+            socket_proxy::check_daemon_health,
             streaming::chat_stream,
             irc_streaming::irc_stream,
             snake_duel_streaming::snake_duel_stream,

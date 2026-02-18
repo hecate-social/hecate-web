@@ -435,7 +435,7 @@
 					hover:border-emerald-500/50
 					disabled:opacity-50 disabled:cursor-not-allowed"
 			>
-				{batchTesting ? `Testing (${batchDuels})...` : `Batch Test #{selectedRank}`}
+				{batchTesting ? `Testing (${batchDuels})...` : `Batch Test #${selectedRank}`}
 			</button>
 			{#if onContinueTraining}
 				<button

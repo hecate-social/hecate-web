@@ -74,14 +74,19 @@
 
 		<!-- Content -->
 		<div class="relative flex flex-col items-center gap-6">
-			<!-- Pulsing key icon -->
-			<div class="text-5xl animate-pulse">
-				{'\u{1F5DD}'}
+			<!-- Hecate artwork -->
+			<div class="splash-portrait">
+				<img
+					src="/artwork/silhouette-keybearer.jpg"
+					alt="Hecate, keeper of the key"
+					class="w-56 h-56 object-cover rounded-full"
+					style="mask-image: radial-gradient(circle, black 50%, transparent 80%); -webkit-mask-image: radial-gradient(circle, black 50%, transparent 80%);"
+				/>
 			</div>
 
 			<!-- Brand -->
 			<h1
-				class="text-2xl font-bold tracking-widest"
+				class="text-2xl font-bold tracking-widest -mt-2"
 				style="background: linear-gradient(135deg, #fbbf24, #f59e0b, #a875ff); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;"
 			>
 				HECATE
@@ -134,5 +139,12 @@
 	.animate-shimmer {
 		width: 40%;
 		animation: shimmer 1.5s ease-in-out infinite;
+	}
+	@keyframes portrait-glow {
+		0%, 100% { filter: drop-shadow(0 0 12px rgba(245, 158, 11, 0.3)); }
+		50% { filter: drop-shadow(0 0 24px rgba(168, 117, 255, 0.4)); }
+	}
+	.splash-portrait {
+		animation: portrait-glow 3s ease-in-out infinite;
 	}
 </style>

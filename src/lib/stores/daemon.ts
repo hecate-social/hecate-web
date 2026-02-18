@@ -1,9 +1,8 @@
-import { writable, derived, get } from 'svelte/store';
+import { writable, derived } from 'svelte/store';
+import { invoke } from '@tauri-apps/api/core';
+import { listen, type UnlistenFn } from '@tauri-apps/api/event';
 import type { DaemonHealth, ConnectionStatus, LLMHealth } from '../types.js';
 import * as api from '../api.js';
-
-const POLL_FAST_MS = 2000;
-const POLL_SLOW_MS = 10000;
 
 export const health = writable<DaemonHealth | null>(null);
 export const llmHealth = writable<LLMHealth | null>(null);
@@ -20,25 +19,38 @@ export const showOverlay = derived(
 	([$starting, $unavailable]) => $starting || $unavailable
 );
 
-let pollTimer: ReturnType<typeof setInterval> | null = null;
-let currentInterval = POLL_FAST_MS;
+let unlisten: UnlistenFn | null = null;
+let healthTimer: ReturnType<typeof setInterval> | null = null;
+let llmTimer: ReturnType<typeof setInterval> | null = null;
 
-export async function fetchHealth(): Promise<void> {
-	try {
-		const h = await api.get<DaemonHealth>('/health');
-		health.set(h);
+function handleHealthEvent(payload: DaemonHealth | null) {
+	if (payload && typeof payload === 'object' && 'status' in payload) {
+		health.set(payload);
 		connectionStatus.set('connected');
 		lastError.set(null);
 		unavailableSince.set(null);
-		reschedule(POLL_SLOW_MS);
-	} catch (e) {
-		connectionStatus.set('error');
-		lastError.set(e instanceof Error ? e.message : String(e));
+	} else {
 		health.set(null);
-		if (get(unavailableSince) === null) {
+		connectionStatus.set('error');
+		if (get_unavailableSince() === null) {
 			unavailableSince.set(Date.now());
 		}
-		reschedule(POLL_FAST_MS);
+	}
+}
+
+function get_unavailableSince(): number | null {
+	let value: number | null = null;
+	unavailableSince.subscribe((v) => (value = v))();
+	return value;
+}
+
+/** On-demand refresh — triggers a single health check via invoke */
+export async function fetchHealth(): Promise<void> {
+	try {
+		const h = await invoke<DaemonHealth>('check_daemon_health');
+		handleHealthEvent(h);
+	} catch {
+		handleHealthEvent(null);
 	}
 }
 
@@ -51,30 +63,46 @@ export async function fetchLLMHealth(): Promise<void> {
 	}
 }
 
-function reschedule(intervalMs: number): void {
-	if (intervalMs === currentInterval) return;
-	currentInterval = intervalMs;
-	if (pollTimer) {
-		clearInterval(pollTimer);
-		pollTimer = setInterval(poll, currentInterval);
-	}
-}
+export async function startPolling(): Promise<void> {
+	stopPolling();
 
-function poll(): void {
-	fetchHealth();
+	// Listen for daemon-health events from the Rust watcher (inotify)
+	unlisten = await listen<DaemonHealth | null>('daemon-health', (event) => {
+		handleHealthEvent(event.payload);
+	});
+
+	// Immediate check — the watcher's initial emit fires before this listener is ready
+	await fetchHealth();
+
+	// Periodic daemon health poll as fallback (invoke-based, bypasses event system)
+	healthTimer = setInterval(fetchHealth, 5_000);
+
+	// LLM health still polls (separate concern, only when connected)
+	llmTimer = setInterval(() => {
+		if (get_connectionStatus() === 'connected') {
+			fetchLLMHealth();
+		}
+	}, 10_000);
 	fetchLLMHealth();
 }
 
-export function startPolling(): void {
-	stopPolling();
-	currentInterval = POLL_FAST_MS;
-	poll();
-	pollTimer = setInterval(poll, currentInterval);
+function get_connectionStatus(): ConnectionStatus {
+	let value: ConnectionStatus = 'connecting';
+	connectionStatus.subscribe((v) => (value = v))();
+	return value;
 }
 
 export function stopPolling(): void {
-	if (pollTimer) {
-		clearInterval(pollTimer);
-		pollTimer = null;
+	if (unlisten) {
+		unlisten();
+		unlisten = null;
+	}
+	if (healthTimer) {
+		clearInterval(healthTimer);
+		healthTimer = null;
+	}
+	if (llmTimer) {
+		clearInterval(llmTimer);
+		llmTimer = null;
 	}
 }

@@ -14,6 +14,7 @@
 		{ id: 'llm', name: 'LLM', icon: '\u{1F916}', path: '/llm' },
 		{ id: 'node', name: 'Node', icon: '\u{1F310}', path: '/node' },
 		{ id: 'social', name: 'Social', icon: '\u{1F4AC}', path: '/social' },
+		{ id: 'devops', name: 'Martha', icon: '\u{2699}\u{FE0F}', path: '/devops' },
 		{ id: 'arcade', name: 'Arcade', icon: '\u{1F3AE}', path: '/arcade' }
 	];
 
@@ -82,7 +83,7 @@
 			<span class="text-sm">{studio.icon}</span>
 			<span>{studio.name}</span>
 		</a>
-		{#if studio.id !== 'arcade'}
+		{#if studio !== studios[studios.length - 1]}
 			<div class="w-px h-4 bg-surface-700"></div>
 		{/if}
 	{/each}

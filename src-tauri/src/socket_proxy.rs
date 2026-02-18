@@ -3,28 +3,87 @@ use std::os::unix::net::UnixStream;
 use std::path::Path;
 use tauri::http::{Request, Response};
 
+/// Tauri command: check daemon health directly via Unix socket.
+/// Bypasses the custom URI scheme protocol entirely.
+#[tauri::command]
+pub fn check_daemon_health() -> Result<serde_json::Value, String> {
+    let socket_path = resolve_socket_path();
+    if !Path::new(&socket_path).exists() {
+        return Err("socket_not_found".into());
+    }
+
+    let mut stream = UnixStream::connect(&socket_path).map_err(|e| e.to_string())?;
+    stream
+        .set_read_timeout(Some(std::time::Duration::from_secs(2)))
+        .map_err(|e| e.to_string())?;
+    stream
+        .set_write_timeout(Some(std::time::Duration::from_secs(2)))
+        .map_err(|e| e.to_string())?;
+
+    let req = "GET /health HTTP/1.1\r\nHost: localhost\r\nConnection: close\r\n\r\n";
+    stream.write_all(req.as_bytes()).map_err(|e| e.to_string())?;
+
+    let mut reader = BufReader::new(stream);
+
+    // Status line
+    let mut status_line = String::new();
+    reader.read_line(&mut status_line).map_err(|e| e.to_string())?;
+    let status = parse_status_code(&status_line).map_err(|e| e.to_string())?;
+    if status != 200 {
+        return Err(format!("daemon returned {}", status));
+    }
+
+    // Headers
+    let mut content_length: Option<usize> = None;
+    loop {
+        let mut line = String::new();
+        reader.read_line(&mut line).map_err(|e| e.to_string())?;
+        if line.trim().is_empty() {
+            break;
+        }
+        if let Some((key, value)) = line.split_once(':') {
+            if key.trim().eq_ignore_ascii_case("content-length") {
+                content_length = value.trim().parse().ok();
+            }
+        }
+    }
+
+    // Body
+    let body = if let Some(len) = content_length {
+        let mut buf = vec![0u8; len];
+        reader.read_exact(&mut buf).map_err(|e| e.to_string())?;
+        buf
+    } else {
+        let mut buf = Vec::new();
+        let _ = reader.read_to_end(&mut buf);
+        buf
+    };
+
+    serde_json::from_slice(&body).map_err(|e| e.to_string())
+}
+
 /// Resolve the daemon socket path.
-/// Priority: HECATE_SOCKET_PATH env > /run/hecate/ > $HOME/.hecate/
+/// Priority: HECATE_SOCKET_PATH env > /run/hecate/ > $HOME/.hecate/hecate-daemon/sockets/
 pub fn resolve_socket_path() -> String {
     if let Ok(p) = std::env::var("HECATE_SOCKET_PATH") {
         if !p.is_empty() && Path::new(&p).exists() {
             return p;
         }
     }
-    let system = "/run/hecate/daemon.sock";
+    let system = "/run/hecate/api.sock";
     if Path::new(system).exists() {
         return system.to_string();
     }
-    // Local dev default: $HOME/.hecate/ (multi-user safe, no root needed)
+    // Local dev default: $HOME/.hecate/hecate-daemon/sockets/ (namespaced)
     if let Ok(home) = std::env::var("HOME") {
-        let home_socket = Path::new(&home).join(".hecate").join("daemon.sock");
+        let home_socket = Path::new(&home).join(".hecate").join("hecate-daemon").join("sockets").join("api.sock");
         if home_socket.exists() {
             return home_socket.to_string_lossy().to_string();
         }
         // Even if socket doesn't exist yet, prefer this path for connection attempts
         return home_socket.to_string_lossy().to_string();
     }
-    "/run/hecate/daemon.sock".to_string()
+    "/run/hecate/api.sock".to_string()
 }
 
 pub fn proxy_request(
