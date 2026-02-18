@@ -1,31 +1,31 @@
 <script lang="ts">
 	import { plugins } from '$lib/stores/plugins';
 	import { mount, unmount } from 'svelte';
-
-	let container: HTMLElement | undefined = $state();
-	let mounted: ReturnType<typeof mount> | null = null;
+	import { onDestroy } from 'svelte';
 
 	const plugin = $derived($plugins.get('trader'));
 
+	let container: HTMLElement | undefined = $state();
+	let mounted: Record<string, any> | null = null;
+
 	$effect(() => {
-		if (plugin?.component && container) {
-			// Unmount previous if any
-			if (mounted) {
-				unmount(mounted);
-				mounted = null;
-			}
+		if (plugin?.component && container && !mounted) {
 			mounted = mount(plugin.component, {
 				target: container,
 				props: { api: plugin.api }
 			});
 		}
+	});
 
-		return () => {
-			if (mounted) {
+	onDestroy(() => {
+		if (mounted) {
+			try {
 				unmount(mounted);
-				mounted = null;
+			} catch {
+				// Component already cleaned up by DOM removal
 			}
-		};
+			mounted = null;
+		}
 	});
 </script>
 
@@ -41,5 +41,5 @@
 		</div>
 	</div>
 {:else}
-	<div bind:this={container} class="h-full"></div>
+	<div bind:this={container} class="h-full overflow-auto"></div>
 {/if}
