@@ -9,6 +9,7 @@
 	import { loadPersonalityInfo } from '$lib/stores/personality.js';
 	import { loadAgents } from '$lib/stores/agents.js';
 	import { startPluginWatcher, stopPluginWatcher } from '$lib/stores/plugins';
+	import { initPluginRuntime } from '$lib/plugin-runtime';
 	import { studioPaths } from '$lib/studios';
 	import '$lib/stores/theme.js';
 	import { onMount, onDestroy } from 'svelte';
@@ -19,6 +20,7 @@
 	let { children } = $props();
 
 	onMount(() => {
+		initPluginRuntime();
 		startPolling();
 		startPluginWatcher();
 		fetchModels();

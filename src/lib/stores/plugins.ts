@@ -112,24 +112,38 @@ async function loadPluginComponent(pluginName: string): Promise<any> {
 	const url = `hecate://localhost/plugin/${pluginName}/ui/component.js`;
 
 	try {
-		// Try direct dynamic import first (works if WebKitGTK handles hecate:// for ESM)
-		const mod = await import(/* @vite-ignore */ url);
+		const resp = await fetch(url);
+		if (!resp.ok) return null;
+		let text = await resp.text();
+
+		// Rewrite bare svelte imports to use the shared runtime exposed on window
+		// by +layout.svelte. This is necessary because blob URL modules cannot
+		// resolve bare specifiers — there is no bundler in the browser context.
+		text = text.replace(
+			/import\s*\*\s*as\s+(\w+)\s+from\s*["']svelte\/internal\/client["']\s*;?/g,
+			'const $1 = window.__hecate_svelte_internal_client;'
+		);
+		text = text.replace(
+			/import\s*\*\s*as\s+(\w+)\s+from\s*["']svelte\/internal["']\s*;?/g,
+			'const $1 = window.__hecate_svelte_internal_client;'
+		);
+		text = text.replace(
+			/import\s*\{([^}]+)\}\s*from\s*["']svelte["']\s*;?/g,
+			(_, bindings) => `const {${bindings.replace(/\bas\b/g, ':')}} = window.__hecate_svelte;`
+		);
+		text = text.replace(
+			/import\s*\*\s*as\s+(\w+)\s+from\s*["']svelte["']\s*;?/g,
+			'const $1 = window.__hecate_svelte;'
+		);
+
+		const blob = new Blob([text], { type: 'application/javascript' });
+		const blobUrl = URL.createObjectURL(blob);
+		const mod = await import(/* @vite-ignore */ blobUrl);
+		URL.revokeObjectURL(blobUrl);
 		return mod.default;
-	} catch {
-		// Fallback: fetch as text, create blob URL, then import
-		try {
-			const resp = await fetch(url);
-			if (!resp.ok) return null;
-			const text = await resp.text();
-			const blob = new Blob([text], { type: 'application/javascript' });
-			const blobUrl = URL.createObjectURL(blob);
-			const mod = await import(/* @vite-ignore */ blobUrl);
-			URL.revokeObjectURL(blobUrl);
-			return mod.default;
-		} catch (e) {
-			console.error(`[plugins] Failed to load component for ${pluginName}:`, e);
-			return null;
-		}
+	} catch (e) {
+		console.error(`[plugins] Failed to load component for ${pluginName}:`, e);
+		return null;
 	}
 }
 

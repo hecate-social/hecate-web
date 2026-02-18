@@ -23,7 +23,7 @@
 			}
 		],
 		"security": {
-			"csp": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; connect-src 'self' hecate://localhost ipc: http://ipc.localhost; img-src 'self' asset: https://asset.localhost; media-src 'self'"
+			"csp": "default-src 'self'; script-src 'self' blob:; style-src 'self' 'unsafe-inline'; connect-src 'self' hecate://localhost ipc: http://ipc.localhost; img-src 'self' asset: https://asset.localhost; media-src 'self'"
 		}
 	},
 	"bundle": {

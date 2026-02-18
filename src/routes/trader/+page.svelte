@@ -3,7 +3,7 @@
 	import { mount, unmount } from 'svelte';
 
 	let container: HTMLElement | undefined = $state();
-	let mounted: ReturnType<typeof mount> | null = $state(null);
+	let mounted: ReturnType<typeof mount> | null = null;
 
 	const plugin = $derived($plugins.get('trader'));
 
