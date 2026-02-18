@@ -3,6 +3,7 @@ mod gladiator_streaming;
 mod irc_streaming;
 mod personality;
 mod plugin_discovery;
+mod plugin_watcher;
 mod snake_duel_streaming;
 mod socket_proxy;
 mod streaming;
@@ -27,6 +28,7 @@ pub fn run() {
                 }).ok();
             }
             daemon_watcher::start(app.handle().clone());
+            plugin_watcher::start(app.handle().clone());
             Ok(())
         })
         .register_asynchronous_uri_scheme_protocol("hecate", |_ctx, request, responder| {

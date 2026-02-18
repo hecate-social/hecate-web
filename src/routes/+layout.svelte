@@ -8,7 +8,7 @@
 	import { fetchIdentity, fetchProviders } from '$lib/stores/node.js';
 	import { loadPersonalityInfo } from '$lib/stores/personality.js';
 	import { loadAgents } from '$lib/stores/agents.js';
-	import { startPluginPolling, stopPluginPolling } from '$lib/stores/plugins';
+	import { startPluginWatcher, stopPluginWatcher } from '$lib/stores/plugins';
 	import { studioPaths } from '$lib/studios';
 	import '$lib/stores/theme.js';
 	import { onMount, onDestroy } from 'svelte';
@@ -20,7 +20,7 @@
 
 	onMount(() => {
 		startPolling();
-		startPluginPolling();
+		startPluginWatcher();
 		fetchModels();
 		fetchIdentity();
 		fetchProviders();
@@ -30,7 +30,7 @@
 
 	onDestroy(() => {
 		stopPolling();
-		stopPluginPolling();
+		stopPluginWatcher();
 	});
 
 	function handleGlobalKeydown(e: KeyboardEvent) {

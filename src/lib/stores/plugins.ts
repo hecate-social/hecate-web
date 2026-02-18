@@ -1,11 +1,17 @@
 // Plugin discovery, manifest fetching, and dynamic component loading
 import { writable, derived } from 'svelte/store';
 import { invoke } from '@tauri-apps/api/core';
+import { listen, type UnlistenFn } from '@tauri-apps/api/event';
 import { get as apiGet, post as apiPost, del as apiDel } from '$lib/api';
 
 interface PluginDiscovery {
 	name: string;
 	socket_exists: boolean;
+}
+
+interface PluginChangedEvent {
+	name: string;
+	event_type: string;
 }
 
 export interface PluginManifest {
@@ -41,7 +47,7 @@ export const isDiscovering = writable(false);
 
 export const pluginList = derived(plugins, ($plugins) => Array.from($plugins.values()));
 
-let discoveryTimer: ReturnType<typeof setInterval> | undefined;
+let unlisten: UnlistenFn | null = null;
 
 export async function discoverPlugins(): Promise<void> {
 	isDiscovering.set(true);
@@ -79,6 +85,29 @@ export async function discoverPlugins(): Promise<void> {
 	}
 }
 
+async function loadSinglePlugin(name: string): Promise<void> {
+	try {
+		const api = createPluginApi(name);
+		const manifest = await api.get<PluginManifest>('/manifest');
+		const component = await loadPluginComponent(name);
+
+		if (component) {
+			plugins.update((current) => {
+				const next = new Map(current);
+				next.set(name, { manifest, component, api });
+				return next;
+			});
+		}
+	} catch (e) {
+		console.error(`[plugins] Failed to load plugin ${name}:`, e);
+		pluginLoadErrors.update((current) => {
+			const next = new Map(current);
+			next.set(name, e instanceof Error ? e.message : String(e));
+			return next;
+		});
+	}
+}
+
 async function loadPluginComponent(pluginName: string): Promise<any> {
 	const url = `hecate://localhost/plugin/${pluginName}/ui/component.js`;
 
@@ -104,14 +133,45 @@ async function loadPluginComponent(pluginName: string): Promise<any> {
 	}
 }
 
-export function startPluginPolling(intervalMs = 10000): void {
-	discoverPlugins();
-	discoveryTimer = setInterval(discoverPlugins, intervalMs);
+async function handlePluginEvent(event: PluginChangedEvent): Promise<void> {
+	switch (event.event_type) {
+		case 'rescan':
+			await discoverPlugins();
+			break;
+		case 'socket_up':
+			await loadSinglePlugin(event.name);
+			break;
+		case 'disappeared':
+		case 'socket_down':
+			plugins.update((current) => {
+				const next = new Map(current);
+				next.delete(event.name);
+				return next;
+			});
+			pluginLoadErrors.update((current) => {
+				const next = new Map(current);
+				next.delete(event.name);
+				return next;
+			});
+			break;
+		case 'appeared':
+			// Dir exists but no socket yet — wait for socket_up
+			break;
+	}
 }
 
-export function stopPluginPolling(): void {
-	if (discoveryTimer) {
-		clearInterval(discoveryTimer);
-		discoveryTimer = undefined;
+export async function startPluginWatcher(): Promise<void> {
+	stopPluginWatcher();
+	unlisten = await listen<PluginChangedEvent>('plugin-changed', (e) =>
+		handlePluginEvent(e.payload)
+	);
+	// Initial scan — watcher may emit before listener is ready
+	await discoverPlugins();
+}
+
+export function stopPluginWatcher(): void {
+	if (unlisten) {
+		unlisten();
+		unlisten = null;
 	}
 }
