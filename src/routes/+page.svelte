@@ -2,59 +2,8 @@
 	import { health, connectionStatus, isStarting } from '$lib/stores/daemon.js';
 	import { models } from '$lib/stores/llm.js';
 	import { identity } from '$lib/stores/node.js';
+	import { studioCards } from '$lib/studios';
 	const DONATE_URL = 'https://buymeacoffee.com/rlefever';
-
-	interface StudioCard {
-		id: string;
-		name: string;
-		icon: string;
-		path: string;
-		description: string;
-		ready: boolean;
-	}
-
-	const studioCards: StudioCard[] = [
-		{
-			id: 'llm',
-			name: 'LLM Studio',
-			icon: '\u{1F916}',
-			path: '/llm',
-			description: 'Chat with AI models, streaming responses, provider management',
-			ready: true
-		},
-		{
-			id: 'node',
-			name: 'Node Studio',
-			icon: '\u{1F310}',
-			path: '/node',
-			description: 'Node inspector, mesh view, marketplace',
-			ready: true
-		},
-		{
-			id: 'social',
-			name: 'Social Studio',
-			icon: '\u{1F4AC}',
-			path: '/social',
-			description: 'IRC, forums, feeds, community',
-			ready: true
-		},
-		{
-			id: 'devops',
-			name: 'Martha Studio',
-			icon: '\u{2699}\u{FE0F}',
-			path: '/devops',
-			description: 'Venture initiation, division planning, deployment',
-			ready: true
-		},
-		{
-			id: 'arcade',
-			name: 'Arcade Studio',
-			icon: '\u{1F3AE}',
-			path: '/arcade',
-			description: 'Games and entertainment',
-			ready: false
-		}
-	];
 </script>
 
 <!-- Ambient glow background -->
@@ -113,7 +62,7 @@
 
 	<!-- Studio cards -->
 	<div class="grid grid-cols-2 lg:grid-cols-3 gap-3 max-w-2xl w-full">
-		{#each studioCards as card}
+		{#each $studioCards as card}
 			<a
 				href={card.path}
 				class="group relative flex flex-col items-center gap-2.5 p-5 rounded-xl

@@ -2,6 +2,7 @@ mod daemon_watcher;
 mod gladiator_streaming;
 mod irc_streaming;
 mod personality;
+mod plugin_discovery;
 mod snake_duel_streaming;
 mod socket_proxy;
 mod streaming;
@@ -47,6 +48,7 @@ pub fn run() {
         })
         .invoke_handler(tauri::generate_handler![
             socket_proxy::check_daemon_health,
+            plugin_discovery::discover_plugins,
             streaming::chat_stream,
             irc_streaming::irc_stream,
             snake_duel_streaming::snake_duel_stream,

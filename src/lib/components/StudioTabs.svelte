@@ -1,23 +1,8 @@
 <script lang="ts">
 	import { page } from '$app/state';
 	import { health, connectionStatus } from '../stores/daemon.js';
+	import { studioTabs } from '$lib/studios';
 	import { getCurrentWindow } from '@tauri-apps/api/window';
-
-	interface Tab {
-		id: string;
-		name: string;
-		icon: string;
-		path: string;
-	}
-
-	const studios: Tab[] = [
-		{ id: 'llm', name: 'LLM', icon: '\u{1F916}', path: '/llm' },
-		{ id: 'node', name: 'Node', icon: '\u{1F310}', path: '/node' },
-		{ id: 'social', name: 'Social', icon: '\u{1F4AC}', path: '/social' },
-		{ id: 'devops', name: 'Martha', icon: '\u{2699}\u{FE0F}', path: '/devops' },
-		{ id: 'arcade', name: 'Arcade', icon: '\u{1F3AE}', path: '/arcade' },
-		{ id: 'trader', name: 'Trader', icon: '\u{1F4C8}', path: '/trader' }
-	];
 
 	function isActive(studioPath: string): boolean {
 		const current = page.url?.pathname ?? '/';
@@ -73,7 +58,7 @@
 	<div class="w-px h-5 bg-surface-600"></div>
 
 	<!-- Studio Tabs -->
-	{#each studios as studio}
+	{#each $studioTabs as studio, i}
 		<a
 			href={studio.path}
 			class="flex items-center gap-1.5 px-3 h-10 text-xs transition-colors border-b-2
@@ -84,7 +69,7 @@
 			<span class="text-sm">{studio.icon}</span>
 			<span>{studio.name}</span>
 		</a>
-		{#if studio !== studios[studios.length - 1]}
+		{#if i < $studioTabs.length - 1}
 			<div class="w-px h-4 bg-surface-700"></div>
 		{/if}
 	{/each}
