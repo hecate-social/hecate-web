@@ -20,6 +20,7 @@
 	import { get } from 'svelte/store';
 
 	let { children } = $props();
+	let updateInterval: ReturnType<typeof setInterval>;
 
 	function refreshAllData() {
 		fetchModels();
@@ -36,11 +37,13 @@
 		startPolling();
 		startPluginWatcher();
 		refreshAllData();
+		updateInterval = setInterval(checkForUpdate, 30 * 60 * 1000);
 	});
 
 	onDestroy(() => {
 		stopPolling();
 		stopPluginWatcher();
+		clearInterval(updateInterval);
 	});
 
 	function handleGlobalKeydown(e: KeyboardEvent) {
