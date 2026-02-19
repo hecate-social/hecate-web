@@ -3,6 +3,7 @@
 	import { health, connectionStatus } from '../stores/daemon.js';
 	import { studioTabs } from '$lib/studios';
 	import { getCurrentWindow } from '@tauri-apps/api/window';
+	import { hasUpdate, updateVersion, updateState, showUpdateModal } from '../stores/updater.js';
 
 	function isActive(studioPath: string): boolean {
 		const current = page.url?.pathname ?? '/';
@@ -76,6 +77,22 @@
 
 	<!-- Drag region spacer -->
 	<div class="flex-1"></div>
+
+	<!-- Update badge -->
+	{#if $updateState !== 'idle'}
+		<span
+			class="px-2 py-1 rounded text-[10px] font-semibold bg-hecate-600 text-white animate-pulse mr-1"
+		>
+			Updating...
+		</span>
+	{:else if $hasUpdate}
+		<button
+			class="px-2 py-1 rounded text-[10px] font-semibold bg-hecate-600 hover:bg-hecate-500 text-white cursor-pointer mr-1"
+			onclick={() => showUpdateModal.set(true)}
+		>
+			Update v{$updateVersion}
+		</button>
+	{/if}
 
 	<!-- Window controls -->
 	<div class="flex items-center h-10">
