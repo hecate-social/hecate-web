@@ -7,9 +7,9 @@ use tauri::Emitter;
 use crate::socket_proxy;
 
 const SOCKET_NAME: &str = "api.sock";
-const RECHECK_INTERVAL: Duration = Duration::from_secs(5);
 const STARTUP_RETRY_DELAY: Duration = Duration::from_millis(500);
 const STARTUP_RETRIES: u32 = 10;
+const RECHECK_INTERVAL: Duration = Duration::from_secs(30);
 
 fn emit_health(app: &tauri::AppHandle, health: Option<serde_json::Value>) {
     match app.emit("daemon-health", &health) {
@@ -99,6 +99,8 @@ pub fn start(app: tauri::AppHandle) {
         }
         eprintln!("[watcher] inotify watching {}", dir.display());
 
+        // inotify for instant detection + 30s periodic recheck as safety net.
+        // Covers stale sockets, daemon restarts that reuse the same path, etc.
         loop {
             match rx.recv_timeout(RECHECK_INTERVAL) {
                 Ok(event) => {
@@ -124,15 +126,13 @@ pub fn start(app: tauri::AppHandle) {
                     }
                 }
                 Err(mpsc::RecvTimeoutError::Timeout) => {
-                    eprintln!("[watcher] periodic recheck (socket exists: {})", sock.exists());
                     if sock.exists() {
                         match try_health_check() {
                             Some(h) => emit_health(&app, Some(h)),
                             None => emit_health(&app, None),
                         }
-                    } else {
-                        emit_health(&app, None);
                     }
+                    // No socket = no log spam, just wait for inotify Create
                 }
                 Err(mpsc::RecvTimeoutError::Disconnected) => {
                     eprintln!("[watcher] channel disconnected, exiting");

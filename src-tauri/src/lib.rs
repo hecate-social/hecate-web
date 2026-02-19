@@ -1,3 +1,4 @@
+mod app_updater;
 mod daemon_watcher;
 mod gladiator_streaming;
 mod irc_streaming;
@@ -15,7 +16,11 @@ use tauri::Manager;
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_shell::init())
+        .plugin(tauri_plugin_process::init())
         .setup(|app| {
+            #[cfg(desktop)]
+            app.handle()
+                .plugin(tauri_plugin_updater::Builder::new().build())?;
             let window = app.get_webview_window("main").unwrap();
             #[cfg(target_os = "linux")]
             {
@@ -49,6 +54,8 @@ pub fn run() {
             });
         })
         .invoke_handler(tauri::generate_handler![
+            app_updater::check_app_update,
+            app_updater::install_app_update,
             socket_proxy::check_daemon_health,
             plugin_discovery::discover_plugins,
             streaming::chat_stream,

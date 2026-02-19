@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { health, connectionStatus, isStarting } from '$lib/stores/daemon.js';
 	import { models } from '$lib/stores/llm.js';
-	import { identity } from '$lib/stores/node.js';
+	import { identity } from '$lib/stores/macula.js';
 	import { studioCards } from '$lib/studios';
 	const DONATE_URL = 'https://buymeacoffee.com/rlefever';
 </script>

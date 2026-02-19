@@ -22,7 +22,7 @@ Tauri Shell (native window)
 | Studio | Status | Description |
 |--------|--------|-------------|
 | LLM    | v1     | Chat with AI models, streaming responses |
-| Node   | v1     | Dashboard, identity, health, models, providers |
+| Macula | v1     | Mesh topology, node configuration, marketplace |
 | DevOps | planned | Ventures, divisions, deployments |
 | Social | planned | Chat rooms, community |
 | Arcade | planned | Games and entertainment |

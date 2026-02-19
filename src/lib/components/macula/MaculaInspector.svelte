@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { health, connectionStatus, llmHealth } from '$lib/stores/daemon.js';
 	import { models } from '$lib/stores/llm.js';
-	import { identity, providers, fetchIdentity, fetchProviders } from '$lib/stores/node.js';
+	import { identity, providers, fetchIdentity, fetchProviders } from '$lib/stores/macula.js';
 	import { fetchHealth, fetchLLMHealth } from '$lib/stores/daemon.js';
 	import { fetchModels } from '$lib/stores/llm.js';
 	import { onMount } from 'svelte';
@@ -56,7 +56,7 @@
 			&larr; Back
 		</button>
 		<div class="w-px h-4 bg-surface-600"></div>
-		<span class="text-accent-400 text-sm font-medium">Node Inspector</span>
+		<span class="text-accent-400 text-sm font-medium">Macula Inspector</span>
 	</div>
 
 	<div class="flex-1 overflow-y-auto p-6 gap-6 flex flex-col">

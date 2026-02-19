@@ -22,7 +22,7 @@ export interface StudioCard {
 
 export const coreStudios: StudioTab[] = [
 	{ id: 'llm', name: 'LLM', icon: '\u{1F916}', path: '/llm', isPlugin: false },
-	{ id: 'node', name: 'Node', icon: '\u{1F310}', path: '/node', isPlugin: false },
+	{ id: 'macula', name: 'Macula', icon: '\u{1F310}', path: '/macula', isPlugin: false },
 	{ id: 'social', name: 'Social', icon: '\u{1F4AC}', path: '/social', isPlugin: false },
 	{ id: 'devops', name: 'Martha', icon: '\u{2699}\u{FE0F}', path: '/devops', isPlugin: false },
 	{ id: 'arcade', name: 'Arcade', icon: '\u{1F3AE}', path: '/arcade', isPlugin: false }
@@ -39,11 +39,11 @@ export const coreStudioCards: StudioCard[] = [
 		isPlugin: false
 	},
 	{
-		id: 'node',
-		name: 'Node Studio',
+		id: 'macula',
+		name: 'Macula Studio',
 		icon: '\u{1F310}',
-		path: '/node',
-		description: 'Node inspector, mesh view, marketplace',
+		path: '/macula',
+		description: 'Mesh topology, node configuration, marketplace',
 		ready: true,
 		isPlugin: false
 	},

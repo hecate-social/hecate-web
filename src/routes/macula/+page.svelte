@@ -1,7 +1,7 @@
 <script lang="ts">
-	import NodeInspector from '$lib/components/node/NodeInspector.svelte';
+	import MaculaInspector from '$lib/components/macula/MaculaInspector.svelte';
 
-	interface NodeApp {
+	interface MaculaApp {
 		id: string;
 		name: string;
 		icon: string;
@@ -9,8 +9,8 @@
 		active: boolean;
 	}
 
-	const apps: NodeApp[] = [
-		{ id: 'inspector', name: 'Node Inspector', icon: '\u{1F50D}', description: 'Dashboard, identity, health, providers', active: true },
+	const apps: MaculaApp[] = [
+		{ id: 'inspector', name: 'Macula Inspector', icon: '\u{1F50D}', description: 'Dashboard, identity, health, providers', active: true },
 		{ id: 'mesh', name: 'Mesh View', icon: '\u{1F578}\u{FE0F}', description: 'Mesh topology and connections', active: false },
 		{ id: 'marketplace', name: 'Marketplace', icon: '\u{1F3EA}', description: 'Apps and extensions', active: false }
 	];
@@ -19,7 +19,7 @@
 </script>
 
 {#if activeApp === 'inspector'}
-	<NodeInspector onBack={() => activeApp = null} />
+	<MaculaInspector onBack={() => activeApp = null} />
 {:else}
 	<!-- App Explorer -->
 	<div class="flex flex-col items-center h-full overflow-y-auto py-8 px-6 gap-6">
@@ -28,10 +28,10 @@
 				class="text-xl font-bold tracking-wide"
 				style="background: linear-gradient(135deg, #fbbf24, #a875ff); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;"
 			>
-				Node Studio
+				Macula Studio
 			</h2>
 			<p class="text-surface-400 text-xs text-center">
-				Monitor and manage your Hecate node
+				Your window on the Macula Mesh and node configuration
 			</p>
 		</div>
 

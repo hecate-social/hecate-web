@@ -19,16 +19,28 @@ export const showOverlay = derived(
 	([$starting, $unavailable]) => $starting || $unavailable
 );
 
+const POLL_INTERVAL = 30_000;
+
 let unlisten: UnlistenFn | null = null;
 let healthTimer: ReturnType<typeof setInterval> | null = null;
 let llmTimer: ReturnType<typeof setInterval> | null = null;
+let onReconnectCallback: (() => void) | null = null;
+
+/** Register a callback that fires when transitioning from disconnected to connected. */
+export function onReconnect(cb: () => void): void {
+	onReconnectCallback = cb;
+}
 
 function handleHealthEvent(payload: DaemonHealth | null) {
 	if (payload && typeof payload === 'object' && 'status' in payload) {
+		const wasDisconnected = get_connectionStatus() !== 'connected';
 		health.set(payload);
 		connectionStatus.set('connected');
 		lastError.set(null);
 		unavailableSince.set(null);
+		if (wasDisconnected && onReconnectCallback) {
+			onReconnectCallback();
+		}
 	} else {
 		health.set(null);
 		connectionStatus.set('error');
@@ -74,15 +86,15 @@ export async function startPolling(): Promise<void> {
 	// Immediate check — the watcher's initial emit fires before this listener is ready
 	await fetchHealth();
 
-	// Periodic daemon health poll as fallback (invoke-based, bypasses event system)
-	healthTimer = setInterval(fetchHealth, 5_000);
+	// Periodic daemon health poll as fallback (30s, the watcher handles instant detection)
+	healthTimer = setInterval(fetchHealth, POLL_INTERVAL);
 
-	// LLM health still polls (separate concern, only when connected)
+	// LLM health polls on same cadence (only when connected)
 	llmTimer = setInterval(() => {
 		if (get_connectionStatus() === 'connected') {
 			fetchLLMHealth();
 		}
-	}, 10_000);
+	}, POLL_INTERVAL);
 	fetchLLMHealth();
 }
 

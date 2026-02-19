@@ -4,6 +4,7 @@
 	import { selectedModel, isStreaming, lastUsage } from '../stores/llm.js';
 	import { aiModel, selectedPhase } from '../stores/devops.js';
 	import ThemeToggle from './ThemeToggle.svelte';
+	import { hasUpdate, updateVersion, updateState, showUpdateModal } from '../stores/updater.js';
 
 	const phaseNames: Record<string, string> = {
 		dna: 'DnA',
@@ -103,6 +104,21 @@
 	{/if}
 
 	<div class="flex-1"></div>
+
+	{#if $updateState !== 'idle'}
+		<span
+			class="px-2 py-0.5 rounded text-[10px] font-semibold bg-hecate-600 text-white animate-pulse"
+		>
+			Updating...
+		</span>
+	{:else if $hasUpdate}
+		<button
+			class="px-2 py-0.5 rounded text-[10px] font-semibold bg-hecate-600 hover:bg-hecate-500 text-white cursor-pointer"
+			onclick={() => showUpdateModal.set(true)}
+		>
+			Update v{$updateVersion}
+		</button>
+	{/if}
 
 	<ThemeToggle />
 

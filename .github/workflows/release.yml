@@ -67,6 +67,8 @@ jobs:
         uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         with:
           tagName: ${{ github.ref_name }}
           releaseName: 'Hecate ${{ github.ref_name }}'
@@ -90,8 +92,9 @@ jobs:
 
             - [hecate-daemon](https://github.com/hecate-social/hecate-daemon) running locally
             - Linux: webkit2gtk-4.1 (included in .deb)
-          releaseDraft: false
+          releaseDraft: true
           prerelease: false
+          includeUpdaterJson: true
           args: --target ${{ matrix.rust_target }}
 
       - name: Package portable binary

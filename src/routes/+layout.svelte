@@ -3,12 +3,14 @@
 	import StudioTabs from '$lib/components/StudioTabs.svelte';
 	import StatusBar from '$lib/components/StatusBar.svelte';
 	import DaemonStartingOverlay from '$lib/components/DaemonStartingOverlay.svelte';
-	import { startPolling, stopPolling } from '$lib/stores/daemon.js';
+	import UpdateModal from '$lib/components/UpdateModal.svelte';
+	import { startPolling, stopPolling, onReconnect } from '$lib/stores/daemon.js';
 	import { fetchModels } from '$lib/stores/llm.js';
-	import { fetchIdentity, fetchProviders } from '$lib/stores/node.js';
+	import { fetchIdentity, fetchProviders } from '$lib/stores/macula.js';
 	import { loadPersonalityInfo } from '$lib/stores/personality.js';
 	import { loadAgents } from '$lib/stores/agents.js';
 	import { startPluginWatcher, stopPluginWatcher } from '$lib/stores/plugins';
+	import { checkForUpdate } from '$lib/stores/updater.js';
 	import { initPluginRuntime } from '$lib/plugin-runtime';
 	import { studioPaths } from '$lib/studios';
 	import '$lib/stores/theme.js';
@@ -19,15 +21,21 @@
 
 	let { children } = $props();
 
-	onMount(() => {
-		initPluginRuntime();
-		startPolling();
-		startPluginWatcher();
+	function refreshAllData() {
 		fetchModels();
 		fetchIdentity();
 		fetchProviders();
 		loadPersonalityInfo();
 		loadAgents();
+		checkForUpdate();
+	}
+
+	onMount(() => {
+		initPluginRuntime();
+		onReconnect(refreshAllData);
+		startPolling();
+		startPluginWatcher();
+		refreshAllData();
 	});
 
 	onDestroy(() => {
@@ -56,6 +64,7 @@
 <svelte:window onkeydown={handleGlobalKeydown} />
 
 <DaemonStartingOverlay />
+<UpdateModal />
 
 <div class="flex flex-col h-screen w-screen overflow-hidden">
 	<StudioTabs />
