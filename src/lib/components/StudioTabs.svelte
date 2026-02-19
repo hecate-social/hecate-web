@@ -3,6 +3,7 @@
 	import { health, connectionStatus } from '../stores/daemon.js';
 	import { studioTabs } from '$lib/studios';
 	import { getCurrentWindow } from '@tauri-apps/api/window';
+	import { getVersion } from '@tauri-apps/api/app';
 	import { hasUpdate, updateVersion, updateState, showUpdateModal } from '../stores/updater.js';
 
 	function isActive(studioPath: string): boolean {
@@ -33,6 +34,9 @@
 	async function close() {
 		await getCurrentWindow().close();
 	}
+
+	let appVersion = $state('...');
+	getVersion().then((v) => (appVersion = v));
 </script>
 
 <nav
@@ -50,7 +54,7 @@
 		<span class="text-base">{'\u{1F525}\u{1F5DD}\u{FE0F}\u{1F525}'}</span>
 		<span class="text-sm font-bold text-hecate-400">Hecate</span>
 		<span class="text-[10px] text-surface-400 font-mono">
-			v{$health?.version ?? '0.1.0'}
+			v{appVersion}
 		</span>
 		<span class={daemonLed()}>{'\u{25CF}'}</span>
 	</a>

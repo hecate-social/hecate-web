@@ -1,7 +1,6 @@
 import { writable, derived } from 'svelte/store';
 import { invoke } from '@tauri-apps/api/core';
 import { listen, type UnlistenFn } from '@tauri-apps/api/event';
-import { relaunch } from '@tauri-apps/plugin-process';
 
 export interface AppUpdate {
 	version: string;
@@ -57,11 +56,17 @@ export async function startUpdate(): Promise<void> {
 			})
 		);
 
-		await invoke('install_app_update', { url: (update as AppUpdate).asset_url });
+		unlisteners.push(
+			await listen('update-restarting', () => {
+				updateState.set('restarting');
+			})
+		);
 
-		updateState.set('restarting');
+		// Rust spawns the new binary and calls exit(0).
+		// The invoke will never resolve — the process exits during it.
+		await invoke('install_app_update', { url: (update as AppUpdate).asset_url });
+		// If we reach here, restart failed
 		unlisteners.forEach((u) => u());
-		await relaunch();
 	} catch {
 		updateState.set('idle');
 		unlisteners.forEach((u) => u());
