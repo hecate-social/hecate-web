@@ -60,34 +60,58 @@ fn is_newer(remote: &str, local: &str) -> bool {
 
 #[tauri::command]
 pub async fn check_app_update() -> Result<Option<AppUpdate>, String> {
+    eprintln!("[updater] checking for updates (local: v{})", current_version());
+
     let client = reqwest::Client::builder()
         .user_agent("hecate-web")
         .build()
-        .map_err(|e| e.to_string())?;
+        .map_err(|e| {
+            eprintln!("[updater] failed to build HTTP client: {}", e);
+            e.to_string()
+        })?;
 
-    let release: GithubRelease = client
+    let response = client
         .get("https://api.github.com/repos/hecate-social/hecate-web/releases/latest")
         .send()
         .await
-        .map_err(|e| e.to_string())?
-        .json()
-        .await
-        .map_err(|e| e.to_string())?;
+        .map_err(|e| {
+            eprintln!("[updater] HTTP request failed: {}", e);
+            e.to_string()
+        })?;
+
+    let status = response.status();
+    if !status.is_success() {
+        let body = response.text().await.unwrap_or_default();
+        eprintln!("[updater] GitHub API returned {}: {}", status, body);
+        return Err(format!("GitHub API returned {}", status));
+    }
+
+    let release: GithubRelease = response.json().await.map_err(|e| {
+        eprintln!("[updater] failed to parse response: {}", e);
+        e.to_string()
+    })?;
 
     let remote_version = release.tag_name.trim_start_matches('v');
     let local_version = current_version();
+    eprintln!("[updater] remote: v{}, local: v{}", remote_version, local_version);
 
     if !is_newer(remote_version, local_version) {
+        eprintln!("[updater] no update available");
         return Ok(None);
     }
 
     let target_asset = asset_name();
+    eprintln!("[updater] looking for asset: {}", target_asset);
     let asset = release
         .assets
         .iter()
         .find(|a| a.name == target_asset)
-        .ok_or_else(|| format!("No asset found for {}", target_asset))?;
+        .ok_or_else(|| {
+            eprintln!("[updater] asset not found in release");
+            format!("No asset found for {}", target_asset)
+        })?;
 
+    eprintln!("[updater] update available: v{}", remote_version);
     Ok(Some(AppUpdate {
         version: remote_version.to_string(),
         body: release.body.unwrap_or_default(),
