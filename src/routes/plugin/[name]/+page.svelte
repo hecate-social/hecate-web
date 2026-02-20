@@ -1,46 +1,37 @@
 <script lang="ts">
 	import { page } from '$app/state';
 	import { plugins } from '$lib/stores/plugins';
-	import { mount, unmount } from 'svelte';
 	import { onDestroy } from 'svelte';
 
 	const pluginName = $derived(page.params?.name ?? '');
 	const plugin = $derived($plugins.get(pluginName));
 
 	let container: HTMLElement | undefined = $state();
-	let mounted: Record<string, any> | null = null;
+	let mountedElement: HTMLElement | null = null;
 	let mountedFor: string | null = null;
 
 	$effect(() => {
-		// Unmount previous if plugin changed
-		if (mounted && mountedFor !== pluginName) {
-			try {
-				unmount(mounted);
-			} catch {
-				// Component already cleaned up
-			}
-			mounted = null;
+		// Cleanup previous if plugin changed
+		if (mountedElement && mountedFor !== pluginName) {
+			mountedElement.remove();
+			mountedElement = null;
 			mountedFor = null;
 		}
 
-		// Mount new plugin component
-		if (plugin?.component && container && !mounted) {
-			mounted = mount(plugin.component, {
-				target: container,
-				props: { api: plugin.api }
-			});
+		// Create custom element
+		if (plugin?.tag && container && !mountedElement) {
+			const el = document.createElement(plugin.tag);
+			(el as any).api = plugin.api;
+			container.appendChild(el);
+			mountedElement = el;
 			mountedFor = pluginName;
 		}
 	});
 
 	onDestroy(() => {
-		if (mounted) {
-			try {
-				unmount(mounted);
-			} catch {
-				// Component already cleaned up by DOM removal
-			}
-			mounted = null;
+		if (mountedElement) {
+			mountedElement.remove();
+			mountedElement = null;
 			mountedFor = null;
 		}
 	});

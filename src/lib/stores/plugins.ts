@@ -1,4 +1,4 @@
-// Plugin discovery, manifest fetching, and dynamic component loading
+// Plugin discovery, manifest fetching, and dynamic custom element loading
 import { writable, derived } from 'svelte/store';
 import { invoke } from '@tauri-apps/api/core';
 import { listen, type UnlistenFn } from '@tauri-apps/api/event';
@@ -19,11 +19,12 @@ export interface PluginManifest {
 	version: string;
 	icon: string;
 	description: string;
+	tag: string;
 }
 
 export interface LoadedPlugin {
 	manifest: PluginManifest;
-	component: any; // Svelte component constructor
+	tag: string;
 	api: PluginApi;
 }
 
@@ -61,15 +62,13 @@ export async function discoverPlugins(): Promise<void> {
 			if (!plugin.socket_exists) continue;
 
 			try {
-				// Fetch manifest
 				const api = createPluginApi(plugin.name);
 				const manifest = await api.get<PluginManifest>('/manifest');
 
-				// Load component module
-				const component = await loadPluginComponent(plugin.name);
+				const loaded = await loadPluginElement(plugin.name, manifest.tag);
 
-				if (component) {
-					currentPlugins.set(plugin.name, { manifest, component, api });
+				if (loaded) {
+					currentPlugins.set(plugin.name, { manifest, tag: manifest.tag, api });
 				}
 			} catch (e) {
 				errors.set(plugin.name, e instanceof Error ? e.message : String(e));
@@ -89,12 +88,13 @@ async function loadSinglePlugin(name: string): Promise<void> {
 	try {
 		const api = createPluginApi(name);
 		const manifest = await api.get<PluginManifest>('/manifest');
-		const component = await loadPluginComponent(name);
 
-		if (component) {
+		const loaded = await loadPluginElement(name, manifest.tag);
+
+		if (loaded) {
 			plugins.update((current) => {
 				const next = new Map(current);
-				next.set(name, { manifest, component, api });
+				next.set(name, { manifest, tag: manifest.tag, api });
 				return next;
 			});
 		}
@@ -108,42 +108,24 @@ async function loadSinglePlugin(name: string): Promise<void> {
 	}
 }
 
-async function loadPluginComponent(pluginName: string): Promise<any> {
-	const url = `hecate://localhost/plugin/${pluginName}/ui/component.js`;
+async function loadPluginElement(pluginName: string, tag: string): Promise<boolean> {
+	// Guard: don't re-register if already defined
+	if (customElements.get(tag)) return true;
 
+	const url = `hecate://localhost/plugin/${pluginName}/ui/component.js`;
 	try {
 		const resp = await fetch(url);
-		if (!resp.ok) return null;
-		let text = await resp.text();
-
-		// Rewrite bare svelte imports to use the shared runtime exposed on window
-		// by +layout.svelte. This is necessary because blob URL modules cannot
-		// resolve bare specifiers — there is no bundler in the browser context.
-		text = text.replace(
-			/import\s*\*\s*as\s+(\w+)\s+from\s*["']svelte\/internal\/client["']\s*;?/g,
-			'const $1 = window.__hecate_svelte_internal_client;'
-		);
-		text = text.replace(
-			/import\s*\*\s*as\s+(\w+)\s+from\s*["']svelte\/internal["']\s*;?/g,
-			'const $1 = window.__hecate_svelte_internal_client;'
-		);
-		text = text.replace(
-			/import\s*\{([^}]+)\}\s*from\s*["']svelte["']\s*;?/g,
-			(_, bindings) => `const {${bindings.replace(/\bas\b/g, ':')}} = window.__hecate_svelte;`
-		);
-		text = text.replace(
-			/import\s*\*\s*as\s+(\w+)\s+from\s*["']svelte["']\s*;?/g,
-			'const $1 = window.__hecate_svelte;'
-		);
-
+		if (!resp.ok) return false;
+		const text = await resp.text();
 		const blob = new Blob([text], { type: 'application/javascript' });
 		const blobUrl = URL.createObjectURL(blob);
-		const mod = await import(/* @vite-ignore */ blobUrl);
+		await import(/* @vite-ignore */ blobUrl);
 		URL.revokeObjectURL(blobUrl);
-		return mod.default;
+		// Importing the module auto-registers the custom element
+		return customElements.get(tag) !== undefined;
 	} catch (e) {
-		console.error(`[plugins] Failed to load component for ${pluginName}:`, e);
-		return null;
+		console.error(`[plugins] Failed to load element for ${pluginName}:`, e);
+		return false;
 	}
 }
 

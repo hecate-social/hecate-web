@@ -11,7 +11,6 @@
 	import { loadAgents } from '$lib/stores/agents.js';
 	import { startPluginWatcher, stopPluginWatcher } from '$lib/stores/plugins';
 	import { checkForUpdate } from '$lib/stores/updater.js';
-	import { initPluginRuntime } from '$lib/plugin-runtime';
 	import { studioPaths } from '$lib/studios';
 	import '$lib/stores/theme.js';
 	import { onMount, onDestroy } from 'svelte';
@@ -32,7 +31,6 @@
 	}
 
 	onMount(() => {
-		initPluginRuntime();
 		onReconnect(refreshAllData);
 		startPolling();
 		startPluginWatcher();
