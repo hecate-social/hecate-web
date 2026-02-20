@@ -24,7 +24,6 @@ export const coreStudios: StudioTab[] = [
 	{ id: 'llm', name: 'LLM', icon: '\u{1F916}', path: '/llm', isPlugin: false },
 	{ id: 'macula', name: 'Macula', icon: '\u{1F310}', path: '/macula', isPlugin: false },
 	{ id: 'social', name: 'Social', icon: '\u{1F4AC}', path: '/social', isPlugin: false },
-	{ id: 'devops', name: 'Martha', icon: '\u{2699}\u{FE0F}', path: '/devops', isPlugin: false },
 	{ id: 'arcade', name: 'Arcade', icon: '\u{1F3AE}', path: '/arcade', isPlugin: false }
 ];
 
@@ -57,15 +56,6 @@ export const coreStudioCards: StudioCard[] = [
 		isPlugin: false
 	},
 	{
-		id: 'devops',
-		name: 'Martha Studio',
-		icon: '\u{2699}\u{FE0F}',
-		path: '/devops',
-		description: 'Venture initiation, division planning, deployment',
-		ready: true,
-		isPlugin: false
-	},
-	{
 		id: 'arcade',
 		name: 'Arcade Studio',
 		icon: '\u{1F3AE}',
@@ -82,7 +72,7 @@ export const studioTabs = derived(plugins, ($plugins) => {
 		id: p.manifest.name,
 		name: capitalize(p.manifest.name),
 		icon: p.manifest.icon,
-		path: `/${p.manifest.name}`,
+		path: `/plugin/${p.manifest.name}`,
 		isPlugin: true
 	}));
 	return [...coreStudios, ...pluginTabs];
@@ -94,7 +84,7 @@ export const studioCards = derived(plugins, ($plugins) => {
 		id: p.manifest.name,
 		name: `${capitalize(p.manifest.name)} Studio`,
 		icon: p.manifest.icon,
-		path: `/${p.manifest.name}`,
+		path: `/plugin/${p.manifest.name}`,
 		description: p.manifest.description,
 		ready: true,
 		isPlugin: true
