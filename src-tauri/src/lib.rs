@@ -4,6 +4,7 @@ mod gladiator_streaming;
 mod irc_streaming;
 mod personality;
 mod plugin_discovery;
+mod plugin_updater;
 mod plugin_watcher;
 mod snake_duel_streaming;
 mod socket_proxy;
@@ -58,6 +59,8 @@ pub fn run() {
             app_updater::install_app_update,
             socket_proxy::check_daemon_health,
             plugin_discovery::discover_plugins,
+            plugin_updater::check_plugin_updates,
+            plugin_updater::install_plugin_update,
             streaming::chat_stream,
             irc_streaming::irc_stream,
             snake_duel_streaming::snake_duel_stream,

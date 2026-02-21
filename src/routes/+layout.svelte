@@ -4,6 +4,7 @@
 	import StatusBar from '$lib/components/StatusBar.svelte';
 	import DaemonStartingOverlay from '$lib/components/DaemonStartingOverlay.svelte';
 	import UpdateModal from '$lib/components/UpdateModal.svelte';
+	import PluginUpdateModal from '$lib/components/PluginUpdateModal.svelte';
 	import { startPolling, stopPolling, onReconnect } from '$lib/stores/daemon.js';
 	import { fetchModels } from '$lib/stores/llm.js';
 	import { fetchIdentity, fetchProviders } from '$lib/stores/macula.js';
@@ -11,6 +12,7 @@
 	import { loadAgents } from '$lib/stores/agents.js';
 	import { startPluginWatcher, stopPluginWatcher } from '$lib/stores/plugins';
 	import { checkForUpdate } from '$lib/stores/updater.js';
+	import { checkPluginUpdates } from '$lib/stores/pluginUpdater.js';
 	import { studioPaths } from '$lib/studios';
 	import '$lib/stores/theme.js';
 	import { onMount, onDestroy } from 'svelte';
@@ -28,6 +30,7 @@
 		loadPersonalityInfo();
 		loadAgents();
 		checkForUpdate();
+		checkPluginUpdates();
 	}
 
 	onMount(() => {
@@ -35,7 +38,10 @@
 		startPolling();
 		startPluginWatcher();
 		refreshAllData();
-		updateInterval = setInterval(checkForUpdate, 30 * 60 * 1000);
+		updateInterval = setInterval(() => {
+			checkForUpdate();
+			checkPluginUpdates();
+		}, 30 * 60 * 1000);
 	});
 
 	onDestroy(() => {
@@ -66,6 +72,7 @@
 
 <DaemonStartingOverlay />
 <UpdateModal />
+<PluginUpdateModal />
 
 <div class="flex flex-col h-screen w-screen overflow-hidden">
 	<StudioTabs />

@@ -5,6 +5,7 @@
 	import { getCurrentWindow } from '@tauri-apps/api/window';
 	import { getVersion } from '@tauri-apps/api/app';
 	import { hasUpdate, updateVersion, updateState, showUpdateModal } from '../stores/updater.js';
+	import { hasPluginUpdate, pluginUpdateVersion, showPluginUpdateModal } from '../stores/pluginUpdater.js';
 
 	function isActive(studioPath: string): boolean {
 		const current = page.url?.pathname ?? '/';
@@ -73,6 +74,17 @@
 		>
 			<span class="text-sm">{studio.icon}</span>
 			<span>{studio.name}</span>
+			{#if studio.isPlugin && $hasPluginUpdate(studio.id)}
+				<!-- svelte-ignore a11y_click_events_have_key_events -->
+				<span
+					role="button"
+					tabindex="0"
+					class="px-1.5 py-0.5 rounded text-[9px] font-semibold bg-hecate-600 hover:bg-hecate-500 text-white cursor-pointer"
+					onclick={(e) => { e.preventDefault(); e.stopPropagation(); showPluginUpdateModal.set(studio.id); }}
+				>
+					v{$pluginUpdateVersion(studio.id)}
+				</span>
+			{/if}
 		</a>
 		{#if i < $studioTabs.length - 1}
 			<div class="w-px h-4 bg-surface-700"></div>
