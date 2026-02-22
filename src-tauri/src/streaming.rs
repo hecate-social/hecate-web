@@ -3,7 +3,7 @@ use std::io::{BufRead, BufReader, Read, Write};
 use std::os::unix::net::UnixStream;
 use tauri::{AppHandle, Emitter};
 
-use crate::socket_proxy::resolve_socket_path;
+use crate::socket_proxy::{resolve_socket_path, resolve_plugin_socket_path};
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct ChatMessage {
@@ -44,6 +44,7 @@ pub async fn chat_stream(
     temperature: Option<f64>,
     max_tokens: Option<u32>,
     tools: Option<serde_json::Value>,
+    plugin: Option<String>,
 ) -> Result<(), String> {
     let mut body = serde_json::json!({
         "model": model,
@@ -71,7 +72,7 @@ pub async fn chat_stream(
 
     std::thread::spawn(move || {
         let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
-            do_stream(&app, &chunk_event, &done_event, &body_bytes)
+            do_stream(&app, &chunk_event, &done_event, &body_bytes, plugin.as_deref())
         }));
 
         match result {
@@ -124,8 +125,12 @@ fn do_stream(
     chunk_event: &str,
     done_event: &str,
     body: &[u8],
+    plugin: Option<&str>,
 ) -> Result<(), Box<dyn std::error::Error>> {
-    let socket_path = resolve_socket_path();
+    let socket_path = match plugin {
+        Some(name) => resolve_plugin_socket_path(name),
+        None => resolve_socket_path(),
+    };
     let mut stream = UnixStream::connect(&socket_path)?;
     stream.set_read_timeout(Some(std::time::Duration::from_secs(120)))?;
 

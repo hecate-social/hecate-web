@@ -89,7 +89,7 @@ pub fn resolve_socket_path() -> String {
 /// Resolve socket path for a plugin daemon by name.
 /// Tries new convention first: $HOME/.hecate/hecate-app-{name}d/sockets/api.sock
 /// Falls back to legacy: $HOME/.hecate/hecate-{name}d/sockets/api.sock
-fn resolve_plugin_socket_path(plugin_name: &str) -> String {
+pub fn resolve_plugin_socket_path(plugin_name: &str) -> String {
     if let Ok(home) = std::env::var("HOME") {
         let base = Path::new(&home).join(".hecate");
 
