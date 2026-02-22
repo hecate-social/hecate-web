@@ -6,11 +6,11 @@
 	import DaemonStartingOverlay from '$lib/components/DaemonStartingOverlay.svelte';
 	import UpdateModal from '$lib/components/UpdateModal.svelte';
 	import PluginUpdateModal from '$lib/components/PluginUpdateModal.svelte';
-	import { startPolling, stopPolling } from '$lib/stores/daemon.js';
+	import { startPolling, stopPolling, onReconnect } from '$lib/stores/daemon.js';
 	import { startPluginWatcher, stopPluginWatcher } from '$lib/stores/plugins';
 	import { checkForUpdate } from '$lib/stores/updater.js';
 	import { checkPluginUpdates } from '$lib/stores/pluginUpdater.js';
-	import { toggleSidebar } from '$lib/stores/sidebar.js';
+	import { toggleSidebar, initSidebar } from '$lib/stores/sidebar.js';
 	import { studioPaths } from '$lib/studios';
 	import '$lib/stores/theme.js';
 	import { onMount, onDestroy } from 'svelte';
@@ -26,6 +26,10 @@
 		startPluginWatcher();
 		checkForUpdate();
 		checkPluginUpdates();
+		onReconnect(() => {
+			initSidebar();
+		});
+		initSidebar();
 		updateInterval = setInterval(() => {
 			checkForUpdate();
 			checkPluginUpdates();

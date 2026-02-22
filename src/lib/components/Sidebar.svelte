@@ -14,10 +14,12 @@
 		toggleGroupCollapsed,
 		moveApp,
 		ungroupApp,
+		updateGroupIcon,
 		syncActiveAppFromRoute,
 		type SidebarGroup
 	} from '$lib/stores/sidebar.js';
 	import { hasPluginUpdate, pluginUpdateVersion, showPluginUpdateModal } from '$lib/stores/pluginUpdater.js';
+	import EmojiPicker from './EmojiPicker.svelte';
 
 	// Sync activeAppId from route changes
 	$effect(() => {
@@ -40,6 +42,10 @@
 	// --- New group ---
 	let showNewGroup = $state(false);
 	let newGroupName = $state('');
+
+	// --- Emoji picker ---
+	let emojiPickerGroupId = $state<string | null>(null);
+	let emojiPickerPos = $state<{ x: number; y: number }>({ x: 0, y: 0 });
 
 	// --- Helpers ---
 
@@ -131,6 +137,8 @@
 				}
 			} else if (action === 'delete') {
 				deleteGroup(id);
+			} else if (action === 'change-icon') {
+				openEmojiPicker(id, contextMenu.x, contextMenu.y);
 			}
 		} else if (type === 'app') {
 			if (action === 'ungroup') {
@@ -139,6 +147,30 @@
 		}
 
 		closeContextMenu();
+	}
+
+	// --- Emoji picker ---
+
+	function openEmojiPicker(groupId: string, x: number, y: number) {
+		emojiPickerGroupId = groupId;
+		emojiPickerPos = { x, y };
+	}
+
+	function onIconClick(e: MouseEvent, groupId: string) {
+		e.stopPropagation();
+		const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+		openEmojiPicker(groupId, rect.left, rect.bottom + 4);
+	}
+
+	function handleEmojiSelect(emoji: string) {
+		if (emojiPickerGroupId) {
+			updateGroupIcon(emojiPickerGroupId, emoji);
+		}
+		closeEmojiPicker();
+	}
+
+	function closeEmojiPicker() {
+		emojiPickerGroupId = null;
 	}
 
 	// --- Inline rename ---
@@ -170,9 +202,10 @@
 		newGroupName = '';
 	}
 
-	// Close context menu on outside click
+	// Close context menu and emoji picker on outside click
 	function onWindowClick() {
 		if (contextMenu) closeContextMenu();
+		if (emojiPickerGroupId) closeEmojiPicker();
 	}
 </script>
 
@@ -201,11 +234,19 @@
 				oncontextmenu={(e) => onContextMenu(e, 'group', group.id)}
 			>
 				{#if $sidebarCollapsed}
-					<span class="text-[8px] text-surface-500">{'\u{2500}'}</span>
+					<span
+						class="text-xs cursor-pointer"
+						onclick={(e) => onIconClick(e, group.id)}
+					>{group.icon || '\uD83D\uDCC1'}</span>
 				{:else}
 					<span class="text-[8px] transition-transform {group.collapsed ? '' : 'rotate-90'}">
-						{'\u{25B6}'}
+						{'\u25B6'}
 					</span>
+					<span
+						class="text-xs cursor-pointer hover:scale-110 transition-transform"
+						onclick={(e) => onIconClick(e, group.id)}
+						title="Change icon"
+					>{group.icon || '\uD83D\uDCC1'}</span>
 					{#if renamingGroupId === group.id}
 						<!-- svelte-ignore a11y_autofocus -->
 						<input
@@ -246,7 +287,7 @@
 						{#if !$sidebarCollapsed}
 							<span class="text-xs truncate flex-1 text-left">{tab.name}</span>
 							{#if tab.isPlugin}
-								<span class="text-[8px] {online ? 'text-health-ok' : 'text-surface-500'}">{'\u{25CF}'}</span>
+								<span class="text-[8px] {online ? 'text-health-ok' : 'text-surface-500'}">{'\u25CF'}</span>
 							{/if}
 							{#if tab.isPlugin && $hasPluginUpdate(tab.id)}
 								<button
@@ -298,7 +339,7 @@
 					{#if !$sidebarCollapsed}
 						<span class="text-xs truncate flex-1 text-left">{tab.name}</span>
 						{#if tab.isPlugin}
-							<span class="text-[8px] {online ? 'text-health-ok' : 'text-surface-500'}">{'\u{25CF}'}</span>
+							<span class="text-[8px] {online ? 'text-health-ok' : 'text-surface-500'}">{'\u25CF'}</span>
 						{/if}
 						{#if tab.isPlugin && $hasPluginUpdate(tab.id)}
 							<button
@@ -361,6 +402,12 @@
 				Rename
 			</button>
 			<button
+				class="w-full text-left px-3 py-1.5 text-xs text-surface-200 hover:bg-surface-600 cursor-pointer"
+				onclick={() => handleContextAction('change-icon')}
+			>
+				Change Icon
+			</button>
+			<button
 				class="w-full text-left px-3 py-1.5 text-xs text-danger-400 hover:bg-surface-600 cursor-pointer"
 				onclick={() => handleContextAction('delete')}
 			>
@@ -375,4 +422,17 @@
 			</button>
 		{/if}
 	</menu>
+{/if}
+
+<!-- Emoji picker -->
+{#if emojiPickerGroupId}
+	<div
+		class="fixed z-[60]"
+		style="left: {emojiPickerPos.x}px; top: {emojiPickerPos.y}px;"
+	>
+		<EmojiPicker
+			onSelect={handleEmojiSelect}
+			onClose={closeEmojiPicker}
+		/>
+	</div>
 {/if}

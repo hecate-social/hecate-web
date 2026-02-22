@@ -1,12 +1,13 @@
 import { writable, derived, get } from 'svelte/store';
 import { studioTabs, type StudioTab } from '$lib/studios';
-import { page } from '$app/state';
+import { fetchSidebarConfig, saveSidebarConfig, type SidebarGroupConfig } from '$lib/api/sidebar-config';
 
 // --- Types ---
 
 export interface SidebarGroup {
 	id: string;
 	name: string;
+	icon: string;
 	collapsed: boolean;
 	appIds: string[];
 }
@@ -16,7 +17,7 @@ export interface SidebarGroup {
 const STORAGE_KEY = 'hecate-sidebar-groups';
 const COLLAPSED_KEY = 'hecate-sidebar-collapsed';
 
-function loadGroups(): SidebarGroup[] {
+function loadGroupsFromCache(): SidebarGroup[] {
 	if (typeof localStorage === 'undefined') return [];
 	const raw = localStorage.getItem(STORAGE_KEY);
 	if (!raw) return [];
@@ -32,7 +33,7 @@ function loadCollapsed(): boolean {
 	return localStorage.getItem(COLLAPSED_KEY) === 'true';
 }
 
-function persistGroups(groups: SidebarGroup[]) {
+function persistGroupsToCache(groups: SidebarGroup[]) {
 	if (typeof localStorage !== 'undefined') {
 		localStorage.setItem(STORAGE_KEY, JSON.stringify(groups));
 	}
@@ -44,13 +45,66 @@ function persistCollapsed(collapsed: boolean) {
 	}
 }
 
-export const sidebarGroups = writable<SidebarGroup[]>(loadGroups());
+export const sidebarGroups = writable<SidebarGroup[]>(loadGroupsFromCache());
 export const sidebarCollapsed = writable<boolean>(loadCollapsed());
 export const activeAppId = writable<string | null>(null);
 
-// Auto-persist on change
-sidebarGroups.subscribe(persistGroups);
+// Auto-persist to localStorage cache on change
+sidebarGroups.subscribe(persistGroupsToCache);
 sidebarCollapsed.subscribe(persistCollapsed);
+
+// --- Daemon sync ---
+
+let saveTimeout: ReturnType<typeof setTimeout> | null = null;
+let initialized = false;
+
+function groupsToConfig(groups: SidebarGroup[]): SidebarGroupConfig[] {
+	return groups.map((g) => ({
+		name: g.name,
+		icon: g.icon,
+		collapsed: g.collapsed,
+		apps: g.appIds
+	}));
+}
+
+function configToGroups(configs: SidebarGroupConfig[]): SidebarGroup[] {
+	return configs.map((c, i) => ({
+		id: `grp-${Date.now()}-${i}`,
+		name: c.name,
+		icon: c.icon || '\uD83D\uDCC1',
+		collapsed: c.collapsed,
+		appIds: c.apps
+	}));
+}
+
+function debounceSaveToDaemon() {
+	if (!initialized) return;
+	if (saveTimeout) clearTimeout(saveTimeout);
+	saveTimeout = setTimeout(() => {
+		const groups = get(sidebarGroups);
+		saveSidebarConfig(groupsToConfig(groups)).catch(() => {
+			// Daemon may be offline — cache is already updated
+		});
+	}, 500);
+}
+
+/** Called when daemon connects. Fetches canonical config from daemon. */
+export async function initSidebar(): Promise<void> {
+	try {
+		const configs = await fetchSidebarConfig();
+		if (configs.length > 0) {
+			sidebarGroups.set(configToGroups(configs));
+		}
+	} catch {
+		// Daemon offline — keep cached groups
+	}
+	initialized = true;
+}
+
+// Subscribe to changes and debounce-save to daemon
+sidebarGroups.subscribe(() => {
+	debounceSaveToDaemon();
+});
 
 // --- Derived ---
 
@@ -73,9 +127,9 @@ export const ungroupedApps = derived(
 
 let nextGroupId = Date.now();
 
-export function createGroup(name: string): string {
+export function createGroup(name: string, icon: string = '\uD83D\uDCC1'): string {
 	const id = `grp-${nextGroupId++}`;
-	sidebarGroups.update(($g) => [...$g, { id, name, collapsed: false, appIds: [] }]);
+	sidebarGroups.update(($g) => [...$g, { id, name, icon, collapsed: false, appIds: [] }]);
 	return id;
 }
 
@@ -92,6 +146,12 @@ export function deleteGroup(groupId: string) {
 export function toggleGroupCollapsed(groupId: string) {
 	sidebarGroups.update(($g) =>
 		$g.map((g) => (g.id === groupId ? { ...g, collapsed: !g.collapsed } : g))
+	);
+}
+
+export function updateGroupIcon(groupId: string, icon: string) {
+	sidebarGroups.update(($g) =>
+		$g.map((g) => (g.id === groupId ? { ...g, icon } : g))
 	);
 }
 
