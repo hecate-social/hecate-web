@@ -246,7 +246,7 @@
 			>
 				{#if $sidebarCollapsed}
 					<span
-						class="text-xs cursor-pointer"
+						class="text-sm cursor-pointer leading-none"
 						onclick={(e) => onIconClick(e, group.id)}
 					>{group.icon || '\uD83D\uDCC1'}</span>
 				{:else}
@@ -254,7 +254,7 @@
 						{'\u25B6'}
 					</span>
 					<span
-						class="text-xs cursor-pointer hover:scale-110 transition-transform"
+						class="text-sm cursor-pointer hover:scale-110 transition-transform leading-none"
 						onclick={(e) => onIconClick(e, group.id)}
 						title="Change icon"
 					>{group.icon || '\uD83D\uDCC1'}</span>
