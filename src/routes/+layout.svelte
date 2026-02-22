@@ -1,6 +1,7 @@
 <script lang="ts">
 	import '../app.css';
-	import StudioTabs from '$lib/components/StudioTabs.svelte';
+	import TitleBar from '$lib/components/TitleBar.svelte';
+	import Sidebar from '$lib/components/Sidebar.svelte';
 	import StatusBar from '$lib/components/StatusBar.svelte';
 	import DaemonStartingOverlay from '$lib/components/DaemonStartingOverlay.svelte';
 	import UpdateModal from '$lib/components/UpdateModal.svelte';
@@ -13,6 +14,7 @@
 	import { startPluginWatcher, stopPluginWatcher } from '$lib/stores/plugins';
 	import { checkForUpdate } from '$lib/stores/updater.js';
 	import { checkPluginUpdates } from '$lib/stores/pluginUpdater.js';
+	import { toggleSidebar } from '$lib/stores/sidebar.js';
 	import { studioPaths } from '$lib/studios';
 	import '$lib/stores/theme.js';
 	import { onMount, onDestroy } from 'svelte';
@@ -51,6 +53,13 @@
 	});
 
 	function handleGlobalKeydown(e: KeyboardEvent) {
+		// Ctrl+B — toggle sidebar
+		if (e.ctrlKey && e.key === 'b') {
+			e.preventDefault();
+			toggleSidebar();
+			return;
+		}
+
 		// Ctrl+Tab / Ctrl+Shift+Tab — cycle studios
 		if (e.ctrlKey && e.key === 'Tab') {
 			e.preventDefault();
@@ -75,11 +84,15 @@
 <PluginUpdateModal />
 
 <div class="flex flex-col h-screen w-screen overflow-hidden">
-	<StudioTabs />
+	<TitleBar />
 
-	<main class="flex-1 overflow-hidden">
-		{@render children()}
-	</main>
+	<div class="flex flex-1 overflow-hidden">
+		<Sidebar />
+
+		<main class="flex-1 overflow-hidden relative">
+			{@render children()}
+		</main>
+	</div>
 
 	<StatusBar />
 </div>

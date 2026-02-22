@@ -1,17 +1,9 @@
 <script lang="ts">
-	import { page } from '$app/state';
-	import { health, connectionStatus } from '../stores/daemon.js';
-	import { studioTabs } from '$lib/studios';
+	import { connectionStatus } from '../stores/daemon.js';
+	import { hasUpdate, updateVersion, updateState, showUpdateModal } from '../stores/updater.js';
+	import { toggleSidebar } from '../stores/sidebar.js';
 	import { getCurrentWindow } from '@tauri-apps/api/window';
 	import { getVersion } from '@tauri-apps/api/app';
-	import { hasUpdate, updateVersion, updateState, showUpdateModal } from '../stores/updater.js';
-	import { hasPluginUpdate, pluginUpdateVersion, showPluginUpdateModal } from '../stores/pluginUpdater.js';
-
-	function isActive(studioPath: string): boolean {
-		const current = page.url?.pathname ?? '/';
-		if (studioPath === '/') return current === '/';
-		return current.startsWith(studioPath);
-	}
 
 	function daemonLed(): string {
 		switch ($connectionStatus) {
@@ -42,59 +34,37 @@
 
 <nav
 	data-tauri-drag-region
-	class="flex items-center bg-surface-800 border-b border-surface-600 shrink-0 select-none"
+	class="flex items-center bg-surface-800 border-b border-surface-600 shrink-0 select-none h-10"
 >
+	<!-- Sidebar toggle -->
+	<button
+		onclick={toggleSidebar}
+		class="w-10 h-10 flex items-center justify-center text-surface-400
+			hover:text-surface-100 hover:bg-surface-700 transition-colors"
+		aria-label="Toggle sidebar"
+	>
+		<svg width="14" height="10" viewBox="0 0 14 10" fill="currentColor">
+			<rect y="0" width="14" height="1.5" rx="0.5" />
+			<rect y="4" width="14" height="1.5" rx="0.5" />
+			<rect y="8" width="14" height="1.5" rx="0.5" />
+		</svg>
+	</button>
+
 	<!-- Sigil + Brand -->
 	<a
 		href="/"
-		class="flex items-center gap-1.5 px-3 h-10 hover:bg-surface-700/50 transition-colors
-			{isActive('/') && page.url?.pathname === '/'
-			? 'bg-surface-700'
-			: ''}"
+		class="flex items-center gap-1.5 px-2 h-10 hover:bg-surface-700/50 transition-colors"
 	>
 		<span class="text-base">{'\u{1F525}\u{1F5DD}\u{FE0F}\u{1F525}'}</span>
 		<span class="text-sm font-bold text-hecate-400">Hecate</span>
-		<span class="text-[10px] text-surface-400 font-mono">
-			v{appVersion}
-		</span>
+		<span class="text-[10px] text-surface-400 font-mono">v{appVersion}</span>
 		<span class={daemonLed()}>{'\u{25CF}'}</span>
 	</a>
 
-	<!-- Separator -->
-	<div class="w-px h-5 bg-surface-600"></div>
-
-	<!-- Studio Tabs -->
-	{#each $studioTabs as studio, i}
-		<a
-			href={studio.path}
-			class="flex items-center gap-1.5 px-3 h-10 text-xs transition-colors border-b-2
-				{isActive(studio.path)
-				? 'bg-surface-700 text-surface-50 font-bold border-hecate-500'
-				: 'text-surface-400 hover:text-surface-200 hover:bg-surface-700/50 border-transparent'}"
-		>
-			<span class="text-sm">{studio.icon}</span>
-			<span>{studio.name}</span>
-			{#if studio.isPlugin && $hasPluginUpdate(studio.id)}
-				<!-- svelte-ignore a11y_click_events_have_key_events -->
-				<span
-					role="button"
-					tabindex="0"
-					class="px-1.5 py-0.5 rounded text-[9px] font-semibold bg-hecate-600 hover:bg-hecate-500 text-white cursor-pointer"
-					onclick={(e) => { e.preventDefault(); e.stopPropagation(); showPluginUpdateModal.set(studio.id); }}
-				>
-					v{$pluginUpdateVersion(studio.id)}
-				</span>
-			{/if}
-		</a>
-		{#if i < $studioTabs.length - 1}
-			<div class="w-px h-4 bg-surface-700"></div>
-		{/if}
-	{/each}
-
 	<!-- Drag region spacer -->
-	<div class="flex-1"></div>
+	<div class="flex-1" data-tauri-drag-region></div>
 
-	<!-- Update badge -->
+	<!-- App update badge -->
 	{#if $updateState !== 'idle'}
 		<span
 			class="px-2 py-1 rounded text-[10px] font-semibold bg-hecate-600 text-white animate-pulse mr-1"

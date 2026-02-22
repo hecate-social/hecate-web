@@ -104,7 +104,7 @@
 
 	<div class="flex-1"></div>
 
-	<!-- update badge moved to StudioTabs -->
+	<!-- update badge is in TitleBar -->
 
 	<ThemeToggle />
 

@@ -3,6 +3,7 @@
 	import { models } from '$lib/stores/llm.js';
 	import { identity } from '$lib/stores/macula.js';
 	import { studioCards } from '$lib/studios';
+	import { activeAppId } from '$lib/stores/sidebar.js';
 	const DONATE_URL = 'https://buymeacoffee.com/rlefever';
 </script>
 
@@ -65,6 +66,7 @@
 		{#each $studioCards as card}
 			<a
 				href={card.path}
+				onclick={() => activeAppId.set(card.id)}
 				class="group relative flex flex-col items-center gap-2.5 p-5 rounded-xl
 					bg-surface-800/80 border border-surface-600/50
 					hover:border-accent-500/30 hover:bg-surface-700/80

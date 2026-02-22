@@ -87,19 +87,36 @@ pub fn resolve_socket_path() -> String {
 }
 
 /// Resolve socket path for a plugin daemon by name.
-/// Looks for: $HOME/.hecate/hecate-{name}d/sockets/api.sock
+/// Tries new convention first: $HOME/.hecate/hecate-app-{name}d/sockets/api.sock
+/// Falls back to legacy: $HOME/.hecate/hecate-{name}d/sockets/api.sock
 fn resolve_plugin_socket_path(plugin_name: &str) -> String {
-    let daemon_name = format!("hecate-{}d", plugin_name);
     if let Ok(home) = std::env::var("HOME") {
-        return Path::new(&home)
-            .join(".hecate")
-            .join(&daemon_name)
+        let base = Path::new(&home).join(".hecate");
+
+        // New convention: hecate-app-{name}d
+        let new_path = base
+            .join(format!("hecate-app-{}d", plugin_name))
             .join("sockets")
-            .join("api.sock")
-            .to_string_lossy()
-            .to_string();
+            .join("api.sock");
+        if new_path.exists() {
+            return new_path.to_string_lossy().to_string();
+        }
+
+        // Legacy convention: hecate-{name}d
+        let legacy_path = base
+            .join(format!("hecate-{}d", plugin_name))
+            .join("sockets")
+            .join("api.sock");
+        // Return legacy if it exists, otherwise return new convention path
+        // (new convention is the preferred default for new installs)
+        if legacy_path.exists() {
+            return legacy_path.to_string_lossy().to_string();
+        }
+
+        // Neither exists yet — prefer new convention
+        return new_path.to_string_lossy().to_string();
     }
-    format!("/run/{}/api.sock", daemon_name)
+    format!("/run/hecate-app-{}d/api.sock", plugin_name)
 }
 
 /// Route a request path to the correct socket.

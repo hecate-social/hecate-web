@@ -7,7 +7,32 @@ pub struct PluginInfo {
     pub socket_exists: bool,
 }
 
-/// Scan ~/.hecate/ for plugin daemon directories (hecate-*d/).
+/// Extract plugin name from a daemon directory name.
+/// Supports both naming conventions:
+///   hecate-app-marthad -> martha  (new convention)
+///   hecate-marthad     -> martha  (legacy convention)
+/// Returns None for non-plugin dirs (hecate-daemon, etc.).
+fn extract_plugin_name(dir_name: &str) -> Option<String> {
+    // New convention: hecate-app-{name}d
+    if let Some(rest) = dir_name.strip_prefix("hecate-app-") {
+        return rest.strip_suffix('d').filter(|s| !s.is_empty()).map(|s| s.to_string());
+    }
+
+    // Legacy convention: hecate-{name}d (excluding hecate-daemon)
+    if let Some(rest) = dir_name.strip_prefix("hecate-") {
+        let name = rest.strip_suffix('d').filter(|s| !s.is_empty()).map(|s| s.to_string());
+        // Exclude the main daemon
+        if name.as_deref() == Some("daemon") || name.as_deref() == Some("daemn") {
+            return None;
+        }
+        return name;
+    }
+
+    None
+}
+
+/// Scan ~/.hecate/ for plugin daemon directories.
+/// Matches both hecate-app-*d (new) and hecate-*d (legacy).
 /// Returns a list of discovered plugins with their socket status.
 #[tauri::command]
 pub fn discover_plugins() -> Vec<PluginInfo> {
@@ -28,27 +53,14 @@ pub fn discover_plugins() -> Vec<PluginInfo> {
         let name = entry.file_name();
         let name_str = name.to_string_lossy();
 
-        // Match hecate-*d/ directories (but not hecate-daemon itself)
-        if !name_str.starts_with("hecate-") || !name_str.ends_with('d') {
-            continue;
-        }
-        if name_str == "hecate-daemon" || name_str == "hecate-daemnd" {
-            continue;
-        }
         if !entry.path().is_dir() {
             continue;
         }
 
-        // Extract plugin name: hecate-traderd -> trader
-        let plugin_name = name_str
-            .strip_prefix("hecate-")
-            .and_then(|s| s.strip_suffix('d'))
-            .unwrap_or("")
-            .to_string();
-
-        if plugin_name.is_empty() {
-            continue;
-        }
+        let plugin_name = match extract_plugin_name(&name_str) {
+            Some(n) => n,
+            None => continue,
+        };
 
         let socket_path = entry.path().join("sockets").join("api.sock");
         let socket_exists = socket_path.exists();
