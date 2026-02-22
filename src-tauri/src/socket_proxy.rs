@@ -77,50 +77,27 @@ pub fn resolve_socket_path() -> String {
     // Local dev default: $HOME/.hecate/hecate-daemon/sockets/ (namespaced)
     if let Ok(home) = std::env::var("HOME") {
         let home_socket = Path::new(&home).join(".hecate").join("hecate-daemon").join("sockets").join("api.sock");
-        if home_socket.exists() {
-            return home_socket.to_string_lossy().to_string();
-        }
-        // Even if socket doesn't exist yet, prefer this path for connection attempts
         return home_socket.to_string_lossy().to_string();
     }
     "/run/hecate/api.sock".to_string()
 }
 
 /// Resolve socket path for a plugin daemon by name.
-/// Tries new convention first: $HOME/.hecate/hecate-app-{name}d/sockets/api.sock
-/// Falls back to legacy: $HOME/.hecate/hecate-{name}d/sockets/api.sock
+/// Path: $HOME/.hecate/hecate-app-{name}d/sockets/api.sock
 pub fn resolve_plugin_socket_path(plugin_name: &str) -> String {
     if let Ok(home) = std::env::var("HOME") {
-        let base = Path::new(&home).join(".hecate");
-
-        // New convention: hecate-app-{name}d
-        let new_path = base
+        let path = Path::new(&home)
+            .join(".hecate")
             .join(format!("hecate-app-{}d", plugin_name))
             .join("sockets")
             .join("api.sock");
-        if new_path.exists() {
-            return new_path.to_string_lossy().to_string();
-        }
-
-        // Legacy convention: hecate-{name}d
-        let legacy_path = base
-            .join(format!("hecate-{}d", plugin_name))
-            .join("sockets")
-            .join("api.sock");
-        // Return legacy if it exists, otherwise return new convention path
-        // (new convention is the preferred default for new installs)
-        if legacy_path.exists() {
-            return legacy_path.to_string_lossy().to_string();
-        }
-
-        // Neither exists yet — prefer new convention
-        return new_path.to_string_lossy().to_string();
+        return path.to_string_lossy().to_string();
     }
     format!("/run/hecate-app-{}d/api.sock", plugin_name)
 }
 
 /// Route a request path to the correct socket.
-/// /plugin/trader/* -> hecate-traderd socket (path rewritten to /*)
+/// /plugin/{name}/* -> hecate-app-{name}d socket (path rewritten to /*)
 /// Everything else  -> hecate-daemon socket (path unchanged)
 fn resolve_socket_for_path(path: &str) -> (String, String) {
     if let Some(rest) = path.strip_prefix("/plugin/") {

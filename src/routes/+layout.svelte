@@ -6,11 +6,7 @@
 	import DaemonStartingOverlay from '$lib/components/DaemonStartingOverlay.svelte';
 	import UpdateModal from '$lib/components/UpdateModal.svelte';
 	import PluginUpdateModal from '$lib/components/PluginUpdateModal.svelte';
-	import { startPolling, stopPolling, onReconnect } from '$lib/stores/daemon.js';
-	import { fetchModels } from '$lib/stores/llm.js';
-	import { fetchIdentity, fetchProviders } from '$lib/stores/macula.js';
-	import { loadPersonalityInfo } from '$lib/stores/personality.js';
-	import { loadAgents } from '$lib/stores/agents.js';
+	import { startPolling, stopPolling } from '$lib/stores/daemon.js';
 	import { startPluginWatcher, stopPluginWatcher } from '$lib/stores/plugins';
 	import { checkForUpdate } from '$lib/stores/updater.js';
 	import { checkPluginUpdates } from '$lib/stores/pluginUpdater.js';
@@ -25,21 +21,11 @@
 	let { children } = $props();
 	let updateInterval: ReturnType<typeof setInterval>;
 
-	function refreshAllData() {
-		fetchModels();
-		fetchIdentity();
-		fetchProviders();
-		loadPersonalityInfo();
-		loadAgents();
-		checkForUpdate();
-		checkPluginUpdates();
-	}
-
 	onMount(() => {
-		onReconnect(refreshAllData);
 		startPolling();
 		startPluginWatcher();
-		refreshAllData();
+		checkForUpdate();
+		checkPluginUpdates();
 		updateInterval = setInterval(() => {
 			checkForUpdate();
 			checkPluginUpdates();

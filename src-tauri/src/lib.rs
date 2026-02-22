@@ -1,14 +1,10 @@
 mod app_updater;
 mod daemon_watcher;
-mod gladiator_streaming;
-mod irc_streaming;
-mod personality;
 mod plugin_discovery;
+mod plugin_streaming;
 mod plugin_updater;
 mod plugin_watcher;
-mod snake_duel_streaming;
 mod socket_proxy;
-mod streaming;
 
 use tauri::http::Response;
 use tauri::Manager;
@@ -61,16 +57,7 @@ pub fn run() {
             plugin_discovery::discover_plugins,
             plugin_updater::check_plugin_updates,
             plugin_updater::install_plugin_update,
-            streaming::chat_stream,
-            irc_streaming::irc_stream,
-            snake_duel_streaming::snake_duel_stream,
-            gladiator_streaming::gladiator_training_stream,
-            personality::get_personality_info,
-            personality::build_system_prompt,
-            personality::list_roles,
-            personality::load_agent_prompt,
-            personality::load_agent_group,
-            personality::load_raw_prompt,
+            plugin_streaming::plugin_sse_stream,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

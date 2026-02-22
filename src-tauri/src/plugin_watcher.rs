@@ -23,32 +23,19 @@ fn hecate_base() -> PathBuf {
     }
 }
 
-/// Check if a directory name matches a plugin daemon pattern.
-/// Matches both hecate-app-*d (new) and hecate-*d (legacy).
+/// Check if a directory name matches a plugin daemon pattern: hecate-app-*d
 fn is_plugin_dir(name: &str) -> bool {
     extract_plugin_name(name).is_some()
 }
 
 /// Extract plugin name from a daemon directory name.
-/// Supports both naming conventions:
-///   hecate-app-marthad -> martha  (new convention)
-///   hecate-marthad     -> martha  (legacy convention)
+/// Only supports: hecate-app-{name}d -> {name}
 fn extract_plugin_name(dir_name: &str) -> Option<String> {
-    // New convention: hecate-app-{name}d
-    if let Some(rest) = dir_name.strip_prefix("hecate-app-") {
-        return rest.strip_suffix('d').filter(|s| !s.is_empty()).map(|s| s.to_string());
-    }
-
-    // Legacy convention: hecate-{name}d (excluding main daemon)
-    if let Some(rest) = dir_name.strip_prefix("hecate-") {
-        let name = rest.strip_suffix('d').filter(|s| !s.is_empty()).map(|s| s.to_string());
-        if name.as_deref() == Some("daemon") || name.as_deref() == Some("daemn") {
-            return None;
-        }
-        return name;
-    }
-
-    None
+    dir_name
+        .strip_prefix("hecate-app-")
+        .and_then(|rest| rest.strip_suffix('d'))
+        .filter(|s| !s.is_empty())
+        .map(|s| s.to_string())
 }
 
 fn sockets_dir(base: &PathBuf, dir_name: &str) -> PathBuf {
@@ -156,7 +143,7 @@ pub fn start(app: tauri::AppHandle) {
                         if let Some(file_name) = path.file_name() {
                             let name_str = file_name.to_string_lossy().to_string();
 
-                            // Event on a plugin dir itself (hecate-app-*d or hecate-*d)
+                            // Event on a plugin dir itself (hecate-app-*d)
                             if is_plugin_dir(&name_str) {
                                 if let Some(plugin_name) = extract_plugin_name(&name_str) {
                                     match event.kind {

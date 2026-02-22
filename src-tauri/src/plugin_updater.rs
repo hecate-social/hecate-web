@@ -16,14 +16,6 @@ struct GithubRelease {
     body: Option<String>,
 }
 
-/// Metadata about a discovered plugin's naming convention.
-struct PluginMeta {
-    /// Short plugin name (e.g. "martha")
-    name: String,
-    /// Whether this uses the new hecate-app-* convention
-    is_new_convention: bool,
-}
-
 fn is_newer(remote: &str, local: &str) -> bool {
     let parse = |v: &str| -> (u32, u32, u32) {
         let parts: Vec<u32> = v.split('.').filter_map(|p| p.parse().ok()).collect();
@@ -55,8 +47,8 @@ fn parse_installed_version(container_path: &PathBuf) -> Option<String> {
     None
 }
 
-/// Discover plugin daemons from ~/.hecate/, supporting both naming conventions.
-fn discover_plugin_metas() -> Result<Vec<PluginMeta>, String> {
+/// Discover plugin names from ~/.hecate/hecate-app-*d directories.
+fn discover_plugin_names() -> Result<Vec<String>, String> {
     let home = std::env::var("HOME").map_err(|e| e.to_string())?;
     let hecate_dir = PathBuf::from(&home).join(".hecate");
     let entries = std::fs::read_dir(&hecate_dir).map_err(|e| e.to_string())?;
@@ -71,56 +63,22 @@ fn discover_plugin_metas() -> Result<Vec<PluginMeta>, String> {
             continue;
         }
 
-        // New convention: hecate-app-{name}d
-        if let Some(rest) = name_str.strip_prefix("hecate-app-") {
-            if let Some(plugin_name) = rest.strip_suffix('d') {
-                if !plugin_name.is_empty() {
-                    plugins.push(PluginMeta {
-                        name: plugin_name.to_string(),
-                        is_new_convention: true,
-                    });
-                    continue;
-                }
-            }
-        }
-
-        // Legacy convention: hecate-{name}d
-        if name_str.starts_with("hecate-") && name_str.ends_with('d') {
-            if name_str == "hecate-daemon" || name_str == "hecate-daemnd" {
-                continue;
-            }
-            if let Some(plugin_name) = name_str
-                .strip_prefix("hecate-")
-                .and_then(|s| s.strip_suffix('d'))
-            {
-                if !plugin_name.is_empty() {
-                    plugins.push(PluginMeta {
-                        name: plugin_name.to_string(),
-                        is_new_convention: false,
-                    });
-                }
-            }
+        if let Some(plugin_name) = name_str
+            .strip_prefix("hecate-app-")
+            .and_then(|rest| rest.strip_suffix('d'))
+            .filter(|s| !s.is_empty())
+        {
+            plugins.push(plugin_name.to_string());
         }
     }
 
     Ok(plugins)
 }
 
-/// Derive the GitHub repo name from a plugin meta.
-/// New convention: hecate-app-martha -> hecate-social/hecate-app-martha
-/// Legacy convention: hecate-marthad -> hecate-social/hecate-martha
-fn github_repo(meta: &PluginMeta) -> String {
-    if meta.is_new_convention {
-        format!("hecate-social/hecate-app-{}", meta.name)
-    } else {
-        format!("hecate-social/hecate-{}", meta.name)
-    }
-}
-
 #[tauri::command]
 pub async fn check_plugin_updates() -> Result<Vec<PluginUpdate>, String> {
     let apps_dir = gitops_apps_dir().ok_or("Cannot determine gitops apps directory")?;
-    let plugin_metas = discover_plugin_metas()?;
+    let plugin_names = discover_plugin_names()?;
 
     let client = reqwest::Client::builder()
         .user_agent("hecate-web")
@@ -129,32 +87,22 @@ pub async fn check_plugin_updates() -> Result<Vec<PluginUpdate>, String> {
 
     let mut updates = Vec::new();
 
-    for meta in &plugin_metas {
-        // Read installed version from .container file
-        // Try both naming patterns for the container file
-        let container_file = {
-            let new_path = apps_dir.join(format!("hecate-app-{}d.container", meta.name));
-            let legacy_path = apps_dir.join(format!("hecate-{}d.container", meta.name));
-            if new_path.exists() {
-                new_path
-            } else {
-                legacy_path
-            }
-        };
+    for name in &plugin_names {
+        let container_file = apps_dir.join(format!("hecate-app-{}d.container", name));
 
         let installed = match parse_installed_version(&container_file) {
             Some(v) => v,
             None => {
                 eprintln!(
                     "[plugin-updater] No .container file or version for {}",
-                    meta.name
+                    name
                 );
                 continue;
             }
         };
 
         // Query GitHub releases API
-        let repo = github_repo(meta);
+        let repo = format!("hecate-social/hecate-app-{}", name);
         let url = format!(
             "https://api.github.com/repos/{}/releases/latest",
             repo
@@ -167,7 +115,7 @@ pub async fn check_plugin_updates() -> Result<Vec<PluginUpdate>, String> {
             Err(e) => {
                 eprintln!(
                     "[plugin-updater] GitHub request failed for {}: {}",
-                    meta.name, e
+                    name, e
                 );
                 continue;
             }
@@ -177,7 +125,7 @@ pub async fn check_plugin_updates() -> Result<Vec<PluginUpdate>, String> {
             eprintln!(
                 "[plugin-updater] GitHub returned {} for {}",
                 response.status(),
-                meta.name
+                name
             );
             continue;
         }
@@ -187,7 +135,7 @@ pub async fn check_plugin_updates() -> Result<Vec<PluginUpdate>, String> {
             Err(e) => {
                 eprintln!(
                     "[plugin-updater] Failed to parse release for {}: {}",
-                    meta.name, e
+                    name, e
                 );
                 continue;
             }
@@ -198,10 +146,10 @@ pub async fn check_plugin_updates() -> Result<Vec<PluginUpdate>, String> {
         if is_newer(&remote_version, &installed) {
             eprintln!(
                 "[plugin-updater] Update available for {}: {} -> {}",
-                meta.name, installed, remote_version
+                name, installed, remote_version
             );
             updates.push(PluginUpdate {
-                name: meta.name.clone(),
+                name: name.clone(),
                 installed_version: installed,
                 latest_version: remote_version,
                 body: release.body.unwrap_or_default(),
@@ -209,33 +157,12 @@ pub async fn check_plugin_updates() -> Result<Vec<PluginUpdate>, String> {
         } else {
             eprintln!(
                 "[plugin-updater] {} is up to date ({})",
-                meta.name, installed
+                name, installed
             );
         }
     }
 
     Ok(updates)
-}
-
-/// Find the actual container file and derive the image prefix and service name.
-fn resolve_container_info(apps_dir: &PathBuf, name: &str) -> Result<(PathBuf, String, String), String> {
-    // Try new convention first
-    let new_container = apps_dir.join(format!("hecate-app-{}d.container", name));
-    if new_container.exists() {
-        let image_prefix = format!("ghcr.io/hecate-social/hecate-app-{}d:", name);
-        let service_name = format!("hecate-app-{}d", name);
-        return Ok((new_container, image_prefix, service_name));
-    }
-
-    // Fall back to legacy
-    let legacy_container = apps_dir.join(format!("hecate-{}d.container", name));
-    if legacy_container.exists() {
-        let image_prefix = format!("ghcr.io/hecate-social/hecate-{}d:", name);
-        let service_name = format!("hecate-{}d", name);
-        return Ok((legacy_container, image_prefix, service_name));
-    }
-
-    Err(format!("No .container file found for plugin {}", name))
 }
 
 #[tauri::command]
@@ -245,7 +172,14 @@ pub async fn install_plugin_update(
     version: String,
 ) -> Result<(), String> {
     let apps_dir = gitops_apps_dir().ok_or("Cannot determine gitops apps directory")?;
-    let (container_file, image_prefix, service_name) = resolve_container_info(&apps_dir, &name)?;
+
+    let container_file = apps_dir.join(format!("hecate-app-{}d.container", name));
+    if !container_file.exists() {
+        return Err(format!("No .container file found for plugin {}", name));
+    }
+
+    let image_prefix = format!("ghcr.io/hecate-social/hecate-app-{}d:", name);
+    let service_name = format!("hecate-app-{}d", name);
 
     // Read current .container file
     let content =
@@ -259,10 +193,7 @@ pub async fn install_plugin_update(
         .lines()
         .map(|line| {
             let trimmed = line.trim();
-            if trimmed.starts_with("Image=") && (
-                trimmed.contains(&format!("hecate-app-{}d:", name)) ||
-                trimmed.contains(&format!("hecate-{}d:", name))
-            ) {
+            if trimmed.starts_with("Image=") && trimmed.contains(&format!("hecate-app-{}d:", name)) {
                 found = true;
                 new_image.clone()
             } else {

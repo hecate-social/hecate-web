@@ -1,20 +1,7 @@
 <script lang="ts">
-	import { page } from '$app/state';
-	import { connectionStatus, health, llmHealth, isStarting } from '../stores/daemon.js';
-	import { selectedModel, isStreaming, lastUsage } from '../stores/llm.js';
-	import { aiModel, selectedPhase } from '../stores/devops.js';
+	import { connectionStatus, health, isStarting } from '../stores/daemon.js';
+	import { pluginList } from '../stores/plugins.js';
 	import ThemeToggle from './ThemeToggle.svelte';
-
-	const phaseNames: Record<string, string> = {
-		dna: 'DnA',
-		anp: 'AnP',
-		tni: 'TnI',
-		dno: 'DnO'
-	};
-
-	function isDevOps(): boolean {
-		return (page.url?.pathname ?? '').startsWith('/devops');
-	}
 
 	function statusLed(status: string): string {
 		switch (status) {
@@ -45,11 +32,6 @@
 		}
 	}
 
-	function llmStatusLed(): string {
-		if (!$llmHealth) return 'text-surface-400';
-		return $llmHealth.status === 'healthy' ? 'text-health-ok' : 'text-health-err';
-	}
-
 	function uptimeStr(seconds: number): string {
 		if (seconds < 60) return `${seconds}s`;
 		if (seconds < 3600) return `${Math.floor(seconds / 60)}m`;
@@ -65,10 +47,10 @@
 	<!-- Daemon status -->
 	<div class="flex items-center gap-1.5">
 		{#if $isStarting}
-			<span class="text-health-warn animate-pulse">●</span>
+			<span class="text-health-warn animate-pulse">{'\u{25CF}'}</span>
 			<span>Starting...</span>
 		{:else}
-			<span class={statusLed($connectionStatus)}>●</span>
+			<span class={statusLed($connectionStatus)}>{'\u{25CF}'}</span>
 			<span>{statusLabel($connectionStatus)}</span>
 		{/if}
 	</div>
@@ -79,43 +61,15 @@
 		</div>
 	{/if}
 
-	<!-- LLM status -->
-	<div class="flex items-center gap-1.5">
-		<span class={llmStatusLed()}>●</span>
-		<span>LLM</span>
-	</div>
-
-	{#if isDevOps()}
-		<div class="text-phase-{$selectedPhase}">
-			{phaseNames[$selectedPhase] ?? $selectedPhase}
+	<!-- Plugin count -->
+	{#if $pluginList.length > 0}
+		<div class="flex items-center gap-1.5">
+			<span class="text-accent-400">{$pluginList.length}</span>
+			<span class="text-surface-400">plugin{$pluginList.length !== 1 ? 's' : ''}</span>
 		</div>
-		{#if $aiModel}
-			<div class="text-hecate-400">{$aiModel}</div>
-		{/if}
-	{:else if $selectedModel}
-		<div class="text-hecate-400">
-			{$selectedModel}
-		</div>
-	{/if}
-
-	{#if $isStreaming}
-		<div class="text-health-loading animate-pulse">streaming...</div>
 	{/if}
 
 	<div class="flex-1"></div>
 
-	<!-- update badge is in TitleBar -->
-
 	<ThemeToggle />
-
-	{#if $lastUsage}
-		<div class="text-surface-400">
-			{#if $lastUsage.prompt_tokens}
-				↑{$lastUsage.prompt_tokens}
-			{/if}
-			{#if $lastUsage.completion_tokens}
-				↓{$lastUsage.completion_tokens}
-			{/if}
-		</div>
-	{/if}
 </footer>

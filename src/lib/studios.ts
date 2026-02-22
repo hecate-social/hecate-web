@@ -1,4 +1,4 @@
-// Studio registry — core studios (hardcoded) + plugin studios (from discovery)
+// Studio registry — all apps are discovered plugins (no hardcoded core studios)
 import { derived } from 'svelte/store';
 import { plugins } from '$lib/stores/plugins';
 
@@ -20,53 +20,7 @@ export interface StudioCard {
 	isPlugin: boolean;
 }
 
-export const coreStudios: StudioTab[] = [
-	{ id: 'llm', name: 'LLM', icon: '\u{1F916}', path: '/llm', isPlugin: false },
-	{ id: 'macula', name: 'Macula', icon: '\u{1F310}', path: '/macula', isPlugin: false },
-	{ id: 'social', name: 'Social', icon: '\u{1F4AC}', path: '/social', isPlugin: false },
-	{ id: 'arcade', name: 'Arcade', icon: '\u{1F3AE}', path: '/arcade', isPlugin: false }
-];
-
-export const coreStudioCards: StudioCard[] = [
-	{
-		id: 'llm',
-		name: 'LLM Studio',
-		icon: '\u{1F916}',
-		path: '/llm',
-		description: 'Chat with AI models, streaming responses, provider management',
-		ready: true,
-		isPlugin: false
-	},
-	{
-		id: 'macula',
-		name: 'Macula Studio',
-		icon: '\u{1F310}',
-		path: '/macula',
-		description: 'Mesh topology, node configuration, marketplace',
-		ready: true,
-		isPlugin: false
-	},
-	{
-		id: 'social',
-		name: 'Social Studio',
-		icon: '\u{1F4AC}',
-		path: '/social',
-		description: 'IRC, forums, feeds, community',
-		ready: true,
-		isPlugin: false
-	},
-	{
-		id: 'arcade',
-		name: 'Arcade Studio',
-		icon: '\u{1F3AE}',
-		path: '/arcade',
-		description: 'Games and entertainment',
-		ready: false,
-		isPlugin: false
-	}
-];
-
-// Reactive: core tabs + discovered plugin tabs
+// Reactive: all tabs from discovered plugins
 export const studioTabs = derived(plugins, ($plugins) => {
 	const pluginTabs: StudioTab[] = Array.from($plugins.values()).map((p) => ({
 		id: p.manifest.name,
@@ -75,10 +29,10 @@ export const studioTabs = derived(plugins, ($plugins) => {
 		path: `/plugin/${p.manifest.name}`,
 		isPlugin: true
 	}));
-	return [...coreStudios, ...pluginTabs];
+	return pluginTabs;
 });
 
-// Reactive: core cards + discovered plugin cards
+// Reactive: all cards from discovered plugins
 export const studioCards = derived(plugins, ($plugins) => {
 	const pluginCards: StudioCard[] = Array.from($plugins.values()).map((p) => ({
 		id: p.manifest.name,
@@ -89,7 +43,7 @@ export const studioCards = derived(plugins, ($plugins) => {
 		ready: true,
 		isPlugin: true
 	}));
-	return [...coreStudioCards, ...pluginCards];
+	return pluginCards;
 });
 
 // Reactive: all studio paths (for keyboard nav)

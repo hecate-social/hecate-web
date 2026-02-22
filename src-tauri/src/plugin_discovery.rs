@@ -8,31 +8,18 @@ pub struct PluginInfo {
 }
 
 /// Extract plugin name from a daemon directory name.
-/// Supports both naming conventions:
-///   hecate-app-marthad -> martha  (new convention)
-///   hecate-marthad     -> martha  (legacy convention)
-/// Returns None for non-plugin dirs (hecate-daemon, etc.).
+/// Only supports: hecate-app-{name}d -> {name}
+/// Returns None for non-plugin dirs.
 fn extract_plugin_name(dir_name: &str) -> Option<String> {
-    // New convention: hecate-app-{name}d
-    if let Some(rest) = dir_name.strip_prefix("hecate-app-") {
-        return rest.strip_suffix('d').filter(|s| !s.is_empty()).map(|s| s.to_string());
-    }
-
-    // Legacy convention: hecate-{name}d (excluding hecate-daemon)
-    if let Some(rest) = dir_name.strip_prefix("hecate-") {
-        let name = rest.strip_suffix('d').filter(|s| !s.is_empty()).map(|s| s.to_string());
-        // Exclude the main daemon
-        if name.as_deref() == Some("daemon") || name.as_deref() == Some("daemn") {
-            return None;
-        }
-        return name;
-    }
-
-    None
+    dir_name
+        .strip_prefix("hecate-app-")
+        .and_then(|rest| rest.strip_suffix('d'))
+        .filter(|s| !s.is_empty())
+        .map(|s| s.to_string())
 }
 
 /// Scan ~/.hecate/ for plugin daemon directories.
-/// Matches both hecate-app-*d (new) and hecate-*d (legacy).
+/// Matches hecate-app-*d directories.
 /// Returns a list of discovered plugins with their socket status.
 #[tauri::command]
 pub fn discover_plugins() -> Vec<PluginInfo> {

@@ -1,11 +1,9 @@
 import { writable, derived } from 'svelte/store';
 import { invoke } from '@tauri-apps/api/core';
 import { listen, type UnlistenFn } from '@tauri-apps/api/event';
-import type { DaemonHealth, ConnectionStatus, LLMHealth } from '../types.js';
-import * as api from '../api.js';
+import type { DaemonHealth, ConnectionStatus } from '../types.js';
 
 export const health = writable<DaemonHealth | null>(null);
-export const llmHealth = writable<LLMHealth | null>(null);
 export const connectionStatus = writable<ConnectionStatus>('connecting');
 export const lastError = writable<string | null>(null);
 export const unavailableSince = writable<number | null>(null);
@@ -23,7 +21,6 @@ const POLL_INTERVAL = 30_000;
 
 let unlisten: UnlistenFn | null = null;
 let healthTimer: ReturnType<typeof setInterval> | null = null;
-let llmTimer: ReturnType<typeof setInterval> | null = null;
 let onReconnectCallback: (() => void) | null = null;
 
 /** Register a callback that fires when transitioning from disconnected to connected. */
@@ -66,15 +63,6 @@ export async function fetchHealth(): Promise<void> {
 	}
 }
 
-export async function fetchLLMHealth(): Promise<void> {
-	try {
-		const h = await api.get<LLMHealth>('/api/llm/health');
-		llmHealth.set(h);
-	} catch {
-		llmHealth.set(null);
-	}
-}
-
 export async function startPolling(): Promise<void> {
 	stopPolling();
 
@@ -88,14 +76,6 @@ export async function startPolling(): Promise<void> {
 
 	// Periodic daemon health poll as fallback (30s, the watcher handles instant detection)
 	healthTimer = setInterval(fetchHealth, POLL_INTERVAL);
-
-	// LLM health polls on same cadence (only when connected)
-	llmTimer = setInterval(() => {
-		if (get_connectionStatus() === 'connected') {
-			fetchLLMHealth();
-		}
-	}, POLL_INTERVAL);
-	fetchLLMHealth();
 }
 
 function get_connectionStatus(): ConnectionStatus {
@@ -112,9 +92,5 @@ export function stopPolling(): void {
 	if (healthTimer) {
 		clearInterval(healthTimer);
 		healthTimer = null;
-	}
-	if (llmTimer) {
-		clearInterval(llmTimer);
-		llmTimer = null;
 	}
 }
