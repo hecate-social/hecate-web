@@ -1,4 +1,5 @@
 mod app_updater;
+mod config_watcher;
 mod daemon_watcher;
 mod plugin_discovery;
 mod plugin_streaming;
@@ -31,6 +32,7 @@ pub fn run() {
             }
             daemon_watcher::start(app.handle().clone());
             plugin_watcher::start(app.handle().clone());
+            config_watcher::start(app.handle().clone());
             Ok(())
         })
         .register_asynchronous_uri_scheme_protocol("hecate", |_ctx, request, responder| {

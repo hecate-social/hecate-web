@@ -10,7 +10,7 @@
 	import { startPluginWatcher, stopPluginWatcher } from '$lib/stores/plugins';
 	import { checkForUpdate } from '$lib/stores/updater.js';
 	import { checkPluginUpdates } from '$lib/stores/pluginUpdater.js';
-	import { toggleSidebar, initSidebar } from '$lib/stores/sidebar.js';
+	import { toggleSidebar, initSidebar, startConfigWatcher, stopConfigWatcher } from '$lib/stores/sidebar.js';
 	import { studioPaths } from '$lib/studios';
 	import '$lib/stores/theme.js';
 	import { onMount, onDestroy } from 'svelte';
@@ -24,6 +24,7 @@
 	onMount(() => {
 		startPolling();
 		startPluginWatcher();
+		startConfigWatcher();
 		checkForUpdate();
 		checkPluginUpdates();
 		onReconnect(() => {
@@ -39,6 +40,7 @@
 	onDestroy(() => {
 		stopPolling();
 		stopPluginWatcher();
+		stopConfigWatcher();
 		clearInterval(updateInterval);
 	});
 

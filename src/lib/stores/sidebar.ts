@@ -1,4 +1,5 @@
 import { writable, derived, get } from 'svelte/store';
+import { listen, type UnlistenFn } from '@tauri-apps/api/event';
 import { studioTabs, type StudioTab } from '$lib/studios';
 import { fetchSidebarConfig, saveSidebarConfig, type SidebarGroupConfig } from '$lib/api/sidebar-config';
 
@@ -57,6 +58,8 @@ sidebarCollapsed.subscribe(persistCollapsed);
 
 let saveTimeout: ReturnType<typeof setTimeout> | null = null;
 let initialized = false;
+let lastLocalSave = 0;
+const SUPPRESS_WINDOW = 2000;
 
 function groupsToConfig(groups: SidebarGroup[]): SidebarGroupConfig[] {
 	return groups.map((g) => ({
@@ -81,6 +84,7 @@ function debounceSaveToDaemon() {
 	if (!initialized) return;
 	if (saveTimeout) clearTimeout(saveTimeout);
 	saveTimeout = setTimeout(() => {
+		lastLocalSave = Date.now();
 		const groups = get(sidebarGroups);
 		saveSidebarConfig(groupsToConfig(groups)).catch(() => {
 			// Daemon may be offline — cache is already updated
@@ -99,6 +103,32 @@ export async function initSidebar(): Promise<void> {
 		// Daemon offline — keep cached groups
 	}
 	initialized = true;
+}
+
+// --- Config file watcher ---
+
+let configUnlisten: UnlistenFn | null = null;
+
+export async function startConfigWatcher(): Promise<void> {
+	if (configUnlisten) return;
+	configUnlisten = await listen('sidebar-config-changed', async () => {
+		if (Date.now() - lastLocalSave < SUPPRESS_WINDOW) return;
+		try {
+			const configs = await fetchSidebarConfig();
+			if (configs.length > 0) {
+				sidebarGroups.set(configToGroups(configs));
+			}
+		} catch {
+			// Daemon offline — keep cached groups
+		}
+	});
+}
+
+export function stopConfigWatcher(): void {
+	if (configUnlisten) {
+		configUnlisten();
+		configUnlisten = null;
+	}
 }
 
 // Subscribe to changes and debounce-save to daemon
