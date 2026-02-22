@@ -53,6 +53,17 @@
 		return $studioTabs.find((t) => t.id === id);
 	}
 
+	/** Resolve an app ID to a tab, or create a placeholder for configured-but-undiscovered apps. */
+	function tabOrPlaceholder(id: string): StudioTab {
+		return tabById(id) ?? {
+			id,
+			name: id.charAt(0).toUpperCase() + id.slice(1),
+			icon: '\uD83D\uDD0C',
+			path: `/plugin/${id}`,
+			isPlugin: true
+		};
+	}
+
 	function isPluginOnline(id: string): boolean {
 		return $plugins.has(id);
 	}
@@ -217,7 +228,7 @@
 >
 	<!-- Groups -->
 	{#each $sidebarGroups as group (group.id)}
-		{@const apps = group.appIds.map(tabById).filter(Boolean) as StudioTab[]}
+		{@const apps = group.appIds.map(tabOrPlaceholder)}
 		<div
 			class="border-b border-surface-700/50
 				{dragOverGroupId === group.id ? 'bg-hecate-900/20' : ''}"
