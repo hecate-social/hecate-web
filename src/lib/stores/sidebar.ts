@@ -30,8 +30,10 @@ function loadGroupsFromCache(): SidebarGroup[] {
 }
 
 function loadCollapsed(): boolean {
-	if (typeof localStorage === 'undefined') return false;
-	return localStorage.getItem(COLLAPSED_KEY) === 'true';
+	if (typeof localStorage === 'undefined') return true;
+	const stored = localStorage.getItem(COLLAPSED_KEY);
+	if (stored === null) return true;
+	return stored === 'true';
 }
 
 function persistGroupsToCache(groups: SidebarGroup[]) {

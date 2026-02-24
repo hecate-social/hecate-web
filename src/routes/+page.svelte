@@ -1,8 +1,39 @@
 <script lang="ts">
 	import { health, connectionStatus, isStarting } from '$lib/stores/daemon.js';
-	import { studioCards } from '$lib/studios';
-	import { activeAppId } from '$lib/stores/sidebar.js';
+	import { studioCards, type StudioCard } from '$lib/studios';
+	import { plugins } from '$lib/stores/plugins.js';
+	import { sidebarGroups, ungroupedApps } from '$lib/stores/sidebar.js';
+	import { pluginUpdateVersion } from '$lib/stores/pluginUpdater.js';
+	import AccordionGroup from '$lib/components/AccordionGroup.svelte';
+	import PluginCard from '$lib/components/PluginCard.svelte';
+
 	const DONATE_URL = 'https://buymeacoffee.com/rlefever';
+
+	let ungroupedCollapsed = $state(false);
+
+	let cardsMap = $derived(new Map($studioCards.map((c) => [c.id, c])));
+
+	let ungroupedCards = $derived(
+		$ungroupedApps.map((tab) => cardFromId(tab.id))
+	);
+
+	let hasContent = $derived(
+		$sidebarGroups.some((g) => g.appIds.length > 0) || ungroupedCards.length > 0
+	);
+
+	function cardFromId(id: string): StudioCard {
+		return (
+			cardsMap.get(id) ?? {
+				id,
+				name: id.charAt(0).toUpperCase() + id.slice(1),
+				icon: '\uD83D\uDD0C',
+				path: `/plugin/${id}`,
+				description: 'Plugin not currently available',
+				ready: false,
+				isPlugin: true
+			}
+		);
+	}
 </script>
 
 <!-- Ambient glow background -->
@@ -49,32 +80,50 @@
 		{/if}
 	</div>
 
-	<!-- Studio cards -->
-	{#if $studioCards.length > 0}
-		<div class="grid grid-cols-2 lg:grid-cols-3 gap-3 max-w-2xl w-full">
-			{#each $studioCards as card}
-				<a
-					href={card.path}
-					onclick={() => activeAppId.set(card.id)}
-					class="group relative flex flex-col items-center gap-2.5 p-5 rounded-xl
-						bg-surface-800/80 border border-surface-600/50
-						hover:border-accent-500/30 hover:bg-surface-700/80
-						transition-all duration-200"
-				>
-					<span
-						class="text-2xl transition-transform duration-200 group-hover:scale-110
-							group-hover:drop-shadow-[0_0_8px_rgba(245,158,11,0.4)]"
-					>
-						{card.icon}
-					</span>
-					<span class="text-sm font-medium text-surface-100 group-hover:text-accent-400 transition-colors">
-						{card.name}
-					</span>
-					<span class="text-[10px] text-surface-400 text-center leading-relaxed">
-						{card.description}
-					</span>
-				</a>
+	<!-- Plugin cards (grouped accordion) -->
+	{#if hasContent}
+		<div class="flex flex-col gap-2 max-w-3xl w-full">
+			{#each $sidebarGroups as group (group.id)}
+				{@const cards = group.appIds.map((id) => cardFromId(id))}
+				{#if cards.length > 0}
+					<AccordionGroup {group}>
+						<div class="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+							{#each cards as card (card.id)}
+								<PluginCard
+									{card}
+									online={$plugins.has(card.id)}
+									version={$plugins.get(card.id)?.manifest.version ?? null}
+									updateVersion={$pluginUpdateVersion(card.id)}
+								/>
+							{/each}
+						</div>
+					</AccordionGroup>
+				{/if}
 			{/each}
+
+			{#if ungroupedCards.length > 0}
+				<AccordionGroup
+					group={{
+						id: '__ungrouped__',
+						name: 'Ungrouped',
+						icon: '\uD83D\uDCCB',
+						collapsed: ungroupedCollapsed,
+						appIds: ungroupedCards.map((c) => c.id)
+					}}
+					ontoggle={() => (ungroupedCollapsed = !ungroupedCollapsed)}
+				>
+					<div class="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+						{#each ungroupedCards as card (card.id)}
+							<PluginCard
+								{card}
+								online={$plugins.has(card.id)}
+								version={$plugins.get(card.id)?.manifest.version ?? null}
+								updateVersion={$pluginUpdateVersion(card.id)}
+							/>
+						{/each}
+					</div>
+				</AccordionGroup>
+			{/if}
 		</div>
 	{:else if $connectionStatus === 'connected'}
 		<div class="flex flex-col items-center gap-3 text-center max-w-md">

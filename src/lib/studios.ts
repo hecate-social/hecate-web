@@ -36,7 +36,7 @@ export const studioTabs = derived(plugins, ($plugins) => {
 export const studioCards = derived(plugins, ($plugins) => {
 	const pluginCards: StudioCard[] = Array.from($plugins.values()).map((p) => ({
 		id: p.manifest.name,
-		name: `${capitalize(p.manifest.name)} Studio`,
+		name: capitalize(p.manifest.name),
 		icon: p.manifest.icon,
 		path: `/plugin/${p.manifest.name}`,
 		description: p.manifest.description,
