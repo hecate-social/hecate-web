@@ -52,5 +52,5 @@
 		</div>
 	</div>
 {:else}
-	<div bind:this={container} class="h-full overflow-auto"></div>
+	<div bind:this={container} class="h-full overflow-auto p-4"></div>
 {/if}
