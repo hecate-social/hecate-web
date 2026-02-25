@@ -53,7 +53,7 @@
 		</h1>
 
 		<p class="text-surface-300 text-sm text-center max-w-md">
-			Guardian of the crossroads. Your daemon, your keys, your realm.
+			Your node, your models, your data.
 		</p>
 	</div>
 
@@ -127,12 +127,9 @@
 		</div>
 	{:else if $connectionStatus === 'connected'}
 		<div class="flex flex-col items-center gap-3 text-center max-w-md">
-			<span class="text-4xl">{'\u{1F50C}'}</span>
+			<span class="text-4xl">{'\u{2699}'}</span>
 			<p class="text-sm text-surface-400">
-				No plugins discovered. Start a plugin daemon to see it here.
-			</p>
-			<p class="text-xs text-surface-500 font-mono bg-surface-800 border border-surface-600 rounded px-3 py-2">
-				~/.hecate/hecate-app-*d/sockets/api.sock
+				Use the sidebar to navigate to Settings, LLM, or the Appstore.
 			</p>
 		</div>
 	{/if}
@@ -153,6 +150,6 @@
 
 	<!-- Footer tagline -->
 	<p class="text-[10px] text-surface-500 text-center pb-4">
-		She who holds the key, lights the way.
+		Open source. Self-hosted. Yours.
 	</p>
 </div>
