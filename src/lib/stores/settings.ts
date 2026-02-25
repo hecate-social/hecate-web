@@ -2,12 +2,15 @@ import { writable } from 'svelte/store';
 import { get as apiGet, post, put } from '$lib/api';
 
 export interface SettingsIdentity {
-	node_id: string;
-	hostname: string;
+	hecate_user_id: string;
 	linux_user: string;
+	hostname: string;
 	github_user: string | null;
-	realm: string;
+	realm: string | null;
 	paired: boolean;
+	paired_at: number | null;
+	initiated_at: number | null;
+	status: number;
 }
 
 export interface SettingsData {
@@ -33,15 +36,6 @@ export async function fetchSettings(): Promise<void> {
 	}
 }
 
-export async function pairNode(githubUser: string): Promise<void> {
-	try {
-		await post<{ ok: boolean }>('/api/settings/pair', { github_user: githubUser });
-		await fetchSettings();
-	} catch (e) {
-		settingsError.set(e instanceof Error ? e.message : String(e));
-	}
-}
-
 export async function unpairNode(): Promise<void> {
 	try {
 		await post<{ ok: boolean }>('/api/settings/unpair', {});
@@ -52,23 +46,32 @@ export async function unpairNode(): Promise<void> {
 }
 
 export interface PairingSession {
-	confirm_code: string;
-	confirm_url: string;
 	session_id: string;
+	confirm_code: string;
+	pairing_url: string;
+	expires_in: number;
 }
 
 export interface PairingStatus {
-	status: 'pending' | 'confirmed' | 'expired';
+	ok: boolean;
+	status: 'idle' | 'pairing' | 'paired' | 'failed';
+	confirm_code?: string;
+	session_id?: string;
+	expires_in?: number;
 }
 
 export async function initiatePairing(): Promise<PairingSession> {
-	const data = await post<PairingSession>('/api/settings/pair/initiate', {});
+	const data = await post<{ ok: boolean } & PairingSession>('/api/pairing/initiate', {});
 	return data;
 }
 
 export async function checkPairingStatus(): Promise<PairingStatus> {
-	const data = await apiGet<PairingStatus>('/api/settings/pair/status');
+	const data = await apiGet<PairingStatus>('/api/pairing/status');
 	return data;
+}
+
+export async function cancelPairing(): Promise<void> {
+	await post<{ ok: boolean }>('/api/pairing/cancel', {});
 }
 
 export async function updatePreferences(prefs: Record<string, unknown>): Promise<void> {

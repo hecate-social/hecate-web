@@ -5,6 +5,7 @@
 		fetchSettings,
 		initiatePairing,
 		checkPairingStatus,
+		cancelPairing,
 		unpairNode,
 		type PairingSession
 	} from '$lib/stores/settings';
@@ -41,7 +42,7 @@
 
 			await invoke('open_webview', {
 				label: 'pairing',
-				url: session.confirm_url,
+				url: session.pairing_url,
 				title: 'Pair with Macula',
 				width: 800,
 				height: 700
@@ -50,16 +51,16 @@
 			pollTimer = setInterval(async () => {
 				try {
 					const result = await checkPairingStatus();
-					if (result.status === 'confirmed') {
+					if (result.status === 'paired') {
 						stopPolling();
 						step = 'success';
 						await closeWebview();
 						await fetchSettings();
-					} else if (result.status === 'expired') {
+					} else if (result.status === 'failed') {
 						stopPolling();
 						await closeWebview();
 						step = 'error';
-						errorMessage = 'Pairing session expired. Please try again.';
+						errorMessage = 'Pairing session expired or failed. Please try again.';
 					}
 				} catch {
 					// poll failure — keep trying
@@ -71,9 +72,10 @@
 		}
 	}
 
-	function handleCancel() {
+	async function handleCancel() {
 		stopPolling();
-		closeWebview();
+		await cancelPairing();
+		await closeWebview();
 		session = null;
 		step = 'idle';
 	}
