@@ -53,8 +53,14 @@ export interface Provider {
 
 export interface ChatResponse {
 	ok: boolean;
-	content: string;
-	model: string;
-	usage?: Usage;
+	response?: {
+		content: string;
+		model: string;
+		message?: { role: string; content: string };
+		done?: boolean;
+		stop_reason?: string;
+		eval_count?: number;
+		prompt_eval_count?: number;
+	};
 	error?: string;
 }

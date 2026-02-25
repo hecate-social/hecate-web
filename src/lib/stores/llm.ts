@@ -92,13 +92,18 @@ export async function sendMessage(content: string): Promise<void> {
 			messages: allMessages
 		});
 
-		if (resp.ok && resp.content) {
+		if (resp.ok && resp.response?.content) {
 			const assistantMsg: ChatMessage = {
 				role: 'assistant',
-				content: resp.content
+				content: resp.response.content
 			};
 			messages.update((msgs) => [...msgs, assistantMsg]);
-			if (resp.usage) lastUsage.set(resp.usage);
+			if (resp.response.eval_count || resp.response.prompt_eval_count) {
+				lastUsage.set({
+					completion_tokens: resp.response.eval_count,
+					prompt_tokens: resp.response.prompt_eval_count
+				});
+			}
 		} else {
 			const errorMsg: ChatMessage = {
 				role: 'assistant',
