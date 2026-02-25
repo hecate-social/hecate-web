@@ -20,42 +20,49 @@ export interface PluginCardData {
 	isPlugin: boolean;
 }
 
-// Core pages — always available, use main daemon socket
+// Core pages — always available, use main daemon socket.
+// IDs match old plugin manifest names so saved sidebar config carries over.
 const CORE_TABS: PluginTab[] = [
-	{ id: '__settings', name: 'Settings', icon: '\u2699', path: '/settings', isPlugin: false },
-	{ id: '__llm', name: 'LLM', icon: '\uD83E\uDD16', path: '/llm', isPlugin: false },
-	{ id: '__appstore', name: 'Appstore', icon: '\uD83C\uDFEA', path: '/appstore', isPlugin: false },
+	{ id: 'node', name: 'Settings', icon: '\u2699', path: '/settings', isPlugin: false },
+	{ id: 'llm', name: 'LLM', icon: '\uD83E\uDD16', path: '/llm', isPlugin: false },
+	{ id: 'appstore', name: 'Appstore', icon: '\uD83C\uDFEA', path: '/appstore', isPlugin: false },
 ];
 
 const CORE_CARDS: PluginCardData[] = [
-	{ id: '__settings', name: 'Settings', icon: '\u2699', path: '/settings', description: 'Node identity, pairing, and preferences', ready: true, isPlugin: false },
-	{ id: '__llm', name: 'LLM', icon: '\uD83E\uDD16', path: '/llm', description: 'Chat with AI models across providers', ready: true, isPlugin: false },
-	{ id: '__appstore', name: 'Appstore', icon: '\uD83C\uDFEA', path: '/appstore', description: 'Browse and install plugins', ready: true, isPlugin: false },
+	{ id: 'node', name: 'Settings', icon: '\u2699', path: '/settings', description: 'Node identity, pairing, and preferences', ready: true, isPlugin: false },
+	{ id: 'llm', name: 'LLM', icon: '\uD83E\uDD16', path: '/llm', description: 'Chat with AI models across providers', ready: true, isPlugin: false },
+	{ id: 'appstore', name: 'Appstore', icon: '\uD83C\uDFEA', path: '/appstore', description: 'Browse and install plugins', ready: true, isPlugin: false },
 ];
 
-// Reactive: core tabs + discovered plugin tabs
+const CORE_IDS = new Set(CORE_TABS.map((t) => t.id));
+
+// Reactive: core tabs + discovered plugin tabs (excluding plugins that are now core)
 export const pluginTabs = derived(plugins, ($plugins) => {
-	const discovered: PluginTab[] = Array.from($plugins.values()).map((p) => ({
-		id: p.manifest.name,
-		name: capitalize(p.manifest.name),
-		icon: p.manifest.icon,
-		path: `/plugin/${p.manifest.name}`,
-		isPlugin: true
-	}));
+	const discovered: PluginTab[] = Array.from($plugins.values())
+		.filter((p) => !CORE_IDS.has(p.manifest.name))
+		.map((p) => ({
+			id: p.manifest.name,
+			name: capitalize(p.manifest.name),
+			icon: p.manifest.icon,
+			path: `/plugin/${p.manifest.name}`,
+			isPlugin: true
+		}));
 	return [...CORE_TABS, ...discovered];
 });
 
-// Reactive: core cards + discovered plugin cards
+// Reactive: core cards + discovered plugin cards (excluding plugins that are now core)
 export const pluginCards = derived(plugins, ($plugins) => {
-	const discovered: PluginCardData[] = Array.from($plugins.values()).map((p) => ({
-		id: p.manifest.name,
-		name: capitalize(p.manifest.name),
-		icon: p.manifest.icon,
-		path: `/plugin/${p.manifest.name}`,
-		description: p.manifest.description,
-		ready: true,
-		isPlugin: true
-	}));
+	const discovered: PluginCardData[] = Array.from($plugins.values())
+		.filter((p) => !CORE_IDS.has(p.manifest.name))
+		.map((p) => ({
+			id: p.manifest.name,
+			name: capitalize(p.manifest.name),
+			icon: p.manifest.icon,
+			path: `/plugin/${p.manifest.name}`,
+			description: p.manifest.description,
+			ready: true,
+			isPlugin: true
+		}));
 	return [...CORE_CARDS, ...discovered];
 });
 
