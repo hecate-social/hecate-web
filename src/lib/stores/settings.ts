@@ -51,6 +51,26 @@ export async function unpairNode(): Promise<void> {
 	}
 }
 
+export interface PairingSession {
+	confirm_code: string;
+	confirm_url: string;
+	session_id: string;
+}
+
+export interface PairingStatus {
+	status: 'pending' | 'confirmed' | 'expired';
+}
+
+export async function initiatePairing(): Promise<PairingSession> {
+	const data = await post<PairingSession>('/api/settings/pair/initiate', {});
+	return data;
+}
+
+export async function checkPairingStatus(): Promise<PairingStatus> {
+	const data = await apiGet<PairingStatus>('/api/settings/pair/status');
+	return data;
+}
+
 export async function updatePreferences(prefs: Record<string, unknown>): Promise<void> {
 	try {
 		await put<{ ok: boolean }>('/api/settings/preferences', prefs);

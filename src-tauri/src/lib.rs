@@ -6,6 +6,7 @@ mod plugin_streaming;
 mod plugin_updater;
 mod plugin_watcher;
 mod socket_proxy;
+mod webview_opener;
 
 use tauri::http::Response;
 use tauri::Manager;
@@ -60,6 +61,8 @@ pub fn run() {
             plugin_updater::check_plugin_updates,
             plugin_updater::install_plugin_update,
             plugin_streaming::plugin_sse_stream,
+            webview_opener::open_webview,
+            webview_opener::close_webview,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

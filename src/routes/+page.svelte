@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { open } from '@tauri-apps/plugin-shell';
 	import { health, connectionStatus, isStarting } from '$lib/stores/daemon.js';
 	import { pluginCards, type PluginCardData } from '$lib/plugins-registry';
 	import { plugins } from '$lib/stores/plugins.js';
@@ -135,18 +136,16 @@
 	{/if}
 
 	<!-- Donate -->
-	<a
-		href={DONATE_URL}
-		target="_blank"
-		rel="noopener noreferrer"
-		class="flex items-center gap-2 px-4 py-2 rounded-full
+	<button
+		onclick={() => open(DONATE_URL)}
+		class="flex items-center gap-2 px-4 py-2 rounded-full cursor-pointer
 			text-xs text-surface-400 hover:text-accent-400
 			bg-surface-800/40 border border-surface-700/50 hover:border-accent-500/30
 			transition-all duration-200"
 	>
 		<span>{'\u{2615}'}</span>
 		<span>Buy me a coffee</span>
-	</a>
+	</button>
 
 	<!-- Footer tagline -->
 	<p class="text-[10px] text-surface-500 text-center pb-4">
