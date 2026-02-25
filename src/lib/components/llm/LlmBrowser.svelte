@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import type { Model } from '$lib/types/llm';
 	import { models, selectedModel, fetchModels } from '$lib/stores/llm';
+	import { SPECIALTIES, specialtyOf, costOf, filterModels } from './model-filters';
 
 	interface Props {
 		onOpenChat: (modelName: string) => void;
@@ -13,42 +13,12 @@
 	let selectedProvider: string | null = $state(null);
 	let selectedSpecialty: string | null = $state(null);
 
-	const SPECIALTIES = ['General Purpose', 'Coding', 'Research'] as const;
-
-	const CODING_PATTERNS = /code|coder|codestral|starcoder/i;
-	const RESEARCH_PATTERNS = /thinking|think|deepthink|\br1\b|\bo1\b|\bo3\b/i;
-
-	function specialtyOf(m: Model): string {
-		if (CODING_PATTERNS.test(m.name) || CODING_PATTERNS.test(m.family ?? '')) return 'Coding';
-		if (RESEARCH_PATTERNS.test(m.name) || RESEARCH_PATTERNS.test(m.family ?? '')) return 'Research';
-		return 'General Purpose';
-	}
-
-	function costOf(m: Model): string {
-		if (m.provider === 'ollama') return '\u20AC';
-		if (m.provider === 'groq') return '\u20AC';
-		if (m.provider === 'google') {
-			if (/flash/i.test(m.name)) return '\u20AC';
-			return '\u20AC\u20AC';
-		}
-		if (m.provider === 'anthropic') {
-			if (/haiku/i.test(m.name)) return '\u20AC\u20AC';
-			return '\u20AC\u20AC\u20AC';
-		}
-		return '\u20AC\u20AC';
-	}
-
 	const providers = $derived(
 		[...new Set($models.map((m) => m.provider))].sort()
 	);
 
 	const filteredModels = $derived(
-		$models.filter((m) => {
-			const matchesSearch = !searchText || m.name.toLowerCase().includes(searchText.toLowerCase());
-			const matchesProvider = !selectedProvider || m.provider === selectedProvider;
-			const matchesSpecialty = !selectedSpecialty || specialtyOf(m) === selectedSpecialty;
-			return matchesSearch && matchesProvider && matchesSpecialty;
-		})
+		filterModels($models, searchText, selectedProvider, selectedSpecialty)
 	);
 
 	const hasActiveFilters = $derived(!!searchText || !!selectedProvider || !!selectedSpecialty);

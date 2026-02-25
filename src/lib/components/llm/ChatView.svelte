@@ -1,6 +1,7 @@
 <script lang="ts">
 	import ChatMessageBubble from './ChatMessage.svelte';
 	import StreamingText from './StreamingText.svelte';
+	import ModelPicker from './ModelPicker.svelte';
 	import {
 		models,
 		selectedModel,
@@ -23,6 +24,20 @@
 	let inputValue = $state('');
 	let messagesContainer: HTMLDivElement | undefined = $state();
 	let inputEl: HTMLTextAreaElement | undefined = $state();
+	let showPicker = $state(false);
+	let pickerAnchor: HTMLButtonElement | undefined = $state();
+	let pickerRect: DOMRect | undefined = $state();
+
+	const currentModelObj = $derived($models.find((m) => m.name === $selectedModel));
+
+	function togglePicker() {
+		if (showPicker) {
+			showPicker = false;
+		} else if (pickerAnchor) {
+			pickerRect = pickerAnchor.getBoundingClientRect();
+			showPicker = true;
+		}
+	}
 
 	onMount(() => {
 		fetchModels();
@@ -70,20 +85,38 @@
 		</button>
 		<div class="w-px h-4 bg-surface-600"></div>
 
-		<label for="model-select" class="text-[11px] text-surface-400">Model:</label>
-		<select
-			id="model-select"
-			bind:value={$selectedModel}
-			class="bg-surface-700 border border-surface-600 rounded px-2 py-1 text-xs text-surface-100
-				focus:outline-none focus:border-hecate-500 cursor-pointer"
+		<button
+			bind:this={pickerAnchor}
+			onclick={togglePicker}
+			class="flex items-center gap-2 bg-surface-700 border border-surface-600 rounded px-2.5 py-1
+				text-xs text-surface-100 hover:border-surface-500 transition-colors cursor-pointer
+				focus:outline-none focus:border-hecate-500
+				{showPicker ? 'border-hecate-500' : ''}"
 		>
-			{#each $models as model}
-				<option value={model.name}>
-					{model.name}
-					{#if model.provider}({model.provider}){/if}
-				</option>
-			{/each}
-		</select>
+			{#if $selectedModel}
+				<span class="truncate max-w-[180px]">{$selectedModel}</span>
+				{#if currentModelObj?.provider}
+					<span class="text-[9px] px-1.5 py-0.5 rounded-full bg-surface-600 text-hecate-400 shrink-0">
+						{currentModelObj.provider}
+					</span>
+				{/if}
+			{:else}
+				<span class="text-surface-400">Select model</span>
+			{/if}
+			<span class="text-[10px] text-surface-400 ml-0.5"
+				>{showPicker ? '\u25B2' : '\u25BC'}</span
+			>
+		</button>
+
+		{#if showPicker && pickerRect}
+			<ModelPicker
+				models={$models}
+				currentModel={$selectedModel}
+				onSelect={(name) => { $selectedModel = name; }}
+				onClose={() => { showPicker = false; }}
+				anchorRect={pickerRect}
+			/>
+		{/if}
 
 		<div class="flex-1"></div>
 
