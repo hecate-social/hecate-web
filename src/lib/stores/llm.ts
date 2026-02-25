@@ -53,8 +53,12 @@ export async function fetchModels(): Promise<void> {
 		const resp = await apiGet<ModelsResponse>('/api/llm/models');
 		if (resp.ok && resp.models) {
 			models.set(resp.models);
-			const best = selectBestModel(resp.models);
-			if (best) selectedModel.set(best);
+			const current = get(selectedModel);
+			const stillValid = current && resp.models.some((m) => m.name === current);
+			if (!stillValid) {
+				const best = selectBestModel(resp.models);
+				if (best) selectedModel.set(best);
+			}
 
 			const hasPreferred = resp.models.some((m) => m.name === PREFERRED_CLOUD_MODEL);
 			if (!hasPreferred && fetchRetries < 5) {
