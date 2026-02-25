@@ -9,6 +9,7 @@ export const isStreaming = writable(false);
 export const streamingContent = writable('');
 export const lastUsage = writable<Usage | null>(null);
 export const streamError = writable<string | null>(null);
+export const activeView = writable<'browser' | 'chat'>('browser');
 
 let prevModel: string | null = null;
 selectedModel.subscribe((model) => {
@@ -18,6 +19,7 @@ selectedModel.subscribe((model) => {
 		isStreaming.set(false);
 		lastUsage.set(null);
 		streamError.set(null);
+		activeView.set('browser');
 	}
 	prevModel = model;
 });
@@ -70,6 +72,7 @@ export function clearChat(): void {
 	streamingContent.set('');
 	lastUsage.set(null);
 	streamError.set(null);
+	activeView.set('browser');
 }
 
 export async function sendMessage(content: string): Promise<void> {
