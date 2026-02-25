@@ -25,8 +25,8 @@ export async function checkForUpdate(): Promise<void> {
 	try {
 		const update = await invoke<AppUpdate | null>('check_app_update');
 		availableUpdate.set(update);
-	} catch (e) {
-		console.error('[updater] check failed:', e);
+	} catch {
+		// Silent — offline or rate-limited
 	}
 }
 

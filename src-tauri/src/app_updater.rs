@@ -88,24 +88,15 @@ pub async fn check_app_update() -> Result<Option<AppUpdate>, String> {
     eprintln!("[updater] remote: v{}, local: v{}", remote_version, local_version);
 
     if !is_newer(remote_version, local_version) {
-        eprintln!("[updater] no update needed");
         return Ok(None);
     }
 
     let target_asset = asset_name();
-    eprintln!("[updater] looking for asset: {}", target_asset);
-    eprintln!(
-        "[updater] available assets: {:?}",
-        release.assets.iter().map(|a| &a.name).collect::<Vec<_>>()
-    );
     let asset = release
         .assets
         .iter()
         .find(|a| a.name == target_asset)
-        .ok_or_else(|| {
-            eprintln!("[updater] no matching asset found!");
-            format!("No asset found for {}", target_asset)
-        })?;
+        .ok_or_else(|| format!("No asset found for {}", target_asset))?;
 
     eprintln!("[updater] update available: v{}", remote_version);
     Ok(Some(AppUpdate {
