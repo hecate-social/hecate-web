@@ -2,7 +2,7 @@
 	import { goto } from '$app/navigation';
 	import { activeAppId } from '$lib/stores/sidebar.js';
 	import { showPluginUpdateModal } from '$lib/stores/pluginUpdater.js';
-	import type { StudioCard } from '$lib/studios';
+	import type { PluginCardData } from '$lib/plugins-registry';
 
 	let {
 		card,
@@ -10,7 +10,7 @@
 		version = null,
 		updateVersion = null
 	}: {
-		card: StudioCard;
+		card: PluginCardData;
 		online: boolean;
 		version?: string | null;
 		updateVersion?: string | null;

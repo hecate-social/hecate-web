@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { health, connectionStatus, isStarting } from '$lib/stores/daemon.js';
-	import { studioCards, type StudioCard } from '$lib/studios';
+	import { pluginCards, type PluginCardData } from '$lib/plugins-registry';
 	import { plugins } from '$lib/stores/plugins.js';
 	import { sidebarGroups, ungroupedApps } from '$lib/stores/sidebar.js';
 	import { pluginUpdateVersion } from '$lib/stores/pluginUpdater.js';
@@ -11,7 +11,7 @@
 
 	let ungroupedCollapsed = $state(false);
 
-	let cardsMap = $derived(new Map($studioCards.map((c) => [c.id, c])));
+	let cardsMap = $derived(new Map($pluginCards.map((c) => [c.id, c])));
 
 	let ungroupedCards = $derived(
 		$ungroupedApps.map((tab) => cardFromId(tab.id))
@@ -21,7 +21,7 @@
 		$sidebarGroups.some((g) => g.appIds.length > 0) || ungroupedCards.length > 0
 	);
 
-	function cardFromId(id: string): StudioCard {
+	function cardFromId(id: string): PluginCardData {
 		return (
 			cardsMap.get(id) ?? {
 				id,
@@ -91,9 +91,9 @@
 							{#each cards as card (card.id)}
 								<PluginCard
 									{card}
-									online={$plugins.has(card.id)}
+									online={!card.isPlugin || $plugins.has(card.id)}
 									version={$plugins.get(card.id)?.manifest.version ?? null}
-									updateVersion={$pluginUpdateVersion(card.id)}
+									updateVersion={card.isPlugin ? $pluginUpdateVersion(card.id) : null}
 								/>
 							{/each}
 						</div>
@@ -116,9 +116,9 @@
 						{#each ungroupedCards as card (card.id)}
 							<PluginCard
 								{card}
-								online={$plugins.has(card.id)}
+								online={!card.isPlugin || $plugins.has(card.id)}
 								version={$plugins.get(card.id)?.manifest.version ?? null}
-								updateVersion={$pluginUpdateVersion(card.id)}
+								updateVersion={card.isPlugin ? $pluginUpdateVersion(card.id) : null}
 							/>
 						{/each}
 					</div>

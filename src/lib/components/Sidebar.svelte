@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
-	import { studioTabs, type StudioTab } from '$lib/studios';
+	import { pluginTabs, type PluginTab } from '$lib/plugins-registry';
 	import { plugins } from '$lib/stores/plugins.js';
 	import {
 		sidebarGroups,
@@ -24,7 +24,7 @@
 	// Sync activeAppId from route changes
 	$effect(() => {
 		const pathname = page.url?.pathname ?? '/';
-		syncActiveAppFromRoute(pathname, $studioTabs);
+		syncActiveAppFromRoute(pathname, $pluginTabs);
 	});
 
 	// --- Drag state ---
@@ -49,12 +49,12 @@
 
 	// --- Helpers ---
 
-	function tabById(id: string): StudioTab | undefined {
-		return $studioTabs.find((t) => t.id === id);
+	function tabById(id: string): PluginTab | undefined {
+		return $pluginTabs.find((t) => t.id === id);
 	}
 
 	/** Resolve an app ID to a tab, or create a placeholder for configured-but-undiscovered apps. */
-	function tabOrPlaceholder(id: string): StudioTab {
+	function tabOrPlaceholder(id: string): PluginTab {
 		return tabById(id) ?? {
 			id,
 			name: id.charAt(0).toUpperCase() + id.slice(1),
@@ -72,7 +72,7 @@
 		return $activeAppId === appId;
 	}
 
-	function navigateToApp(tab: StudioTab) {
+	function navigateToApp(tab: PluginTab) {
 		activeAppId.set(tab.id);
 		goto(tab.path);
 	}

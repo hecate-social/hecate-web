@@ -11,7 +11,7 @@
 	import { checkForUpdate } from '$lib/stores/updater.js';
 	import { checkPluginUpdates } from '$lib/stores/pluginUpdater.js';
 	import { toggleSidebar, initSidebar, startConfigWatcher, stopConfigWatcher } from '$lib/stores/sidebar.js';
-	import { studioPaths } from '$lib/studios';
+	import { pluginPaths } from '$lib/plugins-registry';
 	import '$lib/stores/theme.js';
 	import { onMount, onDestroy } from 'svelte';
 	import { goto } from '$app/navigation';
@@ -52,10 +52,10 @@
 			return;
 		}
 
-		// Ctrl+Tab / Ctrl+Shift+Tab — cycle studios
+		// Ctrl+Tab / Ctrl+Shift+Tab — cycle pages
 		if (e.ctrlKey && e.key === 'Tab') {
 			e.preventDefault();
-			const paths = get(studioPaths);
+			const paths = get(pluginPaths);
 			const current = page.url?.pathname ?? '/';
 			const idx = paths.findIndex((p) =>
 				p === '/' ? current === '/' : current.startsWith(p)

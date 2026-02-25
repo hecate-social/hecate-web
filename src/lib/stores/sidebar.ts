@@ -1,6 +1,6 @@
 import { writable, derived, get } from 'svelte/store';
 import { listen, type UnlistenFn } from '@tauri-apps/api/event';
-import { studioTabs, type StudioTab } from '$lib/studios';
+import { pluginTabs, type PluginTab } from '$lib/plugins-registry';
 import { fetchSidebarConfig, saveSidebarConfig, type SidebarGroupConfig } from '$lib/api/sidebar-config';
 
 // --- Types ---
@@ -151,7 +151,7 @@ const groupedAppIds = derived(sidebarGroups, ($groups) => {
 
 /** Tabs that are not in any group */
 export const ungroupedApps = derived(
-	[studioTabs, groupedAppIds],
+	[pluginTabs, groupedAppIds],
 	([$tabs, $grouped]) => $tabs.filter((t) => !$grouped.has(t.id))
 );
 
@@ -229,7 +229,7 @@ export function toggleSidebar() {
 
 // --- Sync activeAppId from current route ---
 
-export function syncActiveAppFromRoute(pathname: string, tabs: StudioTab[]) {
+export function syncActiveAppFromRoute(pathname: string, tabs: PluginTab[]) {
 	if (pathname === '/') {
 		activeAppId.set(null);
 		return;

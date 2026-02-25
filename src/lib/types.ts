@@ -12,18 +12,6 @@ export interface DaemonHealth {
 	identity?: 'initialized' | 'not_initialized';
 }
 
-// --- Identity ---
-
-export interface Identity {
-	ok: boolean;
-	identity?: {
-		node_id: string;
-		display_name?: string;
-		realm?: string;
-	};
-	error?: string;
-}
-
 // --- UI State ---
 
 export type ConnectionStatus = 'connected' | 'connecting' | 'disconnected' | 'error';
