@@ -134,10 +134,7 @@
 						</div>
 					{:else}
 						<div class="text-xs text-surface-500">
-							Node identity not initialized. Run <code
-								class="px-1.5 py-0.5 rounded bg-surface-700 font-mono"
-								>hecate init</code
-							> to create one.
+							Node identity is initializing. Restart the daemon if this persists.
 						</div>
 					{/if}
 				</div>
