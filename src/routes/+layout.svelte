@@ -4,9 +4,11 @@
 	import Sidebar from '$lib/components/Sidebar.svelte';
 	import StatusBar from '$lib/components/StatusBar.svelte';
 	import DaemonStartingOverlay from '$lib/components/DaemonStartingOverlay.svelte';
+	import OnboardingOverlay from '$lib/components/OnboardingOverlay.svelte';
 	import UpdateModal from '$lib/components/UpdateModal.svelte';
 	import PluginUpdateModal from '$lib/components/PluginUpdateModal.svelte';
 	import { startPolling, stopPolling, onReconnect } from '$lib/stores/daemon.js';
+	import { fetchSettings } from '$lib/stores/settings';
 	import { startPluginWatcher, stopPluginWatcher } from '$lib/stores/plugins';
 	import { checkForUpdate } from '$lib/stores/updater.js';
 	import { checkPluginUpdates } from '$lib/stores/pluginUpdater.js';
@@ -29,8 +31,10 @@
 		checkPluginUpdates();
 		onReconnect(() => {
 			initSidebar();
+			fetchSettings();
 		});
 		initSidebar();
+		fetchSettings();
 		updateInterval = setInterval(() => {
 			checkForUpdate();
 			checkPluginUpdates();
@@ -72,6 +76,7 @@
 <svelte:window onkeydown={handleGlobalKeydown} />
 
 <DaemonStartingOverlay />
+<OnboardingOverlay />
 <UpdateModal />
 <PluginUpdateModal />
 
