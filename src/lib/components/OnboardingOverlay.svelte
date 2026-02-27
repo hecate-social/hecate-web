@@ -5,6 +5,7 @@
 	import { isConnected } from '$lib/stores/daemon.js';
 	import {
 		settings,
+		settingsLoading,
 		fetchSettings,
 		initiateRealmJoin,
 		checkRealmJoinStatus,
@@ -22,7 +23,8 @@
 	let dismissTimer: ReturnType<typeof setTimeout> | null = $state(null);
 
 	let visible = $derived(
-		$isConnected && $settings !== null && $settings.realms.length === 0
+		$isConnected && !$settingsLoading &&
+		($settings === null || ($settings.realms?.length ?? 0) === 0)
 	);
 
 	function stopPolling() {
