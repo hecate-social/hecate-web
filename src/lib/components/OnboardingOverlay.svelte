@@ -62,11 +62,15 @@
 					if (result.status === 'joined') {
 						stopPolling();
 						await closeWebview();
-						await fetchSettings();
 						step = 'success';
-						dismissTimer = setTimeout(() => {
-							// settings store will have realms.length > 0, so visible becomes false
-						}, 2500);
+						// Retry fetchSettings until the daemon has stored credentials
+						const retryFetch = async (attempts: number) => {
+							await fetchSettings();
+							if (($settings?.realms?.length ?? 0) === 0 && attempts > 0) {
+								dismissTimer = setTimeout(() => retryFetch(attempts - 1), 1500);
+							}
+						};
+						dismissTimer = setTimeout(() => retryFetch(5), 1500);
 					} else if (result.status === 'failed') {
 						stopPolling();
 						await closeWebview();
