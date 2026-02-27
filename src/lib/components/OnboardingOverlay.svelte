@@ -12,9 +12,10 @@
 		type RealmJoinSession
 	} from '$lib/stores/settings';
 
-	type Step = 'welcome' | 'joining' | 'success';
+	type Step = 'welcome' | 'realm-url' | 'joining' | 'success';
 
 	let step: Step = $state('welcome');
+	let realmUrl: string = $state('https://macula.io');
 	let session: RealmJoinSession | null = $state(null);
 	let errorMessage: string = $state('');
 	let pollTimer: ReturnType<typeof setInterval> | null = $state(null);
@@ -43,7 +44,7 @@
 		step = 'joining';
 		errorMessage = '';
 		try {
-			session = await initiateRealmJoin();
+			session = await initiateRealmJoin(realmUrl);
 
 			await invoke('open_webview', {
 				label: 'joining',
@@ -84,7 +85,7 @@
 		await closeWebview();
 		session = null;
 		errorMessage = '';
-		step = 'welcome';
+		step = 'realm-url';
 	}
 
 	function handleRetry() {
@@ -162,7 +163,7 @@
 
 				<!-- CTA -->
 				<button
-					onclick={startJoining}
+					onclick={() => { step = 'realm-url'; }}
 					class="mt-4 px-8 py-3 rounded-xl text-sm font-semibold transition-all cursor-pointer
 						bg-gradient-to-r from-amber-500 to-purple-600 text-white
 						hover:from-amber-400 hover:to-purple-500
@@ -174,6 +175,57 @@
 				<p class="text-[10px] text-surface-600 italic mt-1">
 					She who holds the key, lights the way.
 				</p>
+			</div>
+
+		{:else if step === 'realm-url'}
+			<!-- STEP 1.5: Realm URL -->
+			<div class="relative flex flex-col items-center gap-5 max-w-sm px-6" transition:fade={{ duration: 200 }}>
+				<h2
+					class="text-xl font-bold tracking-wide"
+					style="background: linear-gradient(135deg, #fbbf24, #a875ff); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;"
+				>
+					Choose a Realm
+				</h2>
+
+				<p class="text-xs text-surface-400 text-center leading-relaxed">
+					Enter the URL of the realm you want to join. Most users should use the default.
+				</p>
+
+				<div class="w-full space-y-3">
+					<label class="block">
+						<span class="text-[10px] text-surface-500 uppercase tracking-wider font-medium">Realm URL</span>
+						<input
+							type="url"
+							bind:value={realmUrl}
+							placeholder="https://macula.io"
+							class="mt-1 w-full px-3 py-2.5 rounded-lg text-sm
+								bg-surface-800 border border-surface-600 text-surface-100
+								placeholder:text-surface-600
+								focus:outline-none focus:border-purple-500/50 focus:ring-1 focus:ring-purple-500/30
+								transition-colors"
+						/>
+					</label>
+				</div>
+
+				<div class="flex gap-3 w-full">
+					<button
+						onclick={() => { step = 'welcome'; }}
+						class="flex-1 px-4 py-2.5 rounded-lg text-xs font-medium transition-colors cursor-pointer
+							bg-surface-700 text-surface-400 hover:text-surface-200 border border-surface-600"
+					>
+						Back
+					</button>
+					<button
+						onclick={startJoining}
+						disabled={!realmUrl.trim()}
+						class="flex-1 px-4 py-2.5 rounded-lg text-xs font-semibold transition-all cursor-pointer
+							bg-gradient-to-r from-amber-500 to-purple-600 text-white
+							hover:from-amber-400 hover:to-purple-500
+							disabled:opacity-40 disabled:cursor-not-allowed"
+					>
+						Join
+					</button>
+				</div>
 			</div>
 
 		{:else if step === 'joining'}

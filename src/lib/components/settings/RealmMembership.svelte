@@ -10,9 +10,10 @@
 		type RealmJoinSession
 	} from '$lib/stores/settings';
 
-	type JoinStep = 'idle' | 'initiating' | 'waiting' | 'success' | 'error';
+	type JoinStep = 'idle' | 'url-input' | 'initiating' | 'waiting' | 'success' | 'error';
 
 	let joinStep: JoinStep = $state('idle');
+	let realmUrl: string = $state('https://macula.io');
 	let session: RealmJoinSession | null = $state(null);
 	let errorMessage: string = $state('');
 	let pollTimer: ReturnType<typeof setInterval> | null = $state(null);
@@ -37,7 +38,7 @@
 		joinStep = 'initiating';
 		errorMessage = '';
 		try {
-			session = await initiateRealmJoin();
+			session = await initiateRealmJoin(realmUrl);
 			joinStep = 'waiting';
 
 			await invoke('open_webview', {
@@ -87,7 +88,7 @@
 	}
 
 	function handleRetry() {
-		joinStep = 'idle';
+		joinStep = 'url-input';
 		errorMessage = '';
 		session = null;
 	}
@@ -143,12 +144,46 @@
 	<!-- Join flow -->
 	{#if joinStep === 'idle'}
 		<button
-			onclick={handleJoin}
+			onclick={() => { joinStep = 'url-input'; }}
 			class="px-4 py-2 rounded-lg text-xs font-medium transition-colors cursor-pointer
 				bg-accent-600 text-surface-50 hover:bg-accent-500"
 		>
 			Join a Realm
 		</button>
+	{:else if joinStep === 'url-input'}
+		<div class="space-y-3">
+			<label class="block">
+				<span class="text-[10px] text-surface-500 uppercase tracking-wider font-medium">Realm URL</span>
+				<input
+					type="url"
+					bind:value={realmUrl}
+					placeholder="https://macula.io"
+					class="mt-1 w-full px-3 py-2 rounded-lg text-sm
+						bg-surface-800 border border-surface-600 text-surface-100
+						placeholder:text-surface-600
+						focus:outline-none focus:border-accent-500/50 focus:ring-1 focus:ring-accent-500/30
+						transition-colors"
+				/>
+			</label>
+			<div class="flex gap-2">
+				<button
+					onclick={() => { joinStep = 'idle'; }}
+					class="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors cursor-pointer
+						bg-surface-700 text-surface-400 hover:text-surface-200 border border-surface-600"
+				>
+					Cancel
+				</button>
+				<button
+					onclick={handleJoin}
+					disabled={!realmUrl.trim()}
+					class="px-4 py-1.5 rounded-lg text-xs font-medium transition-colors cursor-pointer
+						bg-accent-600 text-surface-50 hover:bg-accent-500
+						disabled:opacity-40 disabled:cursor-not-allowed"
+				>
+					Join
+				</button>
+			</div>
+		</div>
 	{:else if joinStep === 'initiating'}
 		<div class="flex items-center gap-2 text-sm text-surface-400">
 			<span class="animate-pulse">...</span>
