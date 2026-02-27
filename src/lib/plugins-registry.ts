@@ -21,15 +21,14 @@ export interface PluginCardData {
 }
 
 // Core pages — always available, use main daemon socket.
-// IDs match old plugin manifest names so saved sidebar config carries over.
 const CORE_TABS: PluginTab[] = [
-	{ id: 'node', name: 'Settings', icon: '\u2699', path: '/settings', isPlugin: false },
+	{ id: 'settings', name: 'Settings', icon: '\u2699', path: '/settings', isPlugin: false },
 	{ id: 'llm', name: 'LLM', icon: '\uD83E\uDD16', path: '/llm', isPlugin: false },
 	{ id: 'appstore', name: 'Appstore', icon: '\uD83C\uDFEA', path: '/appstore', isPlugin: false },
 ];
 
 const CORE_CARDS: PluginCardData[] = [
-	{ id: 'node', name: 'Settings', icon: '\u2699', path: '/settings', description: 'Node identity, pairing, and preferences', ready: true, isPlugin: false },
+	{ id: 'settings', name: 'Settings', icon: '\u2699', path: '/settings', description: 'Node identity, realms, and preferences', ready: true, isPlugin: false },
 	{ id: 'llm', name: 'LLM', icon: '\uD83E\uDD16', path: '/llm', description: 'Chat with AI models across providers', ready: true, isPlugin: false },
 	{ id: 'appstore', name: 'Appstore', icon: '\uD83C\uDFEA', path: '/appstore', description: 'Browse and install plugins', ready: true, isPlugin: false },
 ];

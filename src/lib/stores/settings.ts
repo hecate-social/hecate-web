@@ -5,18 +5,39 @@ export interface SettingsIdentity {
 	hecate_user_id: string;
 	linux_user: string;
 	hostname: string;
-	github_user: string | null;
-	realm: string | null;
-	paired: boolean;
-	paired_at: number | null;
 	initiated_at: number | null;
 	status: number;
+}
+
+export interface RealmMembership {
+	membership_id: string;
+	realm_id: string;
+	realm_url: string;
+	oauth_account: string;
+	oauth_provider: string;
+	confirmed_at: number;
 }
 
 export interface SettingsData {
 	ok: boolean;
 	identity: SettingsIdentity;
 	preferences: Record<string, unknown>;
+	realms: RealmMembership[];
+}
+
+export interface RealmJoinSession {
+	session_id: string;
+	confirm_code: string;
+	joining_url: string;
+	expires_in: number;
+}
+
+export interface RealmJoinStatus {
+	ok: boolean;
+	status: 'idle' | 'joining' | 'joined' | 'failed';
+	confirm_code?: string;
+	session_id?: string;
+	expires_in?: number;
 }
 
 export const settings = writable<SettingsData | null>(null);
@@ -36,42 +57,29 @@ export async function fetchSettings(): Promise<void> {
 	}
 }
 
-export async function unpairNode(): Promise<void> {
+export async function initiateRealmJoin(realmUrl?: string): Promise<RealmJoinSession> {
+	const data = await post<{ ok: boolean } & RealmJoinSession>('/api/realms/join/initiate', {
+		realm_url: realmUrl ?? 'https://macula.io'
+	});
+	return data;
+}
+
+export async function checkRealmJoinStatus(): Promise<RealmJoinStatus> {
+	const data = await apiGet<RealmJoinStatus>('/api/realms/join/status');
+	return data;
+}
+
+export async function cancelRealmJoin(): Promise<void> {
+	await post<{ ok: boolean }>('/api/realms/join/cancel', {});
+}
+
+export async function leaveRealm(membershipId: string): Promise<void> {
 	try {
-		await post<{ ok: boolean }>('/api/settings/unpair', {});
+		await post<{ ok: boolean }>(`/api/realms/${membershipId}/leave`, {});
 		await fetchSettings();
 	} catch (e) {
 		settingsError.set(e instanceof Error ? e.message : String(e));
 	}
-}
-
-export interface PairingSession {
-	session_id: string;
-	confirm_code: string;
-	pairing_url: string;
-	expires_in: number;
-}
-
-export interface PairingStatus {
-	ok: boolean;
-	status: 'idle' | 'pairing' | 'paired' | 'failed';
-	confirm_code?: string;
-	session_id?: string;
-	expires_in?: number;
-}
-
-export async function initiatePairing(): Promise<PairingSession> {
-	const data = await post<{ ok: boolean } & PairingSession>('/api/pairing/initiate', {});
-	return data;
-}
-
-export async function checkPairingStatus(): Promise<PairingStatus> {
-	const data = await apiGet<PairingStatus>('/api/pairing/status');
-	return data;
-}
-
-export async function cancelPairing(): Promise<void> {
-	await post<{ ok: boolean }>('/api/pairing/cancel', {});
 }
 
 export async function updatePreferences(prefs: Record<string, unknown>): Promise<void> {

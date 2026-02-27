@@ -6,22 +6,22 @@
 	import {
 		settings,
 		fetchSettings,
-		initiatePairing,
-		checkPairingStatus,
-		cancelPairing,
-		type PairingSession
+		initiateRealmJoin,
+		checkRealmJoinStatus,
+		cancelRealmJoin,
+		type RealmJoinSession
 	} from '$lib/stores/settings';
 
-	type Step = 'welcome' | 'pairing' | 'success';
+	type Step = 'welcome' | 'joining' | 'success';
 
 	let step: Step = $state('welcome');
-	let session: PairingSession | null = $state(null);
+	let session: RealmJoinSession | null = $state(null);
 	let errorMessage: string = $state('');
 	let pollTimer: ReturnType<typeof setInterval> | null = $state(null);
 	let dismissTimer: ReturnType<typeof setTimeout> | null = $state(null);
 
 	let visible = $derived(
-		$isConnected && $settings !== null && !$settings.identity.paired
+		$isConnected && $settings !== null && $settings.realms.length === 0
 	);
 
 	function stopPolling() {
@@ -39,35 +39,35 @@
 		}
 	}
 
-	async function startPairing() {
-		step = 'pairing';
+	async function startJoining() {
+		step = 'joining';
 		errorMessage = '';
 		try {
-			session = await initiatePairing();
+			session = await initiateRealmJoin();
 
 			await invoke('open_webview', {
 				label: 'pairing',
-				url: session.pairing_url,
-				title: 'Join Realm — Hecate',
+				url: session.joining_url,
+				title: 'Join Realm \u2014 Hecate',
 				width: 800,
 				height: 700
 			});
 
 			pollTimer = setInterval(async () => {
 				try {
-					const result = await checkPairingStatus();
-					if (result.status === 'paired') {
+					const result = await checkRealmJoinStatus();
+					if (result.status === 'joined') {
 						stopPolling();
 						await closeWebview();
 						await fetchSettings();
 						step = 'success';
 						dismissTimer = setTimeout(() => {
-							// settings store will have paired=true, so visible becomes false
+							// settings store will have realms.length > 0, so visible becomes false
 						}, 2500);
 					} else if (result.status === 'failed') {
 						stopPolling();
 						await closeWebview();
-						errorMessage = 'Pairing session expired or failed. Please try again.';
+						errorMessage = 'Join session expired or failed. Please try again.';
 					}
 				} catch {
 					// poll failure — keep trying
@@ -80,7 +80,7 @@
 
 	async function handleCancel() {
 		stopPolling();
-		await cancelPairing();
+		await cancelRealmJoin();
 		await closeWebview();
 		session = null;
 		errorMessage = '';
@@ -89,7 +89,7 @@
 
 	function handleRetry() {
 		errorMessage = '';
-		startPairing();
+		startJoining();
 	}
 
 	onDestroy(() => {
@@ -110,7 +110,7 @@
 		></div>
 
 		{#if step === 'welcome'}
-			<!-- ════════════════════ STEP 1: Welcome ════════════════════ -->
+			<!-- STEP 1: Welcome -->
 			<div class="relative flex flex-col items-center gap-6 max-w-md px-6" transition:fade={{ duration: 200 }}>
 				<!-- Hecate artwork -->
 				<div class="splash-portrait">
@@ -135,14 +135,14 @@
 					connect to the mesh and unlock its full capabilities.
 				</p>
 
-				<!-- What pairing gives you -->
+				<!-- What joining gives you -->
 				<div class="grid grid-cols-3 gap-4 w-full mt-2">
 					<div class="flex flex-col items-center gap-2 text-center">
 						<div class="w-10 h-10 rounded-full bg-purple-500/15 border border-purple-500/30 flex items-center justify-center">
 							<span class="text-purple-400 text-base">{'\u{1F511}'}</span>
 						</div>
 						<span class="text-[11px] text-surface-400 font-medium">Identity</span>
-						<span class="text-[10px] text-surface-500 leading-tight">Cryptographic keys tied to your GitHub</span>
+						<span class="text-[10px] text-surface-500 leading-tight">Cryptographic keys tied to your account</span>
 					</div>
 					<div class="flex flex-col items-center gap-2 text-center">
 						<div class="w-10 h-10 rounded-full bg-amber-500/15 border border-amber-500/30 flex items-center justify-center">
@@ -162,7 +162,7 @@
 
 				<!-- CTA -->
 				<button
-					onclick={startPairing}
+					onclick={startJoining}
 					class="mt-4 px-8 py-3 rounded-xl text-sm font-semibold transition-all cursor-pointer
 						bg-gradient-to-r from-amber-500 to-purple-600 text-white
 						hover:from-amber-400 hover:to-purple-500
@@ -176,14 +176,14 @@
 				</p>
 			</div>
 
-		{:else if step === 'pairing'}
-			<!-- ════════════════════ STEP 2: Pairing ════════════════════ -->
+		{:else if step === 'joining'}
+			<!-- STEP 2: Joining -->
 			<div class="relative flex flex-col items-center gap-6 max-w-sm px-6" transition:fade={{ duration: 200 }}>
 				<h2
 					class="text-xl font-bold tracking-wide"
 					style="background: linear-gradient(135deg, #fbbf24, #a875ff); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;"
 				>
-					Pairing with Realm
+					Joining Realm
 				</h2>
 
 				{#if errorMessage}
@@ -213,7 +213,7 @@
 				{:else if session}
 					<!-- Waiting for confirmation -->
 					<p class="text-xs text-surface-400 text-center">
-						A browser window has opened. Confirm this code to pair your node:
+						A browser window has opened. Confirm this code to join the realm:
 					</p>
 
 					<!-- Confirm code display -->
@@ -250,13 +250,13 @@
 					<!-- Initiating (brief loading state) -->
 					<div class="flex items-center gap-2 text-sm text-surface-400">
 						<span class="animate-pulse">...</span>
-						<span>Starting pairing session...</span>
+						<span>Starting join session...</span>
 					</div>
 				{/if}
 			</div>
 
 		{:else if step === 'success'}
-			<!-- ════════════════════ STEP 3: Success ════════════════════ -->
+			<!-- STEP 3: Success -->
 			<div class="relative flex flex-col items-center gap-5" transition:fade={{ duration: 200 }}>
 				<!-- Green checkmark with glow -->
 				<div class="success-glow w-20 h-20 rounded-full bg-success-500/15 border-2 border-success-500/40 flex items-center justify-center">
@@ -264,18 +264,18 @@
 				</div>
 
 				<h2 class="text-xl font-bold text-surface-100">
-					{#if $settings?.identity.github_user}
-						Paired as {$settings.identity.github_user}
+					{#if $settings?.realms?.[0]?.oauth_account}
+						Joined as {$settings.realms[0].oauth_account}
 					{:else}
-						Paired successfully
+						Joined successfully
 					{/if}
 				</h2>
 
-				{#if $settings?.identity.realm}
+				{#if $settings?.realms?.[0]?.realm_id}
 					<span
 						class="text-[10px] px-3 py-1 rounded-full bg-success-500/15 text-success-400 border border-success-500/25"
 					>
-						{$settings.identity.realm}
+						{$settings.realms[0].realm_id} via {$settings.realms[0].oauth_provider}
 					</span>
 				{/if}
 

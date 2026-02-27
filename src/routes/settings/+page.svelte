@@ -8,7 +8,7 @@
 		fetchSettings
 	} from '$lib/stores/settings';
 	import { nodeIdentity, fetchNodeIdentity } from '$lib/stores/nodeIdentity';
-	import PairingFlow from '$lib/components/settings/PairingFlow.svelte';
+	import RealmMembership from '$lib/components/settings/RealmMembership.svelte';
 
 	let copyFeedback: string | null = $state(null);
 
@@ -16,15 +16,6 @@
 		const hours = Math.floor(seconds / 3600);
 		const mins = Math.floor((seconds % 3600) / 60);
 		return hours > 0 ? `${hours}h ${mins}m` : `${mins}m`;
-	}
-
-	function formatTimestamp(ms: number | null): string {
-		if (!ms) return '-';
-		return new Date(ms).toLocaleDateString(undefined, {
-			year: 'numeric',
-			month: 'short',
-			day: 'numeric'
-		});
 	}
 
 	async function copyToClipboard(text: string, label: string) {
@@ -139,54 +130,10 @@
 					{/if}
 				</div>
 
-				<!-- Section 2: Macula Account -->
-				<div class="rounded-xl border border-surface-600 bg-surface-800/80 p-5 space-y-4">
-					<h2 class="text-xs font-semibold text-surface-300 uppercase tracking-wider">
-						Macula Account
-					</h2>
-					<div class="grid grid-cols-[auto_1fr] gap-x-6 gap-y-3 text-sm">
-						<span class="text-surface-500">Status</span>
-						<span>
-							{#if $settings.identity.paired}
-								<span
-									class="text-[10px] px-2 py-1 rounded-full bg-success-500/20 text-success-400 border border-success-500/30"
-									>Paired</span
-								>
-							{:else}
-								<span
-									class="text-[10px] px-2 py-1 rounded-full bg-warning-500/20 text-warning-400 border border-warning-500/30"
-									>Not paired</span
-								>
-							{/if}
-						</span>
+				<!-- Section 2: Realms -->
+				<RealmMembership />
 
-						{#if $settings.identity.paired}
-							{#if $settings.identity.github_user}
-								<span class="text-surface-500">GitHub</span>
-								<span class="text-surface-200"
-									>{$settings.identity.github_user}</span
-								>
-							{/if}
-
-							{#if $settings.identity.realm}
-								<span class="text-surface-500">Realm</span>
-								<span class="text-surface-200"
-									>{$settings.identity.realm}</span
-								>
-							{/if}
-
-							<span class="text-surface-500">Paired since</span>
-							<span class="text-surface-200"
-								>{formatTimestamp($settings.identity.paired_at)}</span
-							>
-						{/if}
-					</div>
-				</div>
-
-				<!-- Section 3: Pairing -->
-				<PairingFlow />
-
-				<!-- Section 4: Daemon -->
+				<!-- Section 3: Daemon -->
 				{#if $health}
 					<div
 						class="rounded-xl border border-surface-600 bg-surface-800/80 p-5 space-y-4"
