@@ -33,7 +33,7 @@
 
 	async function closeWebview() {
 		try {
-			await invoke('close_webview', { label: 'pairing' });
+			await invoke('close_webview', { label: 'joining' });
 		} catch {
 			// already closed
 		}
@@ -46,7 +46,7 @@
 			session = await initiateRealmJoin();
 
 			await invoke('open_webview', {
-				label: 'pairing',
+				label: 'joining',
 				url: session.joining_url,
 				title: 'Join Realm \u2014 Hecate',
 				width: 800,
@@ -211,26 +211,16 @@
 						</div>
 					</div>
 				{:else if session}
-					<!-- Waiting for confirmation -->
+					<!-- Waiting for login -->
 					<p class="text-xs text-surface-400 text-center">
-						A browser window has opened. Confirm this code to join the realm:
+						A browser window has opened. Log in to join the realm.
 					</p>
 
-					<!-- Confirm code display -->
-					<div
-						class="flex items-center justify-center py-4 px-6 rounded-xl
-							bg-surface-800/80 border border-surface-600 confirm-code-glow"
-					>
-						<span class="text-3xl font-mono font-bold tracking-[0.4em] text-surface-50">
-							{session.confirm_code}
-						</span>
-					</div>
-
 					<!-- Waiting indicator -->
-					<div class="flex flex-col items-center gap-3">
+					<div class="flex flex-col items-center gap-3 mt-4">
 						<div class="flex items-center gap-2">
 							<span class="text-amber-400 animate-pulse text-sm">{'\u{25CF}'}</span>
-							<span class="text-surface-400 text-xs">Waiting for confirmation...</span>
+							<span class="text-surface-400 text-xs">Waiting for login...</span>
 						</div>
 
 						<!-- Shimmer bar -->
@@ -305,13 +295,6 @@
 	}
 	.splash-portrait {
 		animation: portrait-glow 3s ease-in-out infinite;
-	}
-	@keyframes code-glow {
-		0%, 100% { box-shadow: 0 0 15px rgba(168, 117, 255, 0.15); }
-		50% { box-shadow: 0 0 30px rgba(168, 117, 255, 0.25); }
-	}
-	.confirm-code-glow {
-		animation: code-glow 2s ease-in-out infinite;
 	}
 	@keyframes success-pulse {
 		0%, 100% { box-shadow: 0 0 20px rgba(34, 197, 94, 0.2); }

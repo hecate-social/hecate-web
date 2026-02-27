@@ -27,7 +27,6 @@ export interface SettingsData {
 
 export interface RealmJoinSession {
 	session_id: string;
-	confirm_code: string;
 	joining_url: string;
 	expires_in: number;
 }
@@ -35,7 +34,6 @@ export interface RealmJoinSession {
 export interface RealmJoinStatus {
 	ok: boolean;
 	status: 'idle' | 'joining' | 'joined' | 'failed';
-	confirm_code?: string;
 	session_id?: string;
 	expires_in?: number;
 }

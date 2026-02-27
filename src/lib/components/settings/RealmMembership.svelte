@@ -27,7 +27,7 @@
 
 	async function closeWebview() {
 		try {
-			await invoke('close_webview', { label: 'pairing' });
+			await invoke('close_webview', { label: 'joining' });
 		} catch {
 			// already closed
 		}
@@ -41,7 +41,7 @@
 			joinStep = 'waiting';
 
 			await invoke('open_webview', {
-				label: 'pairing',
+				label: 'joining',
 				url: session.joining_url,
 				title: 'Join Realm \u2014 Hecate',
 				width: 800,
@@ -157,17 +157,11 @@
 	{:else if joinStep === 'waiting' && session}
 		<div class="space-y-3">
 			<p class="text-xs text-surface-400">
-				Enter this code in the browser window that just opened:
+				Log in via the browser window that just opened.
 			</p>
-			<div class="flex items-center justify-center py-3 px-4 rounded-lg
-					bg-surface-700 border border-surface-600">
-				<span class="text-2xl font-mono font-bold tracking-[0.3em] text-surface-100">
-					{session.confirm_code}
-				</span>
-			</div>
 			<div class="flex items-center justify-between">
 				<span class="text-[10px] text-surface-500 animate-pulse">
-					Waiting for confirmation...
+					Waiting for login...
 				</span>
 				<button
 					onclick={handleCancel}
