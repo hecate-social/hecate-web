@@ -63,7 +63,7 @@
 		<span class="text-sm font-bold text-hecate-400">Hecate</span>
 		<span class="text-[10px] text-surface-400 font-mono">v{appVersion}</span>
 		<span class={daemonLed()}>{'\u{25CF}'}</span>
-		<span class="flex items-center gap-px ml-1 text-[9px] font-mono leading-none select-none">
+		<span class="flex items-center gap-0.5 ml-1.5 text-xs font-mono leading-none select-none">
 			<span class={$txActive ? 'text-amber-400' : 'text-surface-600'}>{'\u{25B2}'}</span>
 			<span class={$rxActive ? 'text-emerald-400' : 'text-surface-600'}>{'\u{25BC}'}</span>
 		</span>
