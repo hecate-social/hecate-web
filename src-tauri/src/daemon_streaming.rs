@@ -10,6 +10,7 @@ use std::time::Duration;
 use tauri::{AppHandle, Emitter};
 
 use crate::socket_proxy::resolve_socket_path;
+use crate::traffic;
 
 const RECONNECT_DELAY: Duration = Duration::from_secs(3);
 const STREAM_PATH: &str = "/api/events";
@@ -110,6 +111,7 @@ fn read_sse_chunked(
 
         let mut chunk_buf = vec![0u8; size];
         std::io::Read::read_exact(reader, &mut chunk_buf)?;
+        traffic::record_rx(size as u64);
 
         // Read trailing CRLF
         let mut _trail = String::new();
@@ -144,6 +146,7 @@ fn read_sse_direct(
         if n == 0 {
             break;
         }
+        traffic::record_rx(n as u64);
         let trimmed = line.trim_end_matches('\n').trim_end_matches('\r').to_string();
         process_sse_line(app, &trimmed, &mut current_event_type, &mut current_data);
     }

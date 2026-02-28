@@ -3,6 +3,8 @@ use std::os::unix::net::UnixStream;
 use std::path::Path;
 use tauri::http::{Request, Response};
 
+use crate::traffic;
+
 /// Tauri command: check daemon health directly via Unix socket.
 /// Bypasses the custom URI scheme protocol entirely.
 #[tauri::command]
@@ -160,6 +162,7 @@ pub fn proxy_request(
     if !body.is_empty() {
         stream.write_all(body)?;
     }
+    traffic::record_tx((http_req.len() + body.len()) as u64);
 
     // Parse HTTP response
     let mut reader = BufReader::new(stream);
@@ -206,6 +209,8 @@ pub fn proxy_request(
         let _ = reader.read_to_end(&mut buf);
         buf
     };
+
+    traffic::record_rx(response_body.len() as u64);
 
     Ok(Response::builder()
         .status(status_code)

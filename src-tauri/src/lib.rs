@@ -7,6 +7,7 @@ mod plugin_streaming;
 mod plugin_updater;
 mod plugin_watcher;
 mod socket_proxy;
+mod traffic;
 mod webview_opener;
 
 use tauri::http::Response;
@@ -64,6 +65,7 @@ pub fn run() {
             plugin_updater::check_plugin_updates,
             plugin_updater::install_plugin_update,
             plugin_streaming::plugin_sse_stream,
+            traffic::get_traffic_counters,
             webview_opener::open_webview,
             webview_opener::close_webview,
         ])

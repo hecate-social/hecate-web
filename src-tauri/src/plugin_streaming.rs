@@ -3,6 +3,7 @@ use std::os::unix::net::UnixStream;
 use tauri::{AppHandle, Emitter};
 
 use crate::socket_proxy::resolve_plugin_socket_path;
+use crate::traffic;
 
 /// Generic SSE stream proxy for plugin daemons.
 /// Connects to a plugin's Unix socket, makes a GET request to the given path,
@@ -139,6 +140,7 @@ fn read_sse_chunked(
 
         let mut chunk_buf = vec![0u8; size];
         reader.read_exact(&mut chunk_buf)?;
+        traffic::record_rx(size as u64);
 
         // Read trailing CRLF after chunk data
         let mut _trail = String::new();

@@ -14,6 +14,7 @@
 	import { checkForUpdate } from '$lib/stores/updater.js';
 	import { checkPluginUpdates } from '$lib/stores/pluginUpdater.js';
 	import { toggleSidebar, initSidebar, startConfigWatcher, stopConfigWatcher } from '$lib/stores/sidebar.js';
+	import { startTrafficWatcher, stopTrafficWatcher } from '$lib/stores/traffic.js';
 	import { pluginPaths } from '$lib/plugins-registry';
 	import '$lib/stores/theme.js';
 	import { onMount, onDestroy } from 'svelte';
@@ -31,6 +32,7 @@
 		startConfigWatcher();
 		startSettingsWatcher();
 		startIdentityWatcher();
+		startTrafficWatcher();
 		checkForUpdate();
 		checkPluginUpdates();
 		onReconnect(() => {
@@ -51,6 +53,7 @@
 		stopConfigWatcher();
 		stopSettingsWatcher();
 		stopIdentityWatcher();
+		stopTrafficWatcher();
 		clearInterval(updateInterval);
 	});
 
