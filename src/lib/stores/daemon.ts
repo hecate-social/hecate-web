@@ -1,5 +1,4 @@
 import { writable, derived } from 'svelte/store';
-import { invoke } from '@tauri-apps/api/core';
 import { listen, type UnlistenFn } from '@tauri-apps/api/event';
 import type { DaemonHealth, ConnectionStatus } from '../types.js';
 
@@ -28,28 +27,21 @@ export function onReconnect(cb: () => void): void {
 	onReconnectCallback = cb;
 }
 
-function handleHealthEvent(payload: DaemonHealth | null, source: string) {
+function handleHealthEvent(payload: DaemonHealth | null) {
 	if (payload && typeof payload === 'object' && 'status' in payload) {
 		const wasDisconnected = get_connectionStatus() !== 'connected';
 		health.set(payload);
 		connectionStatus.set('connected');
 		lastError.set(null);
 		unavailableSince.set(null);
-		if (wasDisconnected) {
-			console.error(`[daemon.ts] connected via ${source}: status=${payload.status} ready=${payload.ready}`);
-			if (onReconnectCallback) {
-				onReconnectCallback();
-			}
+		if (wasDisconnected && onReconnectCallback) {
+			onReconnectCallback();
 		}
 	} else {
-		const wasConnected = get_connectionStatus() === 'connected';
 		health.set(null);
 		connectionStatus.set('error');
 		if (get_unavailableSince() === null) {
 			unavailableSince.set(Date.now());
-		}
-		if (wasConnected) {
-			console.error(`[daemon.ts] disconnected via ${source}: payload=${JSON.stringify(payload)}`);
 		}
 	}
 }
@@ -60,38 +52,42 @@ function get_unavailableSince(): number | null {
 	return value;
 }
 
-/** On-demand refresh — triggers a single health check via invoke */
+/** Health check via the hecate:// custom protocol (fetch-based).
+ *  This bypasses Tauri's invoke IPC entirely and uses the URI scheme
+ *  protocol handler which proxies to the daemon Unix socket. */
 export async function fetchHealth(): Promise<void> {
 	try {
-		const h = await invoke<DaemonHealth>('check_daemon_health');
-		handleHealthEvent(h, 'invoke');
-	} catch (e) {
-		console.error(`[daemon.ts] invoke failed: ${e}`);
-		handleHealthEvent(null, 'invoke');
+		const resp = await fetch('hecate://localhost/health');
+		if (!resp.ok) {
+			handleHealthEvent(null);
+			return;
+		}
+		const h: DaemonHealth = await resp.json();
+		handleHealthEvent(h);
+	} catch {
+		handleHealthEvent(null);
 	}
 }
 
 export async function startPolling(): Promise<void> {
 	stopPolling();
 
-	// Primary: always poll via invoke — this is reliable on all platforms.
-	// The timer runs continuously and never stops.
+	// Always poll via fetch against the hecate:// custom protocol.
+	// This uses the URI scheme handler (proven to work on WebKitGTK)
+	// instead of Tauri's invoke IPC (which may not work reliably).
 	healthTimer = setInterval(fetchHealth, POLL_INTERVAL);
 
-	// Bonus: also listen for daemon-health events from the Rust watcher.
-	// On WebKitGTK, app.emit() from Rust threads may not reach JS listeners,
-	// but when it works, it gives faster updates than the 5s poll interval.
+	// Also listen for daemon-health events from the Rust watcher as a bonus.
 	try {
 		unlisten = await listen<DaemonHealth | null>('daemon-health', (event) => {
-			handleHealthEvent(event.payload, 'listen');
+			handleHealthEvent(event.payload);
 		});
-	} catch (e) {
-		console.error(`[daemon.ts] listen setup failed: ${e}`);
+	} catch {
+		// listen may fail on some platforms — not critical
 	}
 
 	// Immediate check — don't wait for the first timer tick.
 	await fetchHealth();
-	console.error(`[daemon.ts] startPolling complete, timer running every ${POLL_INTERVAL}ms`);
 }
 
 function get_connectionStatus(): ConnectionStatus {
