@@ -57,6 +57,23 @@ export function getActionState(item: CatalogItem): ActionState {
 	return 'install';
 }
 
+export function formatPrice(item: CatalogItem): string {
+	if (!item.license_type || item.license_type === 'free' || !item.fee_cents) return 'Free';
+	const amount = (item.fee_cents / 100).toFixed(2);
+	const currency = item.fee_currency ?? 'EUR';
+	const symbol = currency === 'USD' ? '$' : currency === 'EUR' ? '\u20AC' : currency;
+	if (item.license_type === 'subscription') {
+		const period =
+			item.duration_days === 365
+				? '/yr'
+				: item.duration_days === 30
+					? '/mo'
+					: `/${item.duration_days}d`;
+		return `${symbol}${amount}${period}`;
+	}
+	return `${symbol}${amount}`;
+}
+
 export function parseTags(tagsJson: string | null): string[] {
 	if (!tagsJson) return [];
 	try {

@@ -3,7 +3,7 @@
 	import { get as apiGet, post } from '$lib/api';
 	import { health } from '$lib/stores/daemon';
 	import type { CatalogItem, PluginDetail } from '$lib/types/appstore';
-	import { getActionState, parseTags } from '$lib/types/appstore';
+	import { getActionState, formatPrice, parseTags } from '$lib/types/appstore';
 
 	// --- Data ---
 	let catalog: CatalogItem[] = $state([]);
@@ -254,6 +254,7 @@
 						{#each filteredCatalog as item (item.plugin_id)}
 							{@const action = getActionState(item)}
 							{@const loading = actionLoading === item.plugin_id}
+							{@const price = formatPrice(item)}
 							<div
 								class="group rounded-xl border border-surface-600 bg-surface-800/80
 									hover:border-accent-500/50 hover:bg-surface-800 transition-all"
@@ -272,6 +273,12 @@
 												</span>
 												<span class="text-[10px] px-1.5 py-0.5 rounded-full bg-surface-700 text-surface-400 border border-surface-600 shrink-0">
 													v{item.version}
+												</span>
+												<span class="text-[10px] px-1.5 py-0.5 rounded-full shrink-0
+													{price === 'Free'
+													? 'bg-success-500/15 text-success-400'
+													: 'bg-accent-500/15 text-accent-400'}">
+													{price}
 												</span>
 											</div>
 											<div class="text-[11px] text-surface-500 mt-0.5">{item.org}</div>
@@ -313,7 +320,7 @@
 										{#if loading}
 											...
 										{:else if action === 'get'}
-											Get
+											{price === 'Free' ? 'Get' : `Buy (${price})`}
 										{:else if action === 'install'}
 											Install
 										{:else if action === 'installed'}
@@ -434,6 +441,7 @@
 							: (detail.license.revoked === 1 ? 'revoked' : 'install'))
 						: 'get'}
 					{@const detailActionLoading = actionLoading === detail.plugin_id}
+					{@const detailPrice = formatPrice(detail)}
 
 					<!-- Close button -->
 					<button
@@ -458,6 +466,45 @@
 						{#if detail.description}
 							<p class="text-sm text-surface-300 leading-relaxed">{detail.description}</p>
 						{/if}
+
+						<!-- Pricing -->
+						<div class="space-y-3">
+							<h3 class="text-[11px] text-surface-500 uppercase tracking-wider">Pricing</h3>
+							<div class="grid grid-cols-[auto_1fr] gap-x-4 gap-y-2 text-xs">
+								<span class="text-surface-500">License</span>
+								<span class="text-surface-300">
+									{#if !detail.license_type || detail.license_type === 'free'}
+										Free
+									{:else if detail.license_type === 'subscription'}
+										Subscription
+									{:else}
+										One-time
+									{/if}
+								</span>
+
+								<span class="text-surface-500">Price</span>
+								<span class="font-medium {detailPrice === 'Free' ? 'text-success-400' : 'text-accent-400'}">
+									{detailPrice}
+								</span>
+
+								{#if detail.license_type === 'subscription' && detail.duration_days}
+									<span class="text-surface-500">Duration</span>
+									<span class="text-surface-300">
+										{detail.duration_days === 365 ? '1 year' : detail.duration_days === 30 ? '1 month' : `${detail.duration_days} days`}
+									</span>
+								{/if}
+
+								{#if detail.node_limit && detail.node_limit > 0}
+									<span class="text-surface-500">Node limit</span>
+									<span class="text-surface-300">{detail.node_limit} node{detail.node_limit > 1 ? 's' : ''}</span>
+								{/if}
+
+								{#if detail.selling_formula && detail.selling_formula !== 'free'}
+									<span class="text-surface-500">Formula</span>
+									<span class="text-surface-300">{detail.selling_formula}</span>
+								{/if}
+							</div>
+						</div>
 
 						<!-- Action button -->
 						<button
@@ -487,7 +534,7 @@
 							{#if detailActionLoading}
 								Processing...
 							{:else if detailAction === 'get'}
-								Get (Free)
+								{detailPrice === 'Free' ? 'Get (Free)' : `Buy (${detailPrice})`}
 							{:else if detailAction === 'install'}
 								Install
 							{:else if detailAction === 'installed'}
