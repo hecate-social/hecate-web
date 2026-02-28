@@ -11,6 +11,12 @@ export interface CatalogItem {
 	homepage: string | null;
 	min_daemon_version: string | null;
 	publisher_identity: string | null;
+	selling_formula: string | null;
+	license_type: string | null;
+	fee_cents: number | null;
+	fee_currency: string | null;
+	duration_days: number | null;
+	node_limit: number | null;
 	published_at: number | null;
 	cataloged_at: number;
 	refreshed_at: number | null;
