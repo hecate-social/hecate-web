@@ -1,6 +1,6 @@
 [package]
 name = "hecate-web"
-version = "0.13.9"
+version = "0.13.10"
 edition = "2021"
 description = "Hecate Desktop — site-specific browser for Hecate Daemon"
 authors = ["Hecate Social"]
