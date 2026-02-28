@@ -17,7 +17,10 @@ export const showOverlay = derived(
 	([$starting, $unavailable]) => $starting || $unavailable
 );
 
+const POLL_INTERVAL = 5_000;
+
 let unlisten: UnlistenFn | null = null;
+let healthTimer: ReturnType<typeof setInterval> | null = null;
 let onReconnectCallback: (() => void) | null = null;
 
 /** Register a callback that fires when transitioning from disconnected to connected. */
@@ -32,6 +35,12 @@ function handleHealthEvent(payload: DaemonHealth | null) {
 		connectionStatus.set('connected');
 		lastError.set(null);
 		unavailableSince.set(null);
+
+		// Once connected, stop polling — rely on watcher events.
+		// If watcher events stop arriving (WebKitGTK event delivery is unreliable),
+		// the 30s watcher recheck + periodic poll will recover.
+		stopHealthTimer();
+
 		if (wasDisconnected && onReconnectCallback) {
 			onReconnectCallback();
 		}
@@ -41,6 +50,21 @@ function handleHealthEvent(payload: DaemonHealth | null) {
 		if (get_unavailableSince() === null) {
 			unavailableSince.set(Date.now());
 		}
+		// Start polling to recover — invoke-based health checks are reliable
+		// even when Tauri event delivery from Rust threads is not.
+		startHealthTimer();
+	}
+}
+
+function startHealthTimer(): void {
+	if (healthTimer) return; // already running
+	healthTimer = setInterval(fetchHealth, POLL_INTERVAL);
+}
+
+function stopHealthTimer(): void {
+	if (healthTimer) {
+		clearInterval(healthTimer);
+		healthTimer = null;
 	}
 }
 
@@ -63,16 +87,14 @@ export async function fetchHealth(): Promise<void> {
 export async function startPolling(): Promise<void> {
 	stopPolling();
 
-	// Listen for daemon-health events from the Rust watcher (inotify + 30s periodic recheck).
-	// The watcher is the single source of truth for daemon connection state.
-	// No JS-side timer — the Rust watcher thread already does periodic rechecks and instant
-	// inotify detection. A redundant JS timer creates race conditions where an invoke failure
-	// can override the watcher's 'connected' state with 'error'.
+	// Listen for daemon-health events from the Rust watcher (inotify + periodic recheck).
 	unlisten = await listen<DaemonHealth | null>('daemon-health', (event) => {
 		handleHealthEvent(event.payload);
 	});
 
-	// Immediate check — the watcher's initial emit fires before this listener is ready
+	// Immediate check — the watcher's initial emit fires before this listener is ready.
+	// If this succeeds, we're connected and the timer stays off.
+	// If it fails, handleHealthEvent starts the recovery timer.
 	await fetchHealth();
 }
 
@@ -87,4 +109,5 @@ export function stopPolling(): void {
 		unlisten();
 		unlisten = null;
 	}
+	stopHealthTimer();
 }
