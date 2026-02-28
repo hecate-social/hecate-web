@@ -1,7 +1,7 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
 	import { get as apiGet, post } from '$lib/api';
 	import { health } from '$lib/stores/daemon';
+	import { settings } from '$lib/stores/settings';
 	import type { CatalogItem, PluginDetail } from '$lib/types/appstore';
 	import { getActionState, formatPrice, parseTags } from '$lib/types/appstore';
 
@@ -154,8 +154,12 @@
 		}
 	}
 
-	onMount(() => {
-		fetchAll();
+	let hasFetched = false;
+	$effect(() => {
+		if ($settings?.identity?.hecate_user_id && !hasFetched) {
+			hasFetched = true;
+			fetchAll();
+		}
 	});
 </script>
 
