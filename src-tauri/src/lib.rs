@@ -59,6 +59,7 @@ pub fn run() {
             app_updater::check_app_update,
             app_updater::install_app_update,
             socket_proxy::check_daemon_health,
+            daemon_watcher::get_cached_health,
             plugin_discovery::discover_plugins,
             plugin_updater::check_plugin_updates,
             plugin_updater::install_plugin_update,

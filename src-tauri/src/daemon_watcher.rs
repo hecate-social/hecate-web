@@ -1,6 +1,6 @@
 use notify::{Event, EventKind, RecursiveMode, Watcher};
 use std::path::PathBuf;
-use std::sync::mpsc;
+use std::sync::{mpsc, Mutex};
 use std::time::Duration;
 use tauri::Emitter;
 
@@ -11,13 +11,32 @@ const STARTUP_RETRY_DELAY: Duration = Duration::from_millis(500);
 const STARTUP_RETRIES: u32 = 10;
 const RECHECK_INTERVAL: Duration = Duration::from_secs(30);
 
+/// Cached health state. Updated by the watcher thread (inotify + periodic recheck).
+/// Read by the `get_cached_health` Tauri command — no socket I/O, just reads memory.
+static HEALTH_CACHE: Mutex<Option<serde_json::Value>> = Mutex::new(None);
+
+/// Tauri command: read cached daemon health from memory.
+/// The watcher thread keeps this up-to-date via inotify + 30s recheck.
+/// This never touches the Unix socket — it just reads what the watcher last saw.
+#[tauri::command]
+pub fn get_cached_health() -> Option<serde_json::Value> {
+    HEALTH_CACHE.lock().ok().and_then(|cache| cache.clone())
+}
+
+fn update_cache(health: &Option<serde_json::Value>) {
+    if let Ok(mut cache) = HEALTH_CACHE.lock() {
+        *cache = health.clone();
+    }
+}
+
 fn emit_health(app: &tauri::AppHandle, health: Option<serde_json::Value>) {
+    update_cache(&health);
     match app.emit("daemon-health", &health) {
         Ok(_) => {
             let label = if health.is_some() { "connected" } else { "unavailable" };
-            eprintln!("[watcher] emitted daemon-health: {}", label);
+            eprintln!("[watcher] health cache updated: {}", label);
         }
-        Err(e) => eprintln!("[watcher] emit FAILED: {}", e),
+        Err(e) => eprintln!("[watcher] emit failed (cache still updated): {}", e),
     }
 }
 
