@@ -1,6 +1,15 @@
 // Daemon API client — proxied through Tauri's hecate:// custom protocol
 
+import { get as getStore } from 'svelte/store';
+import { settings } from '$lib/stores/settings';
+
 const BASE = 'hecate://localhost';
+
+function authHeaders(): Record<string, string> {
+	const s = getStore(settings);
+	const userId = s?.identity?.hecate_user_id;
+	return userId ? { 'X-Hecate-User-Id': userId } : {};
+}
 
 export class ApiError extends Error {
 	constructor(
@@ -36,14 +45,14 @@ async function handleResponse<T>(resp: Response): Promise<T> {
 }
 
 export async function get<T>(path: string): Promise<T> {
-	const resp = await fetch(`${BASE}${path}`);
+	const resp = await fetch(`${BASE}${path}`, { headers: authHeaders() });
 	return handleResponse<T>(resp);
 }
 
 export async function post<T>(path: string, body: unknown): Promise<T> {
 	const resp = await fetch(`${BASE}${path}`, {
 		method: 'POST',
-		headers: { 'Content-Type': 'application/json' },
+		headers: { 'Content-Type': 'application/json', ...authHeaders() },
 		body: JSON.stringify(body)
 	});
 	return handleResponse<T>(resp);
@@ -52,13 +61,22 @@ export async function post<T>(path: string, body: unknown): Promise<T> {
 export async function put<T>(path: string, body: unknown): Promise<T> {
 	const resp = await fetch(`${BASE}${path}`, {
 		method: 'PUT',
-		headers: { 'Content-Type': 'application/json' },
+		headers: { 'Content-Type': 'application/json', ...authHeaders() },
 		body: JSON.stringify(body)
 	});
 	return handleResponse<T>(resp);
 }
 
 export async function del<T>(path: string): Promise<T> {
-	const resp = await fetch(`${BASE}${path}`, { method: 'DELETE' });
+	const resp = await fetch(`${BASE}${path}`, { method: 'DELETE', headers: authHeaders() });
+	return handleResponse<T>(resp);
+}
+
+export async function patch<T>(path: string, body: unknown): Promise<T> {
+	const resp = await fetch(`${BASE}${path}`, {
+		method: 'PATCH',
+		headers: { 'Content-Type': 'application/json', ...authHeaders() },
+		body: JSON.stringify(body)
+	});
 	return handleResponse<T>(resp);
 }

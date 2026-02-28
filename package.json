@@ -10,6 +10,8 @@
 		"prepare": "svelte-kit sync || echo ''",
 		"check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
 		"check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
+		"test": "vitest run",
+		"test:watch": "vitest",
 		"tauri": "tauri"
 	},
 	"devDependencies": {
@@ -22,12 +24,13 @@
 		"svelte-check": "^4.3.6",
 		"tailwindcss": "^4.0.0",
 		"typescript": "^5.9.3",
-		"vite": "^7.3.1"
+		"vite": "^7.3.1",
+		"vitest": "^4.0.18"
 	},
 	"dependencies": {
 		"@tauri-apps/api": "^2.0.0",
+		"@tauri-apps/plugin-process": "^2.0.0",
 		"@tauri-apps/plugin-shell": "^2.0.0",
-		"@tauri-apps/plugin-updater": "^2.0.0",
-		"@tauri-apps/plugin-process": "^2.0.0"
+		"@tauri-apps/plugin-updater": "^2.0.0"
 	}
 }
