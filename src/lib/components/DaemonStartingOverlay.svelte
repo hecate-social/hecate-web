@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { isStarting, isUnavailable, showOverlay, health, unavailableSince } from '$lib/stores/daemon.js';
+	import { isStarting, isUnavailable, showOverlay, health, unavailableSince, debugError, connectionStatus } from '$lib/stores/daemon.js';
 	import { fade } from 'svelte/transition';
 	import { onDestroy } from 'svelte';
 
@@ -125,6 +125,13 @@
 			{#if waitingLong && $isUnavailable}
 				<p class="text-[11px] text-surface-400 mt-2" transition:fade={{ duration: 200 }}>
 					Ensure the Hecate daemon container is running.
+				</p>
+			{/if}
+
+			<!-- Debug: show why health check fails -->
+			{#if $debugError}
+				<p class="text-[10px] text-red-400/70 mt-3 max-w-md text-center font-mono break-all">
+					[debug] conn={$connectionStatus} | {$debugError}
 				</p>
 			{/if}
 		</div>
