@@ -192,7 +192,7 @@ pub async fn install_app_update(app: AppHandle, url: String) -> Result<(), Strin
         Err(_) => {
             let _ = std::fs::remove_dir_all(&tmp_dir);
             return Err(format!(
-                "Cannot update: {} is not writable. Use: hecate-web-update.sh",
+                "Cannot update: {} is not writable (system-installed). Re-run the Hecate installer to move to user space.",
                 exe_path.display()
             ));
         }
