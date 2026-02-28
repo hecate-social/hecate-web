@@ -28,43 +28,29 @@ export function onReconnect(cb: () => void): void {
 	onReconnectCallback = cb;
 }
 
-function handleHealthEvent(payload: DaemonHealth | null) {
+function handleHealthEvent(payload: DaemonHealth | null, source: string) {
 	if (payload && typeof payload === 'object' && 'status' in payload) {
 		const wasDisconnected = get_connectionStatus() !== 'connected';
 		health.set(payload);
 		connectionStatus.set('connected');
 		lastError.set(null);
 		unavailableSince.set(null);
-
-		// Once connected, stop polling — rely on watcher events.
-		// If watcher events stop arriving (WebKitGTK event delivery is unreliable),
-		// the 30s watcher recheck + periodic poll will recover.
-		stopHealthTimer();
-
-		if (wasDisconnected && onReconnectCallback) {
-			onReconnectCallback();
+		if (wasDisconnected) {
+			console.error(`[daemon.ts] connected via ${source}: status=${payload.status} ready=${payload.ready}`);
+			if (onReconnectCallback) {
+				onReconnectCallback();
+			}
 		}
 	} else {
+		const wasConnected = get_connectionStatus() === 'connected';
 		health.set(null);
 		connectionStatus.set('error');
 		if (get_unavailableSince() === null) {
 			unavailableSince.set(Date.now());
 		}
-		// Start polling to recover — invoke-based health checks are reliable
-		// even when Tauri event delivery from Rust threads is not.
-		startHealthTimer();
-	}
-}
-
-function startHealthTimer(): void {
-	if (healthTimer) return; // already running
-	healthTimer = setInterval(fetchHealth, POLL_INTERVAL);
-}
-
-function stopHealthTimer(): void {
-	if (healthTimer) {
-		clearInterval(healthTimer);
-		healthTimer = null;
+		if (wasConnected) {
+			console.error(`[daemon.ts] disconnected via ${source}: payload=${JSON.stringify(payload)}`);
+		}
 	}
 }
 
@@ -78,24 +64,34 @@ function get_unavailableSince(): number | null {
 export async function fetchHealth(): Promise<void> {
 	try {
 		const h = await invoke<DaemonHealth>('check_daemon_health');
-		handleHealthEvent(h);
-	} catch {
-		handleHealthEvent(null);
+		handleHealthEvent(h, 'invoke');
+	} catch (e) {
+		console.error(`[daemon.ts] invoke failed: ${e}`);
+		handleHealthEvent(null, 'invoke');
 	}
 }
 
 export async function startPolling(): Promise<void> {
 	stopPolling();
 
-	// Listen for daemon-health events from the Rust watcher (inotify + periodic recheck).
-	unlisten = await listen<DaemonHealth | null>('daemon-health', (event) => {
-		handleHealthEvent(event.payload);
-	});
+	// Primary: always poll via invoke — this is reliable on all platforms.
+	// The timer runs continuously and never stops.
+	healthTimer = setInterval(fetchHealth, POLL_INTERVAL);
 
-	// Immediate check — the watcher's initial emit fires before this listener is ready.
-	// If this succeeds, we're connected and the timer stays off.
-	// If it fails, handleHealthEvent starts the recovery timer.
+	// Bonus: also listen for daemon-health events from the Rust watcher.
+	// On WebKitGTK, app.emit() from Rust threads may not reach JS listeners,
+	// but when it works, it gives faster updates than the 5s poll interval.
+	try {
+		unlisten = await listen<DaemonHealth | null>('daemon-health', (event) => {
+			handleHealthEvent(event.payload, 'listen');
+		});
+	} catch (e) {
+		console.error(`[daemon.ts] listen setup failed: ${e}`);
+	}
+
+	// Immediate check — don't wait for the first timer tick.
 	await fetchHealth();
+	console.error(`[daemon.ts] startPolling complete, timer running every ${POLL_INTERVAL}ms`);
 }
 
 function get_connectionStatus(): ConnectionStatus {
@@ -109,5 +105,8 @@ export function stopPolling(): void {
 		unlisten();
 		unlisten = null;
 	}
-	stopHealthTimer();
+	if (healthTimer) {
+		clearInterval(healthTimer);
+		healthTimer = null;
+	}
 }
