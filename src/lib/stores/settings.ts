@@ -1,4 +1,5 @@
 import { writable } from 'svelte/store';
+import { listen, type UnlistenFn } from '@tauri-apps/api/event';
 import { get as apiGet, post, put } from '$lib/api';
 
 export interface SettingsIdentity {
@@ -86,5 +87,21 @@ export async function updatePreferences(prefs: Record<string, unknown>): Promise
 		await fetchSettings();
 	} catch (e) {
 		settingsError.set(e instanceof Error ? e.message : String(e));
+	}
+}
+
+let settingsUnlisten: UnlistenFn | null = null;
+
+export async function startSettingsWatcher(): Promise<void> {
+	if (settingsUnlisten) return;
+	settingsUnlisten = await listen('daemon-settings-changed', () => {
+		fetchSettings();
+	});
+}
+
+export function stopSettingsWatcher(): void {
+	if (settingsUnlisten) {
+		settingsUnlisten();
+		settingsUnlisten = null;
 	}
 }

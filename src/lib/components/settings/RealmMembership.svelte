@@ -1,10 +1,11 @@
 <script lang="ts">
 	import { invoke } from '@tauri-apps/api/core';
+	import { listen, type UnlistenFn } from '@tauri-apps/api/event';
+	import { onDestroy } from 'svelte';
 	import {
 		settings,
 		fetchSettings,
 		initiateRealmJoin,
-		checkRealmJoinStatus,
 		cancelRealmJoin,
 		leaveRealm,
 		type RealmJoinSession
@@ -16,13 +17,13 @@
 	let realmUrl: string = $state('https://macula.io');
 	let session: RealmJoinSession | null = $state(null);
 	let errorMessage: string = $state('');
-	let pollTimer: ReturnType<typeof setInterval> | null = $state(null);
+	let unlisten: UnlistenFn | null = $state(null);
 	let leavingId: string | null = $state(null);
 
-	function stopPolling() {
-		if (pollTimer) {
-			clearInterval(pollTimer);
-			pollTimer = null;
+	function stopListening() {
+		if (unlisten) {
+			unlisten();
+			unlisten = null;
 		}
 	}
 
@@ -49,24 +50,20 @@
 				height: 700
 			});
 
-			pollTimer = setInterval(async () => {
-				try {
-					const result = await checkRealmJoinStatus();
-					if (result.status === 'joined') {
-						stopPolling();
-						joinStep = 'success';
-						await closeWebview();
-						await fetchSettings();
-					} else if (result.status === 'failed') {
-						stopPolling();
-						await closeWebview();
-						joinStep = 'error';
-						errorMessage = 'Join session expired or failed. Please try again.';
-					}
-				} catch {
-					// poll failure — keep trying
+			unlisten = await listen<{ status: string }>('daemon-realm-join-status', async (event) => {
+				const status = event.payload.status;
+				if (status === 'joined') {
+					stopListening();
+					joinStep = 'success';
+					await closeWebview();
+					await fetchSettings();
+				} else if (status === 'failed') {
+					stopListening();
+					await closeWebview();
+					joinStep = 'error';
+					errorMessage = 'Join session expired or failed. Please try again.';
 				}
-			}, 3000);
+			});
 		} catch (e) {
 			joinStep = 'error';
 			errorMessage = e instanceof Error ? e.message : String(e);
@@ -74,7 +71,7 @@
 	}
 
 	async function handleCancel() {
-		stopPolling();
+		stopListening();
 		await cancelRealmJoin();
 		await closeWebview();
 		session = null;
@@ -100,6 +97,10 @@
 			day: 'numeric'
 		});
 	}
+
+	onDestroy(() => {
+		stopListening();
+	});
 </script>
 
 <div class="rounded-xl border border-surface-600 bg-surface-800/80 p-5 space-y-4">

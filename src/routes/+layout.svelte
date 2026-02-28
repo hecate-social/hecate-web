@@ -8,7 +8,8 @@
 	import UpdateModal from '$lib/components/UpdateModal.svelte';
 	import PluginUpdateModal from '$lib/components/PluginUpdateModal.svelte';
 	import { startPolling, stopPolling, onReconnect } from '$lib/stores/daemon.js';
-	import { fetchSettings } from '$lib/stores/settings';
+	import { fetchSettings, startSettingsWatcher, stopSettingsWatcher } from '$lib/stores/settings';
+	import { startIdentityWatcher, stopIdentityWatcher } from '$lib/stores/nodeIdentity';
 	import { startPluginWatcher, stopPluginWatcher } from '$lib/stores/plugins';
 	import { checkForUpdate } from '$lib/stores/updater.js';
 	import { checkPluginUpdates } from '$lib/stores/pluginUpdater.js';
@@ -28,6 +29,8 @@
 		startPolling();
 		startPluginWatcher();
 		startConfigWatcher();
+		startSettingsWatcher();
+		startIdentityWatcher();
 		checkForUpdate();
 		checkPluginUpdates();
 		onReconnect(() => {
@@ -46,6 +49,8 @@
 		stopPolling();
 		stopPluginWatcher();
 		stopConfigWatcher();
+		stopSettingsWatcher();
+		stopIdentityWatcher();
 		clearInterval(updateInterval);
 	});
 

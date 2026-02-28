@@ -1,5 +1,6 @@
 mod app_updater;
 mod config_watcher;
+mod daemon_streaming;
 mod daemon_watcher;
 mod plugin_discovery;
 mod plugin_streaming;
@@ -32,6 +33,7 @@ pub fn run() {
                 }).ok();
             }
             daemon_watcher::start(app.handle().clone());
+            daemon_streaming::start(app.handle().clone());
             plugin_watcher::start(app.handle().clone());
             config_watcher::start(app.handle().clone());
             Ok(())

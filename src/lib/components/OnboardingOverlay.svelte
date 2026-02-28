@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { invoke } from '@tauri-apps/api/core';
+	import { listen, type UnlistenFn } from '@tauri-apps/api/event';
 	import { fade } from 'svelte/transition';
 	import { onDestroy } from 'svelte';
 	import { isConnected } from '$lib/stores/daemon.js';
@@ -8,7 +9,6 @@
 		settingsLoading,
 		fetchSettings,
 		initiateRealmJoin,
-		checkRealmJoinStatus,
 		cancelRealmJoin,
 		type RealmJoinSession
 	} from '$lib/stores/settings';
@@ -19,7 +19,7 @@
 	let realmUrl: string = $state('https://macula.io');
 	let session: RealmJoinSession | null = $state(null);
 	let errorMessage: string = $state('');
-	let pollTimer: ReturnType<typeof setInterval> | null = $state(null);
+	let unlisten: UnlistenFn | null = $state(null);
 	let dismissTimer: ReturnType<typeof setTimeout> | null = $state(null);
 
 	let visible = $derived(
@@ -27,10 +27,10 @@
 		($settings === null || ($settings.realms?.length ?? 0) === 0)
 	);
 
-	function stopPolling() {
-		if (pollTimer) {
-			clearInterval(pollTimer);
-			pollTimer = null;
+	function stopListening() {
+		if (unlisten) {
+			unlisten();
+			unlisten = null;
 		}
 	}
 
@@ -56,37 +56,33 @@
 				height: 700
 			});
 
-			pollTimer = setInterval(async () => {
-				try {
-					const result = await checkRealmJoinStatus();
-					if (result.status === 'joined') {
-						stopPolling();
-						await closeWebview();
-						step = 'success';
-						// Retry fetchSettings until the daemon has stored credentials
-						const retryFetch = async (attempts: number) => {
-							await fetchSettings();
-							if (($settings?.realms?.length ?? 0) === 0 && attempts > 0) {
-								dismissTimer = setTimeout(() => retryFetch(attempts - 1), 1500);
-							}
-						};
-						dismissTimer = setTimeout(() => retryFetch(5), 1500);
-					} else if (result.status === 'failed') {
-						stopPolling();
-						await closeWebview();
-						errorMessage = 'Join session expired or failed. Please try again.';
-					}
-				} catch {
-					// poll failure — keep trying
+			unlisten = await listen<{ status: string }>('daemon-realm-join-status', async (event) => {
+				const status = event.payload.status;
+				if (status === 'joined') {
+					stopListening();
+					await closeWebview();
+					step = 'success';
+					// Retry fetchSettings until the projection has stored realm data
+					const retryFetch = async (attempts: number) => {
+						await fetchSettings();
+						if (($settings?.realms?.length ?? 0) === 0 && attempts > 0) {
+							dismissTimer = setTimeout(() => retryFetch(attempts - 1), 1500);
+						}
+					};
+					dismissTimer = setTimeout(() => retryFetch(5), 1500);
+				} else if (status === 'failed') {
+					stopListening();
+					await closeWebview();
+					errorMessage = 'Join session expired or failed. Please try again.';
 				}
-			}, 3000);
+			});
 		} catch (e) {
 			errorMessage = e instanceof Error ? e.message : String(e);
 		}
 	}
 
 	async function handleCancel() {
-		stopPolling();
+		stopListening();
 		await cancelRealmJoin();
 		await closeWebview();
 		session = null;
@@ -100,7 +96,7 @@
 	}
 
 	onDestroy(() => {
-		stopPolling();
+		stopListening();
 		if (dismissTimer) clearTimeout(dismissTimer);
 	});
 </script>
