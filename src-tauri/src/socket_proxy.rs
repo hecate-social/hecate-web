@@ -149,10 +149,12 @@ pub fn proxy_request(
         );
     }
 
-    // Forward Accept header if present
-    if let Some(accept) = request.headers().get("accept") {
-        if let Ok(v) = accept.to_str() {
-            http_req += &format!("Accept: {}\r\n", v);
+    // Forward select headers
+    for name in &["accept", "x-hecate-user-id"] {
+        if let Some(val) = request.headers().get(*name) {
+            if let Ok(v) = val.to_str() {
+                http_req += &format!("{}: {}\r\n", name, v);
+            }
         }
     }
 
