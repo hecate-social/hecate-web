@@ -180,6 +180,24 @@ pub async fn install_app_update(app: AppHandle, url: String) -> Result<(), Strin
     // inode so after rename current_exe() would resolve to the .old path.
     let exe_path =
         std::env::current_exe().map_err(|e| format!("Failed to detect current binary: {}", e))?;
+
+    // Check write permission BEFORE attempting — system-installed binaries
+    // (e.g., /usr/bin owned by root) cannot be replaced by the user process.
+    // Fail early with a helpful message instead of crashing in a loop.
+    // Test by trying to create a temp file in the same directory.
+    let parent = exe_path.parent().unwrap_or(std::path::Path::new("/"));
+    let probe = parent.join(".hecate-update-probe");
+    match std::fs::File::create(&probe) {
+        Ok(_) => { let _ = std::fs::remove_file(&probe); }
+        Err(_) => {
+            let _ = std::fs::remove_dir_all(&tmp_dir);
+            return Err(format!(
+                "Cannot update: {} is not writable. Use: hecate-web-update.sh",
+                exe_path.display()
+            ));
+        }
+    }
+
     let backup = exe_path.with_extension("old");
 
     eprintln!("[updater] replacing {}", exe_path.display());
