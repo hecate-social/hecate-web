@@ -42,6 +42,21 @@ export interface License {
 	revoked_at: number | null;
 }
 
+export interface SellerListing extends CatalogItem {
+	seller_id: string;
+	github_repo: string | null;
+	announced_at: number | null;
+	status_label: string | null;
+}
+
+export type ListingStatus = 'draft' | 'announced' | 'published';
+
+export function getListingStatus(status: number): ListingStatus {
+	if (status & 4) return 'published';
+	if (status & 2) return 'announced';
+	return 'draft';
+}
+
 export interface PluginDetail extends CatalogItem {
 	license: License | null;
 }

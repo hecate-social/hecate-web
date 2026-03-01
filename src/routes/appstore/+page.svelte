@@ -179,6 +179,12 @@
 
 			<div class="flex-1"></div>
 
+			<a href="/appstore/sell"
+				class="px-3 py-1.5 rounded-lg text-xs font-medium text-surface-400
+					hover:text-surface-200 hover:bg-surface-700 transition-colors">
+				My Listings
+			</a>
+
 			<!-- Search -->
 			<input
 				bind:value={searchQuery}
