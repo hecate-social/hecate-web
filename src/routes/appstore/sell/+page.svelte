@@ -171,7 +171,7 @@
 				.split(',')
 				.map((t) => t.trim())
 				.filter(Boolean);
-			await patch(`/api/appstore/licenses/${encodeURIComponent(editingListing.plugin_id)}`, {
+			await patch(`/api/appstore/licenses/${encodeURIComponent(editingListing.plugin_id)}/amend`, {
 				plugin_name: form.plugin_name,
 				description: form.description,
 				icon: form.icon || null,
