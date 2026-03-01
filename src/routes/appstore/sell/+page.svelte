@@ -15,7 +15,7 @@
 	type View = 'list' | 'create' | 'edit';
 	let view: View = $state('list');
 	let actionLoading: string | null = $state(null);
-	let confirmAction: { id: string; type: 'announce' | 'publish' } | null = $state(null);
+	let confirmAction: { id: string; type: 'announce' | 'publish' | 'retract' | 'archive' } | null = $state(null);
 
 	// --- Form state ---
 	let editingListing: SellerListing | null = $state(null);
@@ -301,12 +301,19 @@
 				<div class="fixed inset-0 bg-surface-950/60 z-50 flex items-center justify-center">
 					<div class="bg-surface-800 border border-surface-600 rounded-xl p-6 max-w-sm w-full mx-4 shadow-2xl">
 						<h3 class="text-sm font-semibold text-surface-100 mb-3">
-							{confirmAction.type === 'announce' ? 'Announce Listing?' : 'Publish Listing?'}
+							{confirmAction.type === 'announce' ? 'Announce Listing?'
+								: confirmAction.type === 'publish' ? 'Publish Listing?'
+								: confirmAction.type === 'retract' ? 'Retract Listing?'
+								: 'Archive Listing?'}
 						</h3>
 						<p class="text-xs text-surface-400 mb-6">
 							{confirmAction.type === 'announce'
 								? 'This will make your listing visible as pre-release. Continue?'
-								: 'This will make your listing live in the marketplace. Continue?'}
+								: confirmAction.type === 'publish'
+									? 'This will make your listing live in the marketplace. Continue?'
+									: confirmAction.type === 'retract'
+										? 'This will pull your listing back to draft. Continue?'
+										: 'This will permanently remove this listing. Continue?'}
 						</p>
 						<div class="flex gap-2 justify-end">
 							<button
@@ -322,7 +329,11 @@
 								class="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors cursor-pointer
 									{confirmAction.type === 'announce'
 									? 'bg-accent-600 text-surface-50 hover:bg-accent-500'
-									: 'bg-success-500 text-surface-50 hover:bg-success-400'}
+									: confirmAction.type === 'publish'
+										? 'bg-success-500 text-surface-50 hover:bg-success-400'
+										: confirmAction.type === 'retract'
+											? 'bg-amber-500 text-surface-50 hover:bg-amber-400'
+											: 'bg-danger-500 text-surface-50 hover:bg-danger-400'}
 									{actionLoading ? 'opacity-50 cursor-wait' : ''}"
 							>
 								{actionLoading ? '...' : 'Confirm'}
@@ -350,7 +361,7 @@
 			{:else}
 				<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
 					{#each listings as listing (listing.plugin_id)}
-						{@const status = getListingStatus(listing.status)}
+						{@const status = getListingStatus(listing.status, listing.retracted)}
 						{@const price = formatPrice(listing)}
 						{@const loading = actionLoading === listing.plugin_id}
 						<div
@@ -375,8 +386,10 @@
 												? 'bg-amber-500/15 text-amber-400'
 												: status === 'announced'
 													? 'bg-blue-500/15 text-blue-400'
-													: 'bg-success-500/15 text-success-400'}">
-												{status === 'draft' ? 'Draft' : status === 'announced' ? 'Announced' : 'Published'}
+													: status === 'retracted'
+														? 'bg-red-500/15 text-red-400'
+														: 'bg-success-500/15 text-success-400'}">
+												{status === 'draft' ? 'Draft' : status === 'announced' ? 'Announced' : status === 'retracted' ? 'Retracted' : 'Published'}
 											</span>
 										</div>
 										<div class="text-[11px] text-surface-500 mt-0.5">{listing.org}</div>
@@ -415,6 +428,15 @@
 									>
 										{loading ? '...' : 'Announce'}
 									</button>
+									<button
+										onclick={() => (confirmAction = { id: listing.plugin_id, type: 'archive' })}
+										disabled={loading}
+										class="px-3 py-1.5 rounded-lg text-xs font-medium bg-danger-500
+											text-surface-50 hover:bg-danger-400 transition-colors cursor-pointer
+											{loading ? 'opacity-50 cursor-wait' : ''}"
+									>
+										{loading ? '...' : 'Archive'}
+									</button>
 								{:else if status === 'announced'}
 									<button
 										onclick={() => startEdit(listing)}
@@ -433,8 +455,52 @@
 									>
 										{loading ? '...' : 'Publish'}
 									</button>
+									<button
+										onclick={() => (confirmAction = { id: listing.plugin_id, type: 'retract' })}
+										disabled={loading}
+										class="px-3 py-1.5 rounded-lg text-xs font-medium bg-amber-500
+											text-surface-50 hover:bg-amber-400 transition-colors cursor-pointer
+											{loading ? 'opacity-50 cursor-wait' : ''}"
+									>
+										{loading ? '...' : 'Retract'}
+									</button>
+								{:else if status === 'published'}
+									<button
+										onclick={() => (confirmAction = { id: listing.plugin_id, type: 'retract' })}
+										disabled={loading}
+										class="px-3 py-1.5 rounded-lg text-xs font-medium bg-amber-500
+											text-surface-50 hover:bg-amber-400 transition-colors cursor-pointer
+											{loading ? 'opacity-50 cursor-wait' : ''}"
+									>
+										{loading ? '...' : 'Retract'}
+									</button>
 								{:else}
-									<span class="text-[10px] text-surface-500 italic">Published</span>
+									<button
+										onclick={() => startEdit(listing)}
+										class="px-3 py-1.5 rounded-lg text-xs font-medium text-surface-300
+											bg-surface-700 hover:bg-surface-600 border border-surface-600
+											transition-colors cursor-pointer"
+									>
+										Edit
+									</button>
+									<button
+										onclick={() => (confirmAction = { id: listing.plugin_id, type: 'announce' })}
+										disabled={loading}
+										class="px-3 py-1.5 rounded-lg text-xs font-medium bg-accent-600
+											text-surface-50 hover:bg-accent-500 transition-colors cursor-pointer
+											{loading ? 'opacity-50 cursor-wait' : ''}"
+									>
+										{loading ? '...' : 'Re-announce'}
+									</button>
+									<button
+										onclick={() => (confirmAction = { id: listing.plugin_id, type: 'archive' })}
+										disabled={loading}
+										class="px-3 py-1.5 rounded-lg text-xs font-medium bg-danger-500
+											text-surface-50 hover:bg-danger-400 transition-colors cursor-pointer
+											{loading ? 'opacity-50 cursor-wait' : ''}"
+									>
+										{loading ? '...' : 'Archive'}
+									</button>
 								{/if}
 							</div>
 						</div>

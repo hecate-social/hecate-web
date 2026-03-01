@@ -49,9 +49,10 @@ export interface SellerListing extends CatalogItem {
 	status_label: string | null;
 }
 
-export type ListingStatus = 'draft' | 'announced' | 'published';
+export type ListingStatus = 'draft' | 'announced' | 'published' | 'retracted';
 
-export function getListingStatus(status: number): ListingStatus {
+export function getListingStatus(status: number, retracted: number): ListingStatus {
+	if (retracted) return 'retracted';
 	if (status & 4) return 'published';
 	if (status & 2) return 'announced';
 	return 'draft';
