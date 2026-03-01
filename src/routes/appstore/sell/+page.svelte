@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { get as apiGet, post, patch } from '$lib/api';
+	import { goto } from '$app/navigation';
 	import { health } from '$lib/stores/daemon';
 	import { settings } from '$lib/stores/settings';
 	import type { SellerListing } from '$lib/types/appstore';
@@ -92,7 +93,7 @@
 	// --- Fetch ---
 	async function fetchListings() {
 		try {
-			const res = await apiGet<{ items: SellerListing[] }>('/api/appstore/catalog/seller');
+			const res = await apiGet<{ items: SellerListing[] }>('/api/appstore/seller/listings');
 			listings = res.items;
 		} catch (e) {
 			error = e instanceof Error ? e.message : String(e);
@@ -235,9 +236,9 @@
 					{'\u{2190}'} Back
 				</button>
 			{:else}
-				<a href="/appstore" class="text-surface-400 hover:text-surface-200 text-xs">
+				<button onclick={() => goto('/appstore')} class="text-surface-400 hover:text-surface-200 text-xs">
 					{'\u{2190}'} Appstore
-				</a>
+				</button>
 			{/if}
 
 			<span class="text-xl">{'\u{1F4CB}'}</span>

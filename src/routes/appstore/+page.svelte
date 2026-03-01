@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { get as apiGet, post } from '$lib/api';
+	import { goto } from '$app/navigation';
 	import { health } from '$lib/stores/daemon';
 	import { settings } from '$lib/stores/settings';
 	import type { CatalogItem, PluginDetail } from '$lib/types/appstore';
@@ -179,11 +180,13 @@
 
 			<div class="flex-1"></div>
 
-			<a href="/appstore/sell"
-				class="px-3 py-1.5 rounded-lg text-xs font-medium text-surface-400
-					hover:text-surface-200 hover:bg-surface-700 transition-colors">
+			<button
+				onclick={() => goto('/appstore/sell')}
+				class="px-3 py-1.5 rounded-lg text-xs font-medium bg-surface-700
+					border border-surface-600 text-surface-200
+					hover:bg-surface-600 hover:border-surface-500 transition-colors">
 				My Listings
-			</a>
+			</button>
 
 			<!-- Search -->
 			<input
