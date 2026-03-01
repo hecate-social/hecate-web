@@ -19,6 +19,13 @@
 	let detailLoading = $state(false);
 	let actionLoading: string | null = $state(null);
 
+	// --- Install from URL state ---
+	let showUrlInstall = $state(false);
+	let installUrl = $state('');
+	let urlInstallLoading = $state(false);
+	let urlInstallError: string | null = $state(null);
+	let urlInstallSuccess: string | null = $state(null);
+
 	// --- Filtered catalog ---
 	let filteredCatalog = $derived.by(() => {
 		let items = catalog;
@@ -137,6 +144,29 @@
 		}
 	}
 
+	async function installFromUrl() {
+		if (!installUrl.trim()) return;
+		urlInstallLoading = true;
+		urlInstallError = null;
+		urlInstallSuccess = null;
+		try {
+			const res = await post<{ name: string }>('/api/node/plugins/install-from-url', {
+				url: installUrl.trim()
+			});
+			urlInstallSuccess = `Installed "${res.name}" successfully`;
+			installUrl = '';
+			await fetchCatalog();
+			setTimeout(() => {
+				showUrlInstall = false;
+				urlInstallSuccess = null;
+			}, 2000);
+		} catch (e) {
+			urlInstallError = e instanceof Error ? e.message : String(e);
+		} finally {
+			urlInstallLoading = false;
+		}
+	}
+
 	function handleAction(item: CatalogItem) {
 		const state = getActionState(item);
 		switch (state) {
@@ -188,6 +218,15 @@
 				My Listings
 			</button>
 
+			<button
+				onclick={() => { showUrlInstall = !showUrlInstall; urlInstallError = null; urlInstallSuccess = null; }}
+				class="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors
+					{showUrlInstall
+					? 'bg-accent-600 text-surface-50'
+					: 'bg-surface-700 border border-surface-600 text-surface-200 hover:bg-surface-600 hover:border-surface-500'}">
+				Install from URL
+			</button>
+
 			<!-- Search -->
 			<input
 				bind:value={searchQuery}
@@ -224,6 +263,43 @@
 				{/if}
 			</button>
 		</div>
+
+		<!-- Install from URL form -->
+		{#if showUrlInstall}
+			<div class="mt-3 flex flex-col gap-2">
+				<form
+					onsubmit={(e) => { e.preventDefault(); installFromUrl(); }}
+					class="flex gap-2"
+				>
+					<input
+						bind:value={installUrl}
+						placeholder="https://github.com/org/repo"
+						disabled={urlInstallLoading}
+						class="flex-1 bg-surface-700 border border-surface-600 rounded-lg
+							px-3 py-1.5 text-xs text-surface-100 placeholder-surface-500
+							focus:outline-none focus:border-accent-500
+							disabled:opacity-50"
+					/>
+					<button
+						type="submit"
+						disabled={urlInstallLoading || !installUrl.trim()}
+						class="px-4 py-1.5 rounded-lg text-xs font-medium transition-colors
+							{urlInstallLoading
+							? 'bg-surface-600 text-surface-400 cursor-wait'
+							: 'bg-accent-600 text-surface-50 hover:bg-accent-500 cursor-pointer'}
+							disabled:opacity-50 disabled:cursor-not-allowed"
+					>
+						{urlInstallLoading ? 'Installing...' : 'Install'}
+					</button>
+				</form>
+				{#if urlInstallError}
+					<div class="text-xs text-danger-400 px-1">{urlInstallError}</div>
+				{/if}
+				{#if urlInstallSuccess}
+					<div class="text-xs text-success-400 px-1">{urlInstallSuccess}</div>
+				{/if}
+			</div>
+		{/if}
 	</div>
 
 	<!-- Content -->
