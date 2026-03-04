@@ -19,12 +19,18 @@
 	let detailLoading = $state(false);
 	let actionLoading: string | null = $state(null);
 
-	// --- Install from URL state ---
-	let showUrlInstall = $state(false);
-	let installUrl = $state('');
-	let urlInstallLoading = $state(false);
-	let urlInstallError: string | null = $state(null);
-	let urlInstallSuccess: string | null = $state(null);
+	// --- Publish from URL state ---
+	let showUrlPublish = $state(false);
+	let publishUrl = $state('');
+	let urlPublishLoading = $state(false);
+	let urlPublishError: string | null = $state(null);
+	let urlPublishSuccess: string | null = $state(null);
+
+	// --- Install confirmation modal state ---
+	type InstallStep = 'confirm' | 'buying' | 'installing' | 'done' | 'error';
+	let installTarget: CatalogItem | null = $state(null);
+	let installStep: InstallStep = $state('confirm');
+	let installModalError: string | null = $state(null);
 
 	// --- Filtered catalog ---
 	let filteredCatalog = $derived.by(() => {
@@ -144,26 +150,86 @@
 		}
 	}
 
-	async function installFromUrl() {
-		if (!installUrl.trim()) return;
-		urlInstallLoading = true;
-		urlInstallError = null;
-		urlInstallSuccess = null;
+	async function publishFromUrl() {
+		if (!publishUrl.trim()) return;
+		urlPublishLoading = true;
+		urlPublishError = null;
+		urlPublishSuccess = null;
 		try {
-			const res = await post<{ name: string }>('/api/node/plugins/install-from-url', {
-				url: installUrl.trim()
+			await post('/api/appstore/publish-from-url', {
+				url: publishUrl.trim()
 			});
-			urlInstallSuccess = `Installed "${res.name}" successfully`;
-			installUrl = '';
-			await fetchCatalog();
+			urlPublishSuccess = 'Added as draft listing';
+			publishUrl = '';
 			setTimeout(() => {
-				showUrlInstall = false;
-				urlInstallSuccess = null;
-			}, 2000);
+				showUrlPublish = false;
+				urlPublishSuccess = null;
+				goto('/appstore/sell');
+			}, 1500);
 		} catch (e) {
-			urlInstallError = e instanceof Error ? e.message : String(e);
+			urlPublishError = e instanceof Error ? e.message : String(e);
 		} finally {
-			urlInstallLoading = false;
+			urlPublishLoading = false;
+		}
+	}
+
+	function requestInstall(item: CatalogItem) {
+		installTarget = item;
+		installStep = 'confirm';
+		installModalError = null;
+	}
+
+	function cancelInstall() {
+		installTarget = null;
+		installStep = 'confirm';
+		installModalError = null;
+	}
+
+	async function confirmInstall() {
+		if (!installTarget) return;
+		const item = installTarget;
+		const action = getActionState(item);
+
+		try {
+			if (action === 'get') {
+				installStep = 'buying';
+				await post('/api/appstore/licenses/buy', {
+					user_id: 'rl',
+					plugin_id: item.plugin_id,
+					plugin_name: item.name,
+					oci_image: item.oci_image
+				});
+				await fetchCatalog();
+				const updated = catalog.find((p) => p.plugin_id === item.plugin_id);
+				if (updated && updated.license_id) {
+					installStep = 'installing';
+					await post('/api/appstore/plugins/install', {
+						license_id: updated.license_id,
+						plugin_id: updated.plugin_id,
+						plugin_name: updated.name,
+						version: updated.version,
+						oci_image: updated.oci_image
+					});
+				}
+			} else {
+				installStep = 'installing';
+				await post('/api/appstore/plugins/install', {
+					license_id: item.license_id,
+					plugin_id: item.plugin_id,
+					plugin_name: item.name,
+					version: item.version,
+					oci_image: item.oci_image
+				});
+			}
+			installStep = 'done';
+			await fetchCatalog();
+			if (selectedPlugin && selectedPlugin.plugin_id === item.plugin_id) {
+				await openDetail(item.plugin_id);
+			}
+			setTimeout(() => cancelInstall(), 1500);
+		} catch (e) {
+			installModalError = e instanceof Error ? e.message : String(e);
+			installStep = 'error';
 		}
 	}
 
@@ -171,16 +237,12 @@
 		const state = getActionState(item);
 		switch (state) {
 			case 'get':
-				buyLicense(item);
-				break;
 			case 'install':
-				installPlugin(item);
+			case 'update':
+				requestInstall(item);
 				break;
 			case 'installed':
 				removePlugin(item);
-				break;
-			case 'update':
-				installPlugin(item);
 				break;
 		}
 	}
@@ -219,12 +281,12 @@
 			</button>
 
 			<button
-				onclick={() => { showUrlInstall = !showUrlInstall; urlInstallError = null; urlInstallSuccess = null; }}
+				onclick={() => { showUrlPublish = !showUrlPublish; urlPublishError = null; urlPublishSuccess = null; }}
 				class="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors
-					{showUrlInstall
+					{showUrlPublish
 					? 'bg-accent-600 text-surface-50'
 					: 'bg-surface-700 border border-surface-600 text-surface-200 hover:bg-surface-600 hover:border-surface-500'}">
-				Install from URL
+				Publish from URL
 			</button>
 
 			<!-- Search -->
@@ -264,17 +326,17 @@
 			</button>
 		</div>
 
-		<!-- Install from URL form -->
-		{#if showUrlInstall}
+		<!-- Publish from URL form -->
+		{#if showUrlPublish}
 			<div class="mt-3 flex flex-col gap-2">
 				<form
-					onsubmit={(e) => { e.preventDefault(); installFromUrl(); }}
+					onsubmit={(e) => { e.preventDefault(); publishFromUrl(); }}
 					class="flex gap-2"
 				>
 					<input
-						bind:value={installUrl}
+						bind:value={publishUrl}
 						placeholder="https://github.com/org/repo"
-						disabled={urlInstallLoading}
+						disabled={urlPublishLoading}
 						class="flex-1 bg-surface-700 border border-surface-600 rounded-lg
 							px-3 py-1.5 text-xs text-surface-100 placeholder-surface-500
 							focus:outline-none focus:border-accent-500
@@ -282,21 +344,21 @@
 					/>
 					<button
 						type="submit"
-						disabled={urlInstallLoading || !installUrl.trim()}
+						disabled={urlPublishLoading || !publishUrl.trim()}
 						class="px-4 py-1.5 rounded-lg text-xs font-medium transition-colors
-							{urlInstallLoading
+							{urlPublishLoading
 							? 'bg-surface-600 text-surface-400 cursor-wait'
 							: 'bg-accent-600 text-surface-50 hover:bg-accent-500 cursor-pointer'}
 							disabled:opacity-50 disabled:cursor-not-allowed"
 					>
-						{urlInstallLoading ? 'Installing...' : 'Install'}
+						{urlPublishLoading ? 'Publishing...' : 'Publish'}
 					</button>
 				</form>
-				{#if urlInstallError}
-					<div class="text-xs text-danger-400 px-1">{urlInstallError}</div>
+				{#if urlPublishError}
+					<div class="text-xs text-danger-400 px-1">{urlPublishError}</div>
 				{/if}
-				{#if urlInstallSuccess}
-					<div class="text-xs text-success-400 px-1">{urlInstallSuccess}</div>
+				{#if urlPublishSuccess}
+					<div class="text-xs text-success-400 px-1">{urlPublishSuccess}</div>
 				{/if}
 			</div>
 		{/if}
@@ -673,6 +735,54 @@
 							</div>
 						</div>
 
+						<!-- Trust & Verification -->
+						{#if detail.publisher_identity || detail.manifest_checksum || detail.oci_image_verified}
+							<div class="space-y-3">
+								<h3 class="text-[11px] text-surface-500 uppercase tracking-wider">Trust & Verification</h3>
+								<div class="space-y-2">
+									<div class="flex items-center gap-2 text-xs">
+										<span class="{detail.publisher_identity ? 'text-success-400' : 'text-warning-400'}">
+											{detail.publisher_identity ? '\u{2705}' : '\u{26A0}\u{FE0F}'}
+										</span>
+										<span class="text-surface-400">Publisher</span>
+										<span class="text-surface-300 truncate">
+											{detail.publisher_identity ?? 'Unknown'}
+										</span>
+									</div>
+									<div class="flex items-center gap-2 text-xs">
+										<span class="{detail.seller_signature ? 'text-success-400' : 'text-warning-400'}">
+											{detail.seller_signature ? '\u{2705}' : '\u{26A0}\u{FE0F}'}
+										</span>
+										<span class="text-surface-400">Manifest signed</span>
+										<span class="text-surface-300">
+											{detail.seller_signature ? 'Yes' : 'No'}
+										</span>
+									</div>
+									<div class="flex items-center gap-2 text-xs">
+										<span class="{detail.oci_image_verified === 1 ? 'text-success-400' : 'text-warning-400'}">
+											{detail.oci_image_verified === 1 ? '\u{2705}' : '\u{26A0}\u{FE0F}'}
+										</span>
+										<span class="text-surface-400">Container verified</span>
+										<span class="text-surface-300">
+											{detail.oci_image_verified === 1 ? 'Yes' : 'No'}
+										</span>
+									</div>
+									{#if detail.manifest_checksum}
+										<div class="mt-2 p-2 rounded-lg bg-surface-900/50 border border-surface-700">
+											<div class="text-[10px] text-surface-500 mb-1">Manifest SHA-256</div>
+											<div class="text-[10px] text-surface-400 font-mono break-all">{detail.manifest_checksum}</div>
+										</div>
+									{/if}
+									{#if detail.oci_image_digest}
+										<div class="p-2 rounded-lg bg-surface-900/50 border border-surface-700">
+											<div class="text-[10px] text-surface-500 mb-1">Image Digest</div>
+											<div class="text-[10px] text-surface-400 font-mono break-all">{detail.oci_image_digest}</div>
+										</div>
+									{/if}
+								</div>
+							</div>
+						{/if}
+
 						<!-- License info -->
 						{#if detail.license}
 							<div class="space-y-3">
@@ -708,4 +818,132 @@
 			</div>
 		{/if}
 	</div>
+
+	<!-- Install confirmation modal -->
+	{#if installTarget}
+		{@const target = installTarget}
+		<!-- Backdrop -->
+		<button
+			onclick={cancelInstall}
+			disabled={installStep === 'buying' || installStep === 'installing'}
+			class="fixed inset-0 bg-surface-950/70 z-30"
+			aria-label="Close install modal"
+		></button>
+
+		<div class="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-40
+			w-[420px] max-w-[90vw] bg-surface-800 rounded-2xl border border-surface-600
+			shadow-2xl overflow-hidden">
+
+			{#if installStep === 'confirm'}
+				<!-- Trust ceremony -->
+				<div class="p-6 space-y-5">
+					<div class="flex items-start gap-4">
+						<span class="text-3xl">{target.icon ?? '\u{1F4E6}'}</span>
+						<div>
+							<h2 class="text-base font-bold text-surface-100">{target.name}</h2>
+							<div class="text-xs text-surface-500">{target.org} &middot; v{target.version}</div>
+						</div>
+					</div>
+
+					<!-- Trust indicators -->
+					<div class="space-y-2 p-3 rounded-xl bg-surface-900/50 border border-surface-700">
+						<div class="text-[11px] text-surface-500 uppercase tracking-wider mb-2">Trust verification</div>
+						<div class="flex items-center gap-2 text-xs">
+							<span class="{target.publisher_identity ? 'text-success-400' : 'text-warning-400'}">
+								{target.publisher_identity ? '\u{2705}' : '\u{26A0}\u{FE0F}'}
+							</span>
+							<span class="text-surface-300">
+								Publisher: {target.publisher_identity ?? 'Unknown'}
+							</span>
+						</div>
+						<div class="flex items-center gap-2 text-xs">
+							<span class="{target.seller_signature ? 'text-success-400' : 'text-warning-400'}">
+								{target.seller_signature ? '\u{2705}' : '\u{26A0}\u{FE0F}'}
+							</span>
+							<span class="text-surface-300">
+								Manifest {target.seller_signature ? 'signed' : 'not signed'}
+							</span>
+						</div>
+						<div class="flex items-center gap-2 text-xs">
+							<span class="{target.oci_image_verified === 1 ? 'text-success-400' : 'text-warning-400'}">
+								{target.oci_image_verified === 1 ? '\u{2705}' : '\u{26A0}\u{FE0F}'}
+							</span>
+							<span class="text-surface-300">
+								Container image {target.oci_image_verified === 1 ? 'verified' : 'not verified'}
+							</span>
+						</div>
+					</div>
+
+					<p class="text-xs text-surface-400 leading-relaxed">
+						This app will run as a container on your system. Only install apps from publishers you trust.
+					</p>
+
+					<div class="flex gap-3">
+						<button
+							onclick={cancelInstall}
+							class="flex-1 py-2.5 rounded-lg text-sm font-medium
+								bg-surface-700 text-surface-300 hover:bg-surface-600 border border-surface-600
+								transition-colors cursor-pointer"
+						>
+							Cancel
+						</button>
+						<button
+							onclick={confirmInstall}
+							class="flex-1 py-2.5 rounded-lg text-sm font-medium
+								bg-accent-600 text-surface-50 hover:bg-accent-500
+								transition-colors cursor-pointer"
+						>
+							{getActionState(target) === 'get'
+								? (formatPrice(target) === 'Free' ? 'Get & Install' : `Buy & Install (${formatPrice(target)})`)
+								: getActionState(target) === 'update'
+									? `Update to v${target.version}`
+									: 'Install'}
+						</button>
+					</div>
+				</div>
+
+			{:else if installStep === 'buying'}
+				<div class="p-8 text-center space-y-4">
+					<div class="text-3xl animate-pulse">{'\u{1F4B3}'}</div>
+					<div class="text-sm text-surface-200 font-medium">Acquiring license...</div>
+					<div class="text-xs text-surface-500">Setting up {target.name}</div>
+				</div>
+
+			{:else if installStep === 'installing'}
+				<div class="p-8 text-center space-y-4">
+					<div class="text-3xl animate-pulse">{'\u{1F4E6}'}</div>
+					<div class="text-sm text-surface-200 font-medium">Provisioning container...</div>
+					<div class="text-xs text-surface-500">Installing {target.name} v{target.version}</div>
+				</div>
+
+			{:else if installStep === 'done'}
+				<div class="p-8 text-center space-y-4">
+					<div class="text-3xl">{'\u{2705}'}</div>
+					<div class="text-sm text-success-400 font-medium">Installed!</div>
+					<div class="text-xs text-surface-500">{target.name} is ready to use</div>
+				</div>
+
+			{:else if installStep === 'error'}
+				<div class="p-6 space-y-4">
+					<div class="text-center space-y-3">
+						<div class="text-3xl">{'\u{274C}'}</div>
+						<div class="text-sm text-danger-400 font-medium">Installation failed</div>
+						{#if installModalError}
+							<div class="text-xs text-surface-400 bg-surface-900/50 p-3 rounded-lg border border-surface-700">
+								{installModalError}
+							</div>
+						{/if}
+					</div>
+					<button
+						onclick={cancelInstall}
+						class="w-full py-2.5 rounded-lg text-sm font-medium
+							bg-surface-700 text-surface-300 hover:bg-surface-600 border border-surface-600
+							transition-colors cursor-pointer"
+					>
+						Close
+					</button>
+				</div>
+			{/if}
+		</div>
+	{/if}
 </div>

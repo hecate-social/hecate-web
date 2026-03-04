@@ -17,6 +17,11 @@ export interface CatalogItem {
 	fee_currency: string | null;
 	duration_days: number | null;
 	node_limit: number | null;
+	manifest_url: string | null;
+	manifest_checksum: string | null;
+	seller_signature: string | null;
+	oci_image_verified: number | null;
+	oci_image_digest: string | null;
 	published_at: number | null;
 	cataloged_at: number;
 	refreshed_at: number | null;
