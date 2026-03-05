@@ -32,6 +32,11 @@
 	let installStep: InstallStep = $state('confirm');
 	let installModalError: string | null = $state(null);
 
+	// --- Danger action confirmation state (uninstall / revoke) ---
+	type DangerAction = 'uninstall' | 'revoke';
+	let dangerTarget: CatalogItem | null = $state(null);
+	let dangerAction: DangerAction = $state('uninstall');
+
 	// --- Filtered catalog ---
 	let filteredCatalog = $derived.by(() => {
 		let items = catalog;
@@ -151,6 +156,45 @@
 		}
 	}
 
+	async function revokeLicense(item: CatalogItem) {
+		actionLoading = item.plugin_id;
+		try {
+			await post('/api/appstore/licenses/revoke', {
+				license_id: item.license_id
+			});
+			await fetchCatalog();
+			if (selectedPlugin && selectedPlugin.plugin_id === item.plugin_id) {
+				await openDetail(item.plugin_id);
+			}
+		} catch (e) {
+			console.error('[appstore] Revoke license failed:', e);
+		} finally {
+			actionLoading = null;
+		}
+	}
+
+	function requestDanger(item: CatalogItem, action: DangerAction) {
+		dangerTarget = item;
+		dangerAction = action;
+	}
+
+	function cancelDanger() {
+		dangerTarget = null;
+	}
+
+	async function confirmDanger() {
+		if (!dangerTarget) return;
+		const item = dangerTarget;
+		const action = dangerAction;
+		dangerTarget = null;
+
+		if (action === 'uninstall') {
+			await removePlugin(item);
+		} else {
+			await revokeLicense(item);
+		}
+	}
+
 	async function publishFromUrl() {
 		if (!publishUrl.trim()) return;
 		urlPublishLoading = true;
@@ -243,7 +287,7 @@
 				requestInstall(item);
 				break;
 			case 'installed':
-				removePlugin(item);
+				requestDanger(item, 'uninstall');
 				break;
 		}
 	}
@@ -476,8 +520,7 @@
 										{:else if action === 'install'}
 											Install
 										{:else if action === 'installed'}
-											<span class="group-hover:hidden">Installed</span>
-											<span class="hidden group-hover:inline">Remove</span>
+											Uninstall
 										{:else if action === 'update'}
 											Update
 										{:else}
@@ -536,32 +579,45 @@
 										{/if}
 									</button>
 								</div>
-								<button
-									onclick={() => handleAction(item)}
-									disabled={loading || action === 'revoked'}
-									class="shrink-0 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors cursor-pointer
-										{loading
-										? 'bg-surface-600 text-surface-400 cursor-wait'
-										: action === 'install'
-											? 'bg-success-500 text-surface-50 hover:bg-success-400'
-											: action === 'installed'
-												? 'bg-surface-700 text-surface-300 hover:bg-danger-500/20 hover:text-danger-400 border border-surface-600'
-												: action === 'update'
-													? 'bg-accent-600 text-surface-50 hover:bg-accent-500'
-													: 'bg-surface-700 text-surface-500 cursor-not-allowed'}"
-								>
-									{#if loading}
-										...
-									{:else if action === 'install'}
-										Install
-									{:else if action === 'installed'}
-										Remove
-									{:else if action === 'update'}
-										Update
-									{:else}
-										Revoked
+								<div class="flex items-center gap-2 shrink-0">
+									<button
+										onclick={() => handleAction(item)}
+										disabled={loading || action === 'revoked'}
+										class="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors cursor-pointer
+											{loading
+											? 'bg-surface-600 text-surface-400 cursor-wait'
+											: action === 'install'
+												? 'bg-success-500 text-surface-50 hover:bg-success-400'
+												: action === 'installed'
+													? 'bg-surface-700 text-danger-400 hover:bg-danger-500/20 border border-surface-600'
+													: action === 'update'
+														? 'bg-accent-600 text-surface-50 hover:bg-accent-500'
+														: 'bg-surface-700 text-surface-500 cursor-not-allowed'}"
+									>
+										{#if loading}
+											...
+										{:else if action === 'install'}
+											Install
+										{:else if action === 'installed'}
+											Uninstall
+										{:else if action === 'update'}
+											Update
+										{:else}
+											Revoked
+										{/if}
+									</button>
+									{#if item.license_id && action !== 'revoked'}
+										<button
+											onclick={() => requestDanger(item, 'revoke')}
+											disabled={loading}
+											class="px-2 py-1.5 rounded-lg text-[10px] font-medium transition-colors cursor-pointer
+												text-surface-500 hover:text-danger-400 hover:bg-danger-500/10"
+											title="Revoke license"
+										>
+											Revoke
+										</button>
 									{/if}
-								</button>
+								</div>
 							</div>
 						{/each}
 					</div>
@@ -690,13 +746,32 @@
 							{:else if detailAction === 'install'}
 								Install
 							{:else if detailAction === 'installed'}
-								Remove Plugin
+								Uninstall
 							{:else if detailAction === 'update'}
 								Update to v{detail.version}
 							{:else}
 								License Revoked
 							{/if}
 						</button>
+
+						<!-- Revoke license (separate from uninstall) -->
+						{#if detail.license && !detail.license.revoked}
+							<button
+								onclick={() => {
+									const asItem = {
+										...detail,
+										license_id: detail.license?.license_id ?? null,
+										installed: detail.license?.installed ?? null,
+										installed_version: detail.license?.installed_version ?? null
+									};
+									requestDanger(asItem, 'revoke');
+								}}
+								class="w-full py-2 rounded-lg text-xs font-medium transition-colors cursor-pointer
+									text-surface-500 hover:text-danger-400 hover:bg-danger-500/10"
+							>
+								Revoke License
+							</button>
+						{/if}
 
 						<!-- Tags -->
 						{#if parseTags(detail.tags).length > 0}
@@ -819,6 +894,59 @@
 			</div>
 		{/if}
 	</div>
+
+	<!-- Danger confirmation modal (uninstall / revoke) -->
+	{#if dangerTarget}
+		{@const target = dangerTarget}
+		<button
+			onclick={cancelDanger}
+			class="fixed inset-0 bg-surface-950/70 z-30"
+			aria-label="Close confirmation"
+		></button>
+
+		<div class="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-40
+			w-[400px] max-w-[90vw] bg-surface-800 rounded-2xl border border-surface-600
+			shadow-2xl overflow-hidden">
+			<div class="p-6 space-y-5">
+				<div class="flex items-start gap-4">
+					<span class="text-3xl">{dangerAction === 'uninstall' ? '\u{1F5D1}' : '\u{26D4}'}</span>
+					<div>
+						<h2 class="text-base font-bold text-surface-100">
+							{dangerAction === 'uninstall' ? 'Uninstall' : 'Revoke License'}
+						</h2>
+						<div class="text-xs text-surface-500">{target.name} &middot; {target.org}</div>
+					</div>
+				</div>
+
+				<p class="text-xs text-surface-400 leading-relaxed">
+					{#if dangerAction === 'uninstall'}
+						This will stop and remove the container for this plugin. Your license remains active and you can reinstall later.
+					{:else}
+						This will permanently revoke your license for this plugin. If the plugin is installed, it will be uninstalled first. You will need to buy a new license to use it again.
+					{/if}
+				</p>
+
+				<div class="flex gap-3">
+					<button
+						onclick={cancelDanger}
+						class="flex-1 py-2.5 rounded-lg text-sm font-medium
+							bg-surface-700 text-surface-300 hover:bg-surface-600 border border-surface-600
+							transition-colors cursor-pointer"
+					>
+						Cancel
+					</button>
+					<button
+						onclick={confirmDanger}
+						class="flex-1 py-2.5 rounded-lg text-sm font-medium
+							bg-danger-500 text-surface-50 hover:bg-danger-400
+							transition-colors cursor-pointer"
+					>
+						{dangerAction === 'uninstall' ? 'Uninstall' : 'Revoke License'}
+					</button>
+				</div>
+			</div>
+		</div>
+	{/if}
 
 	<!-- Install confirmation modal -->
 	{#if installTarget}
