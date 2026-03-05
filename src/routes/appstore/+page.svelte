@@ -159,12 +159,12 @@
 			await post('/api/appstore/publish-from-url', {
 				url: publishUrl.trim()
 			});
-			urlPublishSuccess = 'Added as draft listing';
+			urlPublishSuccess = 'Published successfully';
 			publishUrl = '';
+			await fetchCatalog();
 			setTimeout(() => {
 				showUrlPublish = false;
 				urlPublishSuccess = null;
-				goto('/appstore/sell');
 			}, 1500);
 		} catch (e) {
 			urlPublishError = e instanceof Error ? e.message : String(e);
