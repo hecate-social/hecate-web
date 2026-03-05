@@ -78,7 +78,8 @@
 	async function openDetail(pluginId: string) {
 		detailLoading = true;
 		try {
-			selectedPlugin = await apiGet<PluginDetail>(`/api/appstore/catalog/${encodeURIComponent(pluginId)}`);
+			const res = await apiGet<{ plugin: PluginDetail }>(`/api/appstore/catalog/${encodeURIComponent(pluginId)}`);
+			selectedPlugin = res.plugin;
 		} catch (e) {
 			console.error('[appstore] Failed to load plugin detail:', e);
 		} finally {
