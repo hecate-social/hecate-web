@@ -8,15 +8,15 @@ use crate::socket_proxy;
 const POLL_INTERVAL: Duration = Duration::from_secs(5);
 
 /// Cached health state. Updated by the poller thread every 5s.
-/// Read by the `get_cached_health` Tauri command — no socket I/O, just reads memory.
 static HEALTH_CACHE: Mutex<Option<serde_json::Value>> = Mutex::new(None);
 
 /// Tauri command: read cached daemon health from memory.
-/// The poller thread keeps this up-to-date every 5s.
-/// This never touches the Unix socket — it just reads what the poller last saw.
 #[tauri::command]
-pub fn get_cached_health() -> Option<serde_json::Value> {
-    HEALTH_CACHE.lock().ok().and_then(|cache| cache.clone())
+pub fn get_cached_health() -> Result<serde_json::Value, String> {
+    match HEALTH_CACHE.lock().ok().and_then(|cache| cache.clone()) {
+        Some(v) => Ok(v),
+        None => Err("no_health".into()),
+    }
 }
 
 fn update_cache(health: &Option<serde_json::Value>) {
@@ -27,7 +27,10 @@ fn update_cache(health: &Option<serde_json::Value>) {
 
 fn emit_health(app: &tauri::AppHandle, health: Option<serde_json::Value>) {
     update_cache(&health);
-    let _ = app.emit("daemon-health", &health);
+    match &health {
+        Some(v) => { let _ = app.emit("daemon-health", v); }
+        None => { let _ = app.emit("daemon-health", serde_json::Value::Null); }
+    }
 }
 
 fn try_health_check() -> Option<serde_json::Value> {

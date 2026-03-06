@@ -6,7 +6,6 @@ export const health = writable<DaemonHealth | null>(null);
 export const connectionStatus = writable<ConnectionStatus>('connecting');
 export const lastError = writable<string | null>(null);
 export const unavailableSince = writable<number | null>(null);
-/** Diagnostic: last error detail visible on the overlay */
 export const debugError = writable<string>('');
 
 export const isConnected = derived(connectionStatus, ($s) => $s === 'connected');
@@ -18,12 +17,11 @@ export const showOverlay = derived(
 	([$starting, $unavailable]) => $starting || $unavailable
 );
 
-const POLL_INTERVAL = 3_000;
+const POLL_INTERVAL = 5_000;
 
 let healthTimer: ReturnType<typeof setInterval> | null = null;
 let onReconnectCallback: (() => void) | null = null;
 
-/** Register a callback that fires when transitioning from disconnected to connected. */
 export function onReconnect(cb: () => void): void {
 	onReconnectCallback = cb;
 }
@@ -61,16 +59,14 @@ function get_connectionStatus(): ConnectionStatus {
 }
 
 /**
- * Read cached health from the Rust watcher.
- * The watcher thread maintains the cache via inotify + periodic health checks.
- * This invoke just reads an in-memory Mutex — no socket I/O.
+ * Directly call the daemon health endpoint via Unix socket (Rust command).
+ * Bypasses the background watcher cache entirely.
  */
 export async function fetchHealth(): Promise<void> {
 	try {
-		const h = await invoke<DaemonHealth | null>('get_cached_health');
+		const h = await invoke<DaemonHealth>('check_daemon_health');
 		handleHealthEvent(h);
-	} catch (e) {
-		debugError.set(`cache read failed: ${e}`);
+	} catch {
 		handleHealthEvent(null);
 	}
 }
