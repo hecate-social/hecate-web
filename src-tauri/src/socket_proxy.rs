@@ -68,7 +68,7 @@ pub fn check_daemon_health() -> Result<serde_json::Value, String> {
 /// Priority: HECATE_SOCKET_PATH env > /run/hecate/ > $HOME/.hecate/hecate-daemon/sockets/
 pub fn resolve_socket_path() -> String {
     if let Ok(p) = std::env::var("HECATE_SOCKET_PATH") {
-        if !p.is_empty() && Path::new(&p).exists() {
+        if !p.is_empty() {
             return p;
         }
     }

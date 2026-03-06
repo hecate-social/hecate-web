@@ -35,15 +35,7 @@ fn try_health_check() -> Option<serde_json::Value> {
 }
 
 fn socket_path() -> PathBuf {
-    if let Ok(home) = std::env::var("HOME") {
-        PathBuf::from(home)
-            .join(".hecate")
-            .join("hecate-daemon")
-            .join("sockets")
-            .join("api.sock")
-    } else {
-        PathBuf::from("/run/hecate/api.sock")
-    }
+    PathBuf::from(socket_proxy::resolve_socket_path())
 }
 
 pub fn start(app: tauri::AppHandle) {
