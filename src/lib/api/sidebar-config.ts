@@ -7,16 +7,16 @@ export interface SidebarGroupConfig {
 	apps: string[];
 }
 
-interface SidebarConfigResponse {
+interface LauncherLayoutResponse {
 	ok: boolean;
 	groups: SidebarGroupConfig[];
 }
 
 export async function fetchSidebarConfig(): Promise<SidebarGroupConfig[]> {
-	const resp = await get<SidebarConfigResponse>('/api/config/sidebar');
+	const resp = await get<LauncherLayoutResponse>('/api/launcher/layout');
 	return resp.groups;
 }
 
 export async function saveSidebarConfig(groups: SidebarGroupConfig[]): Promise<void> {
-	await put<{ ok: boolean }>('/api/config/sidebar', { groups });
+	await put<{ ok: boolean }>('/api/launcher/layout', { groups });
 }

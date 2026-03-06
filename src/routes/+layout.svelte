@@ -13,7 +13,7 @@
 	import { startPluginWatcher, stopPluginWatcher } from '$lib/stores/plugins';
 	import { checkForUpdate } from '$lib/stores/updater.js';
 	import { checkPluginUpdates } from '$lib/stores/pluginUpdater.js';
-	import { toggleSidebar, initSidebar, startConfigWatcher, stopConfigWatcher } from '$lib/stores/sidebar.js';
+	import { toggleSidebar, initSidebar } from '$lib/stores/sidebar.js';
 	import { startTrafficWatcher, stopTrafficWatcher } from '$lib/stores/traffic.js';
 	import { pluginPaths } from '$lib/plugins-registry';
 	import '$lib/stores/theme.js';
@@ -29,7 +29,6 @@
 	onMount(() => {
 		startPolling();
 		startPluginWatcher();
-		startConfigWatcher();
 		startSettingsWatcher();
 		startIdentityWatcher();
 		startTrafficWatcher();
@@ -50,7 +49,6 @@
 	onDestroy(() => {
 		stopPolling();
 		stopPluginWatcher();
-		stopConfigWatcher();
 		stopSettingsWatcher();
 		stopIdentityWatcher();
 		stopTrafficWatcher();

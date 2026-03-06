@@ -1,5 +1,4 @@
 import { writable, derived, get } from 'svelte/store';
-import { listen, type UnlistenFn } from '@tauri-apps/api/event';
 import { pluginTabs, type PluginTab } from '$lib/plugins-registry';
 import { fetchSidebarConfig, saveSidebarConfig, type SidebarGroupConfig } from '$lib/api/sidebar-config';
 
@@ -17,6 +16,7 @@ export interface SidebarGroup {
 
 const STORAGE_KEY = 'hecate-sidebar-groups';
 const COLLAPSED_KEY = 'hecate-sidebar-collapsed';
+const COLLAPSE_STATE_KEY = 'hecate-sidebar-group-collapse';
 
 function loadGroupsFromCache(): SidebarGroup[] {
 	if (typeof localStorage === 'undefined') return [];
@@ -36,6 +36,18 @@ function loadCollapsed(): boolean {
 	return stored === 'true';
 }
 
+/** Load per-group collapse state from localStorage (UI-only, not persisted to daemon) */
+function loadGroupCollapseState(): Record<string, boolean> {
+	if (typeof localStorage === 'undefined') return {};
+	const raw = localStorage.getItem(COLLAPSE_STATE_KEY);
+	if (!raw) return {};
+	try {
+		return JSON.parse(raw);
+	} catch {
+		return {};
+	}
+}
+
 function persistGroupsToCache(groups: SidebarGroup[]) {
 	if (typeof localStorage !== 'undefined') {
 		localStorage.setItem(STORAGE_KEY, JSON.stringify(groups));
@@ -46,6 +58,15 @@ function persistCollapsed(collapsed: boolean) {
 	if (typeof localStorage !== 'undefined') {
 		localStorage.setItem(COLLAPSED_KEY, String(collapsed));
 	}
+}
+
+function persistGroupCollapseState(groups: SidebarGroup[]) {
+	if (typeof localStorage === 'undefined') return;
+	const state: Record<string, boolean> = {};
+	for (const g of groups) {
+		if (g.collapsed) state[g.name] = true;
+	}
+	localStorage.setItem(COLLAPSE_STATE_KEY, JSON.stringify(state));
 }
 
 export const sidebarGroups = writable<SidebarGroup[]>(loadGroupsFromCache());
@@ -60,8 +81,6 @@ sidebarCollapsed.subscribe(persistCollapsed);
 
 let saveTimeout: ReturnType<typeof setTimeout> | null = null;
 let initialized = false;
-let lastLocalSave = 0;
-const SUPPRESS_WINDOW = 2000;
 
 function groupsToConfig(groups: SidebarGroup[]): SidebarGroupConfig[] {
 	return groups.map((g) => ({
@@ -73,11 +92,12 @@ function groupsToConfig(groups: SidebarGroup[]): SidebarGroupConfig[] {
 }
 
 function configToGroups(configs: SidebarGroupConfig[]): SidebarGroup[] {
+	const collapseState = loadGroupCollapseState();
 	return configs.map((c, i) => ({
 		id: `grp-${Date.now()}-${i}`,
 		name: c.name,
 		icon: c.icon || '\uD83D\uDCC1',
-		collapsed: c.collapsed,
+		collapsed: collapseState[c.name] ?? c.collapsed,
 		appIds: c.apps
 	}));
 }
@@ -86,15 +106,15 @@ function debounceSaveToDaemon() {
 	if (!initialized) return;
 	if (saveTimeout) clearTimeout(saveTimeout);
 	saveTimeout = setTimeout(() => {
-		lastLocalSave = Date.now();
 		const groups = get(sidebarGroups);
+		persistGroupCollapseState(groups);
 		saveSidebarConfig(groupsToConfig(groups)).catch(() => {
 			// Daemon may be offline — cache is already updated
 		});
 	}, 500);
 }
 
-/** Called when daemon connects. Fetches canonical config from daemon. */
+/** Called when daemon connects. Fetches canonical layout from daemon. */
 export async function initSidebar(): Promise<void> {
 	try {
 		const configs = await fetchSidebarConfig();
@@ -105,32 +125,6 @@ export async function initSidebar(): Promise<void> {
 		// Daemon offline — keep cached groups
 	}
 	initialized = true;
-}
-
-// --- Config file watcher ---
-
-let configUnlisten: UnlistenFn | null = null;
-
-export async function startConfigWatcher(): Promise<void> {
-	if (configUnlisten) return;
-	configUnlisten = await listen('sidebar-config-changed', async () => {
-		if (Date.now() - lastLocalSave < SUPPRESS_WINDOW) return;
-		try {
-			const configs = await fetchSidebarConfig();
-			if (configs.length > 0) {
-				sidebarGroups.set(configToGroups(configs));
-			}
-		} catch {
-			// Daemon offline — keep cached groups
-		}
-	});
-}
-
-export function stopConfigWatcher(): void {
-	if (configUnlisten) {
-		configUnlisten();
-		configUnlisten = null;
-	}
 }
 
 // Subscribe to changes and debounce-save to daemon
