@@ -125,7 +125,7 @@
 			<span class="text-4xl animate-pulse">{'\u{2B07}\uFE0F'}</span>
 		</div>
 		<h2 class="text-lg font-bold text-surface-100">
-			{pluginName.charAt(0).toUpperCase() + pluginName.slice(1)}
+			{app?.manifest?.display_name || app?.info.display_name || pluginName.charAt(0).toUpperCase() + pluginName.slice(1)}
 		</h2>
 		<p class="text-sm text-surface-400">
 			Downloading app...
@@ -148,7 +148,7 @@
 			<span class="text-4xl animate-spin">{'\u{2699}\uFE0F'}</span>
 		{/if}
 		<h2 class="text-lg font-bold text-surface-100">
-			{pluginName.charAt(0).toUpperCase() + pluginName.slice(1)}
+			{app?.manifest?.display_name || app?.info.display_name || pluginName.charAt(0).toUpperCase() + pluginName.slice(1)}
 		</h2>
 		{#if startingError}
 			<div class="px-4 py-3 rounded-md bg-red-500/10 border border-red-500/30 max-w-sm text-center">
@@ -169,7 +169,7 @@
 	<div class="flex flex-col items-center justify-center h-full gap-4">
 		<span class="text-4xl">{'\u{1F4E6}'}</span>
 		<h2 class="text-lg font-bold text-surface-100">
-			{pluginName.charAt(0).toUpperCase() + pluginName.slice(1)}
+			{app?.manifest?.display_name || app?.info.display_name || pluginName.charAt(0).toUpperCase() + pluginName.slice(1)}
 		</h2>
 		<p class="text-sm text-surface-400 text-center max-w-md">
 			{isStopped ? 'App is stopped.' : 'App is installed and ready.'}
@@ -190,7 +190,7 @@
 	<div class="flex flex-col items-center justify-center h-full gap-4">
 		<span class="text-4xl">{'\u{1F50C}'}</span>
 		<h2 class="text-lg font-bold text-surface-100">
-			{pluginName.charAt(0).toUpperCase() + pluginName.slice(1)}
+			{app?.manifest?.display_name || app?.info.display_name || pluginName.charAt(0).toUpperCase() + pluginName.slice(1)}
 		</h2>
 		<p class="text-sm text-surface-400 text-center max-w-md">
 			App is {statusLabel.toLowerCase() || 'installed'}. Waiting for it to become ready.
@@ -205,7 +205,7 @@
 	<div class="flex flex-col items-center justify-center h-full gap-4">
 		<span class="text-4xl">{'\u{1F50C}'}</span>
 		<h2 class="text-lg font-bold text-surface-100">
-			{pluginName.charAt(0).toUpperCase() + pluginName.slice(1)}
+			{app?.manifest?.display_name || app?.info.display_name || pluginName.charAt(0).toUpperCase() + pluginName.slice(1)}
 		</h2>
 		<p class="text-sm text-surface-400 text-center max-w-md">
 			This app is not installed. Visit the App Store to install it.

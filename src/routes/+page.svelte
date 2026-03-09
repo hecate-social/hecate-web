@@ -17,6 +17,7 @@
 	import { pluginUpdateVersion } from '$lib/stores/pluginUpdater.js';
 	import PluginCard from '$lib/components/PluginCard.svelte';
 	import EmojiPicker from '$lib/components/EmojiPicker.svelte';
+	import { resolveEmoji } from '$lib/emoji';
 	import { slide } from 'svelte/transition';
 
 	const DONATE_URL = 'https://buymeacoffee.com/rlefever';
@@ -298,7 +299,7 @@
 							tabindex="-1"
 							onclick={(e) => onIconClick(e, group.id)}
 							title="Change icon"
-						>{group.icon || '\uD83D\uDCC1'}</span>
+						>{resolveEmoji(group.icon, '\uD83D\uDCC1')}</span>
 						{#if renamingGroupId === group.id}
 							<!-- svelte-ignore a11y_autofocus -->
 							<input
@@ -483,7 +484,7 @@
 						class="w-full text-left px-3 py-1.5 text-xs text-surface-200 hover:bg-surface-600 rounded cursor-pointer"
 						onclick={() => moveAppToGroup(appId, g.id)}
 					>
-						{g.icon} {g.name}
+						{resolveEmoji(g.icon)} {g.name}
 					</button>
 				{/each}
 			{/if}

@@ -14,6 +14,7 @@ import { logActivity } from '$lib/stores/activity';
 export interface PluginInfo {
 	plugin_id: string;
 	name: string;
+	display_name: string | null;
 	oci_image: string;
 	installed_version: string;
 	license_id: string;
@@ -27,6 +28,7 @@ export interface PluginInfo {
 
 export interface PluginManifest {
 	name: string;
+	display_name?: string;
 	version: string;
 	icon: string;
 	description: string;
@@ -46,6 +48,7 @@ export interface AppState {
 	api: PluginApi | null;
 	online: boolean;
 	statusChangedAt: number;
+	_debugError?: string;
 }
 
 // --- Store ---

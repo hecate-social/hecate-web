@@ -20,6 +20,7 @@
 	} from '$lib/stores/sidebar.js';
 	import { hasPluginUpdate, pluginUpdateVersion, showPluginUpdateModal } from '$lib/stores/pluginUpdater.js';
 	import EmojiPicker from './EmojiPicker.svelte';
+	import { resolveEmoji } from '$lib/emoji';
 
 	// Sync activeAppId from route changes
 	$effect(() => {
@@ -256,7 +257,7 @@
 					<span
 						class="text-sm cursor-pointer leading-none"
 						onclick={(e) => onIconClick(e, group.id)}
-					>{group.icon || '\uD83D\uDCC1'}</span>
+					>{resolveEmoji(group.icon, '\uD83D\uDCC1')}</span>
 				{:else}
 					<span class="text-[8px] transition-transform {group.collapsed ? '' : 'rotate-90'}">
 						{'\u25B6'}
@@ -265,7 +266,7 @@
 						class="text-sm cursor-pointer hover:scale-110 transition-transform leading-none"
 						onclick={(e) => onIconClick(e, group.id)}
 						title="Change icon"
-					>{group.icon || '\uD83D\uDCC1'}</span>
+					>{resolveEmoji(group.icon, '\uD83D\uDCC1')}</span>
 					{#if renamingGroupId === group.id}
 						<!-- svelte-ignore a11y_autofocus -->
 						<input

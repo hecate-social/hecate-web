@@ -5,6 +5,7 @@
 	import { settings } from '$lib/stores/settings';
 	import type { AuthorListing } from '$lib/types/appstore';
 	import { getListingStatus, formatPrice, parseTags } from '$lib/types/appstore';
+	import { resolveEmoji } from '$lib/emoji';
 
 	// --- Data ---
 	let listings: AuthorListing[] = $state([]);
@@ -371,7 +372,7 @@
 							<!-- Card body -->
 							<div class="p-4 pb-2">
 								<div class="flex items-start gap-3">
-									<span class="text-2xl shrink-0">{listing.icon ?? '\u{1F4E6}'}</span>
+									<span class="text-2xl shrink-0">{resolveEmoji(listing.icon, '\u{1F4E6}')}</span>
 									<div class="flex-1 min-w-0">
 										<div class="flex items-center gap-2 flex-wrap">
 											<span class="font-medium text-sm text-surface-100 truncate">

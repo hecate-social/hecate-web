@@ -8,6 +8,7 @@
 	import { toastSuccess, toastError } from '$lib/stores/toasts';
 	import type { OfferingItem, OfferingDetail } from '$lib/types/appstore';
 	import { getActionState, isPluginInstalled, formatPrice, parseTags, extractPluginName } from '$lib/types/appstore';
+	import { resolveEmoji } from '$lib/emoji';
 
 	// --- Data ---
 	let catalog: OfferingItem[] = $state([]);
@@ -486,7 +487,7 @@
 									class="w-full text-left p-4 pb-2 cursor-pointer"
 								>
 									<div class="flex items-start gap-3">
-										<span class="text-2xl shrink-0">{item.icon ?? '\u{1F4E6}'}</span>
+										<span class="text-2xl shrink-0">{resolveEmoji(item.icon, '\u{1F4E6}')}</span>
 										<div class="flex-1 min-w-0">
 											<div class="flex items-center gap-2">
 												<span class="font-medium text-sm text-surface-100 truncate">
@@ -582,7 +583,7 @@
 								class="flex items-center gap-4 p-3 rounded-xl border border-surface-600
 									bg-surface-800/80 hover:border-surface-500 transition-all"
 							>
-								<span class="text-xl shrink-0">{item.icon ?? '\u{1F4E6}'}</span>
+								<span class="text-xl shrink-0">{resolveEmoji(item.icon, '\u{1F4E6}')}</span>
 								<div class="flex-1 min-w-0">
 									<button
 										onclick={() => openDetail(item.offering_id)}
@@ -700,7 +701,7 @@
 					<div class="p-6 space-y-6">
 						<!-- Header -->
 						<div class="flex items-start gap-4 pr-10">
-							<span class="text-4xl">{detail.icon ?? '\u{1F4E6}'}</span>
+							<span class="text-4xl">{resolveEmoji(detail.icon, '\u{1F4E6}')}</span>
 							<div>
 								<h2 class="text-lg font-bold text-surface-100">{detail.name}</h2>
 								<div class="text-xs text-surface-500">{detail.org}</div>
@@ -994,7 +995,7 @@
 				<!-- Trust ceremony -->
 				<div class="p-6 space-y-5">
 					<div class="flex items-start gap-4">
-						<span class="text-3xl">{target.icon ?? '\u{1F4E6}'}</span>
+						<span class="text-3xl">{resolveEmoji(target.icon, '\u{1F4E6}')}</span>
 						<div>
 							<h2 class="text-base font-bold text-surface-100">{target.name}</h2>
 							<div class="text-xs text-surface-500">{target.org} &middot; v{target.version}</div>
@@ -1088,7 +1089,7 @@
 			{:else if installStep === 'downloading'}
 				<div class="p-6 space-y-5">
 					<div class="flex items-start gap-4">
-						<span class="text-3xl">{target.icon ?? '\u{1F4E6}'}</span>
+						<span class="text-3xl">{resolveEmoji(target.icon, '\u{1F4E6}')}</span>
 						<div>
 							<h2 class="text-base font-bold text-surface-100">{target.name}</h2>
 							<div class="text-xs text-surface-500">

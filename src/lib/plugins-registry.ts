@@ -1,6 +1,7 @@
 // Plugin registry — core pages (always present) + discovered third-party plugins
 import { derived } from 'svelte/store';
 import { apps } from '$lib/stores/apps';
+import { resolveEmoji } from '$lib/emoji';
 
 export interface PluginTab {
 	id: string;
@@ -41,8 +42,8 @@ export const pluginTabs = derived(apps, ($apps) => {
 		.filter((a) => !CORE_IDS.has(a.info.name))
 		.map((a) => ({
 			id: a.info.name,
-			name: capitalize(a.info.name),
-			icon: a.manifest?.icon ?? a.info.icon ?? '\uD83D\uDD0C',
+			name: a.manifest?.display_name || a.info.display_name || capitalize(a.info.name),
+			icon: resolveEmoji(a.manifest?.icon ?? a.info.icon),
 			path: `/plugin/${a.info.name}`,
 			isPlugin: true
 		}));
@@ -55,8 +56,8 @@ export const pluginCards = derived(apps, ($apps) => {
 		.filter((a) => !CORE_IDS.has(a.info.name))
 		.map((a) => ({
 			id: a.info.name,
-			name: capitalize(a.info.name),
-			icon: a.manifest?.icon ?? a.info.icon ?? '\uD83D\uDD0C',
+			name: a.manifest?.display_name || a.info.display_name || capitalize(a.info.name),
+			icon: resolveEmoji(a.manifest?.icon ?? a.info.icon),
 			path: `/plugin/${a.info.name}`,
 			description: a.manifest?.description ?? statusDescription(a.info.status_label),
 			ready: a.online,
