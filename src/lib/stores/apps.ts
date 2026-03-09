@@ -5,7 +5,7 @@
 // Polling detects online/offline transitions.
 
 import { writable, derived, get } from 'svelte/store';
-import { get as apiGet, post as apiPost, del as apiDel } from '$lib/api';
+import { get as apiGet, post as apiPost, put as apiPut, del as apiDel } from '$lib/api';
 import { toastSuccess, toastWarning } from '$lib/stores/toasts';
 import { logActivity } from '$lib/stores/activity';
 
@@ -38,6 +38,7 @@ export interface PluginManifest {
 export interface PluginApi {
 	get: <T>(path: string) => Promise<T>;
 	post: <T>(path: string, body: unknown) => Promise<T>;
+	put: <T>(path: string, body: unknown) => Promise<T>;
 	del: <T>(path: string) => Promise<T>;
 }
 
@@ -65,6 +66,7 @@ function createPluginApi(pluginName: string): PluginApi {
 	return {
 		get: <T>(path: string) => apiGet<T>(`/plugin/${pluginName}/api${path}`),
 		post: <T>(path: string, body: unknown) => apiPost<T>(`/plugin/${pluginName}/api${path}`, body),
+		put: <T>(path: string, body: unknown) => apiPut<T>(`/plugin/${pluginName}/api${path}`, body),
 		del: <T>(path: string) => apiDel<T>(`/plugin/${pluginName}/api${path}`)
 	};
 }
