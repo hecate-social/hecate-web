@@ -112,18 +112,32 @@ pub fn resolve_plugin_socket_path(plugin_name: &str) -> String {
 }
 
 /// Route a request path to the correct socket.
-/// /plugin/{name}/* -> hecate-app-{name}d socket (path rewritten to /*)
-/// Everything else  -> hecate-daemon socket (path unchanged)
+///
+/// /plugin/{name}/* routes depend on whether the plugin runs as a separate
+/// daemon (container plugins with their own socket) or in-VM (loaded inside
+/// the main daemon). We check for the plugin socket — if it exists, route
+/// there with a rewritten path; otherwise route to the main daemon as-is.
+///
+/// Everything else -> hecate-daemon socket (path unchanged)
 fn resolve_socket_for_path(path: &str) -> (String, String) {
     if let Some(rest) = path.strip_prefix("/plugin/") {
-        if let Some(slash_pos) = rest.find('/') {
-            let plugin_name = &rest[..slash_pos];
-            let rewritten_path = &rest[slash_pos..];
-            return (resolve_plugin_socket_path(plugin_name), rewritten_path.to_string());
+        let plugin_name = if let Some(slash_pos) = rest.find('/') {
+            &rest[..slash_pos]
+        } else {
+            rest
+        };
+        let plugin_socket = resolve_plugin_socket_path(plugin_name);
+        if Path::new(&plugin_socket).exists() {
+            // Container plugin: route to its dedicated socket with rewritten path
+            let rewritten_path = if let Some(slash_pos) = rest.find('/') {
+                rest[slash_pos..].to_string()
+            } else {
+                "/".to_string()
+            };
+            return (plugin_socket, rewritten_path);
         }
-        // /plugin/trader with no trailing path -> /
-        let plugin_name = rest;
-        return (resolve_plugin_socket_path(plugin_name), "/".to_string());
+        // In-VM plugin: route to main daemon, keep original path
+        return (resolve_socket_path(), path.to_string());
     }
     (resolve_socket_path(), path.to_string())
 }
