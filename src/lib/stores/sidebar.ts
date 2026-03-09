@@ -118,9 +118,9 @@ function debounceSaveToDaemon() {
 export async function initSidebar(): Promise<void> {
 	try {
 		const configs = await fetchSidebarConfig();
-		if (configs.length > 0) {
-			sidebarGroups.set(configToGroups(configs));
-		}
+		// Daemon responded — trust its layout even if empty (fresh install).
+		// Only fall back to localStorage cache when daemon is offline (catch).
+		sidebarGroups.set(configToGroups(configs));
 	} catch {
 		// Daemon offline — keep cached groups
 	}
