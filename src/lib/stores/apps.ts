@@ -60,9 +60,9 @@ export const appList = derived(apps, ($apps) => Array.from($apps.values()));
 
 function createPluginApi(pluginName: string): PluginApi {
 	return {
-		get: <T>(path: string) => apiGet<T>(`/plugin/${pluginName}${path}`),
-		post: <T>(path: string, body: unknown) => apiPost<T>(`/plugin/${pluginName}${path}`, body),
-		del: <T>(path: string) => apiDel<T>(`/plugin/${pluginName}${path}`)
+		get: <T>(path: string) => apiGet<T>(`/plugin/${pluginName}/api${path}`),
+		post: <T>(path: string, body: unknown) => apiPost<T>(`/plugin/${pluginName}/api${path}`, body),
+		del: <T>(path: string) => apiDel<T>(`/plugin/${pluginName}/api${path}`)
 	};
 }
 
