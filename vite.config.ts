@@ -33,6 +33,9 @@ export default defineConfig({
 	server: {
 		port: 1420,
 		strictPort: true,
+		hmr: {
+			overlay: false
+		},
 		proxy: {
 			'/api': {
 				target: 'http://localhost',
@@ -40,7 +43,17 @@ export default defineConfig({
 			},
 			'/plugin': {
 				target: 'http://localhost',
-				agent: socketAgent
+				agent: socketAgent,
+				bypass(req) {
+					const url = req.url ?? '';
+					// Only proxy /plugin/{name}/api/* and /plugin/{name}/ui/*
+					// Let SvelteKit handle /plugin/{name} page routes
+					const parts = url.split('/').filter(Boolean); // ['plugin', 'name', 'api'|'ui', ...]
+					if (parts.length >= 3 && (parts[2] === 'api' || parts[2] === 'ui')) {
+						return undefined; // proxy it
+					}
+					return url; // skip proxy, let SvelteKit handle it
+				}
 			},
 			'/health': {
 				target: 'http://localhost',

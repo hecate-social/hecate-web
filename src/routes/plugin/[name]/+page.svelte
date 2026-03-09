@@ -2,6 +2,7 @@
 	import { page } from '$app/state';
 	import { apps } from '$lib/stores/apps';
 	import { post, ApiError } from '$lib/api';
+	import { refreshApps } from '$lib/stores/apps';
 	import { toastError, toastSuccess, toastInfo } from '$lib/stores/toasts';
 	import { onDestroy } from 'svelte';
 
@@ -14,6 +15,7 @@
 	const statusLabel = $derived(app?.info.status_label ?? '');
 	const isInstalled = $derived(!!app && statusLabel !== 'Removed');
 	const isOnline = $derived(app?.online ?? false);
+	const debugError = $derived((app as any)?._debugError as string | undefined);
 	const isDownloading = $derived(statusLabel === 'Downloading');
 	const isReady = $derived(statusLabel === 'Ready' || statusLabel === 'Installed');
 	const isStopped = $derived(statusLabel === 'Stopped');
@@ -57,7 +59,8 @@
 			toastInfo(`Starting ${pluginName}...`);
 		} catch (e) {
 			if (e instanceof ApiError && e.code === 'plugin_already_running') {
-				toastInfo(`${pluginName} is already running`);
+				// Already running — trigger refresh to bring online
+				await refreshApps();
 			} else {
 				toastError(`Failed to start ${pluginName}`);
 			}
@@ -192,6 +195,11 @@
 		<p class="text-sm text-surface-400 text-center max-w-md">
 			App is {statusLabel.toLowerCase() || 'installed'}. Waiting for it to become ready.
 		</p>
+		{#if debugError}
+			<div class="mt-2 px-4 py-2 rounded-md bg-red-500/10 border border-red-500/30 max-w-lg">
+				<p class="text-xs text-red-400 font-mono break-all">{debugError}</p>
+			</div>
+		{/if}
 	</div>
 {:else}
 	<div class="flex flex-col items-center justify-center h-full gap-4">

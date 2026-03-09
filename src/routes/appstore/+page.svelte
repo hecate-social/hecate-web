@@ -265,6 +265,17 @@
 
 	async function startPlugin(pluginId: string) {
 		const target = installTarget;
+		const pluginName = target?.oci_image
+			? extractPluginName(target.oci_image)
+			: target?.name;
+
+		// For in-VM or already-running plugins, just navigate — no start command needed
+		if (target?.plugin_type === 'in_vm') {
+			cancelInstall();
+			if (pluginName) goto(`/plugin/${pluginName}`);
+			return;
+		}
+
 		try {
 			await post('/api/plugins/start', { plugin_id: pluginId });
 		} catch (e) {
@@ -277,11 +288,7 @@
 			}
 		}
 		cancelInstall();
-		// Navigate to the plugin page so user sees startup progress
-		if (target?.oci_image) {
-			const routeName = extractPluginName(target.oci_image);
-			goto(`/plugin/${routeName}`);
-		}
+		if (pluginName) goto(`/plugin/${pluginName}`);
 	}
 
 	async function cancelPull() {

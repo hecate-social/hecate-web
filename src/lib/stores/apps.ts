@@ -130,6 +130,7 @@ async function pollStatuses(): Promise<void> {
 	const current = get(apps);
 	for (const [name, app] of current) {
 		if (!app.online && (app.info.status_label === 'Running' || app.info.status_label === 'Starting')) {
+			console.log(`[apps] Attempting bringOnline for ${name} (status: ${app.info.status_label})`);
 			bringOnline(name);
 		}
 	}
@@ -143,37 +144,66 @@ async function loadPluginElement(pluginName: string, tag: string): Promise<boole
 	const url = `/plugin/${pluginName}/ui/component.js`;
 	try {
 		const resp = await fetch(url);
-		if (!resp.ok) return false;
+		if (!resp.ok) {
+			console.warn(`[apps] component.js fetch failed for ${pluginName}: ${resp.status}`);
+			return false;
+		}
 		const text = await resp.text();
 		const blob = new Blob([text], { type: 'application/javascript' });
 		const blobUrl = URL.createObjectURL(blob);
-		await import(/* @vite-ignore */ blobUrl);
-		URL.revokeObjectURL(blobUrl);
-		return customElements.get(tag) !== undefined;
+		try {
+			await import(/* @vite-ignore */ blobUrl);
+		} finally {
+			URL.revokeObjectURL(blobUrl);
+		}
+		const registered = customElements.get(tag) !== undefined;
+		if (!registered) {
+			console.warn(`[apps] component.js loaded for ${pluginName} but <${tag}> not registered`);
+		}
+		return registered;
 	} catch (e) {
+		// If element was already registered by a concurrent call, that's fine
+		if (customElements.get(tag)) return true;
 		console.error(`[apps] Failed to load element for ${pluginName}:`, e);
 		return false;
 	}
 }
 
+const onlining = new Set<string>();
+
 async function bringOnline(name: string): Promise<void> {
+	if (onlining.has(name)) return;
+	onlining.add(name);
 	try {
 		const api = createPluginApi(name);
 		const manifest = await api.get<PluginManifest>('/manifest');
 		const loaded = await loadPluginElement(name, manifest.tag);
 
-		if (loaded) {
-			apps.update((current) => {
-				const next = new Map(current);
-				const existing = next.get(name);
-				if (existing) {
+		apps.update((current) => {
+			const next = new Map(current);
+			const existing = next.get(name);
+			if (existing) {
+				if (loaded) {
 					next.set(name, { ...existing, manifest, tag: manifest.tag, api, online: true });
+				} else {
+					next.set(name, { ...existing, manifest, tag: manifest.tag, api, online: false,
+						_debugError: `Custom element <${manifest.tag}> not registered after import` });
 				}
-				return next;
-			});
-		}
+			}
+			return next;
+		});
 	} catch (e) {
-		console.error(`[apps] Failed to bring ${name} online:`, e);
+		apps.update((current) => {
+			const next = new Map(current);
+			const existing = next.get(name);
+			if (existing) {
+				next.set(name, { ...existing,
+					_debugError: `bringOnline failed: ${e instanceof Error ? e.message : String(e)}` });
+			}
+			return next;
+		});
+	} finally {
+		onlining.delete(name);
 	}
 }
 
