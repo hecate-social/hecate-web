@@ -1,5 +1,8 @@
+// Traffic indicator store — polls daemon API for mesh traffic counters.
+// Falls back gracefully if the endpoint isn't available.
+
 import { writable } from 'svelte/store';
-import { invoke } from '@tauri-apps/api/core';
+import { get as apiGet } from '$lib/api';
 
 interface TrafficCounters {
 	tx_bytes: number;
@@ -13,7 +16,7 @@ export const rxActive = writable(false);
 export const txBytes = writable(0);
 export const rxBytes = writable(0);
 
-const POLL_MS = 1_000;
+const POLL_MS = 2_000;
 const FADE_MS = 300;
 
 let timer: ReturnType<typeof setInterval> | null = null;
@@ -24,7 +27,7 @@ let prevRx = 0;
 
 async function poll() {
 	try {
-		const c = await invoke<TrafficCounters>('get_traffic_counters');
+		const c = await apiGet<TrafficCounters>('/api/traffic');
 		txBytes.set(c.tx_bytes);
 		rxBytes.set(c.rx_bytes);
 
@@ -42,7 +45,7 @@ async function poll() {
 		prevTx = c.tx_count;
 		prevRx = c.rx_count;
 	} catch {
-		// Tauri command not available yet — ignore
+		// Endpoint not available — ignore
 	}
 }
 

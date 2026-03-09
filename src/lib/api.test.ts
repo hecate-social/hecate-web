@@ -13,6 +13,11 @@ vi.mock('$lib/stores/settings', () => ({
 	settings: mockSettings
 }));
 
+// Mock isTauri — tests run outside Tauri so BASE = ''
+vi.mock('$lib/tauri', () => ({
+	isTauri: () => false
+}));
+
 // Mock global fetch
 const mockFetch = vi.fn();
 vi.stubGlobal('fetch', mockFetch);
@@ -87,13 +92,13 @@ describe('auth headers', () => {
 // --- GET ---
 
 describe('get', () => {
-	it('fetches from hecate://localhost with path', async () => {
+	it('fetches same-origin path (non-Tauri)', async () => {
 		mockFetch.mockResolvedValueOnce(jsonResponse({ items: [1, 2] }));
 
 		const result = await get('/api/catalog');
 
 		expect(mockFetch).toHaveBeenCalledOnce();
-		expect(mockFetch.mock.calls[0][0]).toBe('hecate://localhost/api/catalog');
+		expect(mockFetch.mock.calls[0][0]).toBe('/api/catalog');
 		expect(result).toEqual({ items: [1, 2] });
 	});
 
@@ -118,7 +123,7 @@ describe('post', () => {
 		await post('/api/licenses', { name: 'test' });
 
 		const [url, opts] = mockFetch.mock.calls[0];
-		expect(url).toBe('hecate://localhost/api/licenses');
+		expect(url).toBe('/api/licenses');
 		expect(opts.method).toBe('POST');
 		expect(opts.headers['Content-Type']).toBe('application/json');
 		expect(opts.headers['X-Hecate-User-Id']).toBe('u1');
@@ -151,7 +156,7 @@ describe('del', () => {
 		await del('/api/plugins/weather');
 
 		const [url, opts] = mockFetch.mock.calls[0];
-		expect(url).toBe('hecate://localhost/api/plugins/weather');
+		expect(url).toBe('/api/plugins/weather');
 		expect(opts.method).toBe('DELETE');
 		expect(opts.headers['X-Hecate-User-Id']).toBe('u2');
 	});
@@ -167,7 +172,7 @@ describe('patch', () => {
 		await patch('/api/appstore/licenses/lic-1/pricing', { fee_cents: 499 });
 
 		const [url, opts] = mockFetch.mock.calls[0];
-		expect(url).toBe('hecate://localhost/api/appstore/licenses/lic-1/pricing');
+		expect(url).toBe('/api/appstore/licenses/lic-1/pricing');
 		expect(opts.method).toBe('PATCH');
 		expect(opts.headers['Content-Type']).toBe('application/json');
 		expect(opts.headers['X-Hecate-User-Id']).toBe('u3');

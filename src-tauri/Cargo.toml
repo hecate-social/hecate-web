@@ -2,7 +2,7 @@
 name = "hecate-web"
 version = "0.15.5"
 edition = "2021"
-description = "Hecate Desktop — site-specific browser for Hecate Daemon"
+description = "Hecate Desktop — thin Tauri wrapper for Hecate Daemon"
 authors = ["Hecate Social"]
 
 [lib]

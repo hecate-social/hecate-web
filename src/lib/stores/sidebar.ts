@@ -127,6 +127,48 @@ export async function initSidebar(): Promise<void> {
 	initialized = true;
 }
 
+/** Optimistically add a plugin to a sidebar group.
+ *  Used after install so the entry appears immediately without waiting
+ *  for the async PM chain to project the launcher layout.
+ */
+export function addPluginToSidebar(pluginName: string, icon: string = '\uD83D\uDD0C', groupName: string = 'APPS'): void {
+	sidebarGroups.update(($groups) => {
+		// Check if already present in any group
+		for (const g of $groups) {
+			if (g.appIds.includes(pluginName)) return $groups;
+		}
+		// Find or create the target group
+		const targetGroup = $groups.find((g) => g.name === groupName);
+		if (targetGroup) {
+			return $groups.map((g) =>
+				g.id === targetGroup.id
+					? { ...g, appIds: [...g.appIds, pluginName] }
+					: g
+			);
+		}
+		return [
+			...$groups,
+			{
+				id: `grp-${Date.now()}`,
+				name: groupName,
+				icon,
+				collapsed: false,
+				appIds: [pluginName]
+			}
+		];
+	});
+}
+
+/** Optimistically remove a plugin from all sidebar groups. */
+export function removePluginFromSidebar(pluginName: string): void {
+	sidebarGroups.update(($groups) =>
+		$groups.map((g) => ({
+			...g,
+			appIds: g.appIds.filter((id) => id !== pluginName)
+		}))
+	);
+}
+
 // Subscribe to changes and debounce-save to daemon
 sidebarGroups.subscribe(() => {
 	debounceSaveToDaemon();

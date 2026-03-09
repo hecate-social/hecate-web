@@ -1,5 +1,4 @@
 import { writable } from 'svelte/store';
-import { listen, type UnlistenFn } from '@tauri-apps/api/event';
 import { get as apiGet, post, put } from '$lib/api';
 
 export interface SettingsIdentity {
@@ -90,18 +89,17 @@ export async function updatePreferences(prefs: Record<string, unknown>): Promise
 	}
 }
 
-let settingsUnlisten: UnlistenFn | null = null;
+// Settings watcher — periodically re-fetch to catch daemon-side changes
+let watchTimer: ReturnType<typeof setInterval> | null = null;
 
 export async function startSettingsWatcher(): Promise<void> {
-	if (settingsUnlisten) return;
-	settingsUnlisten = await listen('daemon-settings-changed', () => {
-		fetchSettings();
-	});
+	if (watchTimer) return;
+	watchTimer = setInterval(fetchSettings, 15000);
 }
 
 export function stopSettingsWatcher(): void {
-	if (settingsUnlisten) {
-		settingsUnlisten();
-		settingsUnlisten = null;
+	if (watchTimer) {
+		clearInterval(watchTimer);
+		watchTimer = null;
 	}
 }

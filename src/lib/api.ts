@@ -1,9 +1,13 @@
-// Daemon API client — proxied through Tauri's hecate:// custom protocol
+// Daemon API client
+//
+// Inside Tauri: requests go to hecate://localhost (custom protocol → Unix socket)
+// During vite dev: requests go same-origin (vite proxy → Unix socket)
 
 import { get as getStore } from 'svelte/store';
 import { settings } from '$lib/stores/settings';
+import { isTauri } from '$lib/tauri';
 
-const BASE = 'hecate://localhost';
+const BASE = isTauri() ? 'hecate://localhost' : '';
 
 function authHeaders(): Record<string, string> {
 	const s = getStore(settings);

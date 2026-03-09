@@ -2,7 +2,6 @@ mod app_updater;
 mod config_watcher;
 mod daemon_streaming;
 mod daemon_watcher;
-mod plugin_discovery;
 mod plugin_streaming;
 mod plugin_updater;
 mod plugin_watcher;
@@ -59,9 +58,6 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             app_updater::check_app_update,
             app_updater::install_app_update,
-            socket_proxy::check_daemon_health,
-            daemon_watcher::get_cached_health,
-            plugin_discovery::discover_plugins,
             plugin_updater::check_plugin_updates,
             plugin_updater::install_plugin_update,
             plugin_streaming::plugin_sse_stream,

@@ -1,5 +1,4 @@
 import { writable } from 'svelte/store';
-import { listen, type UnlistenFn } from '@tauri-apps/api/event';
 import { get as apiGet } from '$lib/api';
 
 export interface NodeIdentity {
@@ -22,18 +21,17 @@ export async function fetchNodeIdentity(): Promise<void> {
 	}
 }
 
-let identityUnlisten: UnlistenFn | null = null;
+// Identity watcher — periodically re-fetch
+let watchTimer: ReturnType<typeof setInterval> | null = null;
 
 export async function startIdentityWatcher(): Promise<void> {
-	if (identityUnlisten) return;
-	identityUnlisten = await listen('daemon-identity-changed', () => {
-		fetchNodeIdentity();
-	});
+	if (watchTimer) return;
+	watchTimer = setInterval(fetchNodeIdentity, 30000);
 }
 
 export function stopIdentityWatcher(): void {
-	if (identityUnlisten) {
-		identityUnlisten();
-		identityUnlisten = null;
+	if (watchTimer) {
+		clearInterval(watchTimer);
+		watchTimer = null;
 	}
 }

@@ -1,13 +1,16 @@
 <script lang="ts">
-	import { get as apiGet, post } from '$lib/api';
+	import { get as apiGet, post, ApiError } from '$lib/api';
 	import { goto } from '$app/navigation';
 	import { health } from '$lib/stores/daemon';
 	import { settings } from '$lib/stores/settings';
-	import type { CatalogItem, PluginDetail } from '$lib/types/appstore';
-	import { getActionState, formatPrice, parseTags } from '$lib/types/appstore';
+	import { initSidebar, addPluginToSidebar, removePluginFromSidebar } from '$lib/stores/sidebar';
+	import { pullStatus, startPullPolling, stopPullPolling } from '$lib/stores/pull-progress';
+	import { toastSuccess, toastError } from '$lib/stores/toasts';
+	import type { OfferingItem, OfferingDetail } from '$lib/types/appstore';
+	import { getActionState, isPluginInstalled, formatPrice, parseTags, extractPluginName } from '$lib/types/appstore';
 
 	// --- Data ---
-	let catalog: CatalogItem[] = $state([]);
+	let catalog: OfferingItem[] = $state([]);
 	let isLoading = $state(true);
 	let error: string | null = $state(null);
 
@@ -15,7 +18,7 @@
 	type Tab = 'browse' | 'my-plugins';
 	let activeTab: Tab = $state('browse');
 	let searchQuery = $state('');
-	let selectedPlugin: PluginDetail | null = $state(null);
+	let selectedPlugin: OfferingDetail | null = $state(null);
 	let detailLoading = $state(false);
 	let actionLoading: string | null = $state(null);
 
@@ -27,14 +30,14 @@
 	let urlPublishSuccess: string | null = $state(null);
 
 	// --- Install confirmation modal state ---
-	type InstallStep = 'confirm' | 'buying' | 'installing' | 'done' | 'error';
-	let installTarget: CatalogItem | null = $state(null);
+	type InstallStep = 'confirm' | 'buying' | 'installing' | 'downloading' | 'done' | 'error';
+	let installTarget: OfferingItem | null = $state(null);
 	let installStep: InstallStep = $state('confirm');
 	let installModalError: string | null = $state(null);
 
 	// --- Danger action confirmation state (uninstall / revoke) ---
 	type DangerAction = 'uninstall' | 'revoke';
-	let dangerTarget: CatalogItem | null = $state(null);
+	let dangerTarget: OfferingItem | null = $state(null);
 	let dangerAction: DangerAction = $state('uninstall');
 
 	// --- Filtered catalog ---
@@ -60,13 +63,13 @@
 
 	// --- Installed count ---
 	let installedCount = $derived(
-		catalog.filter((p) => p.installed === 1).length
+		catalog.filter((p) => isPluginInstalled(p)).length
 	);
 
 	// --- Fetch ---
 	async function fetchCatalog() {
 		try {
-			const res = await apiGet<{ items: CatalogItem[] }>('/api/appstore/catalog');
+			const res = await apiGet<{ items: OfferingItem[] }>('/api/appstore/offerings');
 			catalog = res.items;
 		} catch (e) {
 			error = e instanceof Error ? e.message : String(e);
@@ -80,13 +83,13 @@
 		isLoading = false;
 	}
 
-	async function openDetail(pluginId: string) {
+	async function openDetail(offeringId: string) {
 		detailLoading = true;
 		try {
-			const res = await apiGet<{ plugin: PluginDetail }>(`/api/appstore/catalog/${encodeURIComponent(pluginId)}`);
+			const res = await apiGet<{ plugin: OfferingDetail }>(`/api/appstore/offerings/${encodeURIComponent(offeringId)}`);
 			selectedPlugin = res.plugin;
 		} catch (e) {
-			console.error('[appstore] Failed to load plugin detail:', e);
+			toastError('Failed to load plugin details');
 		} finally {
 			detailLoading = false;
 		}
@@ -97,83 +100,45 @@
 	}
 
 	// --- Actions ---
-	async function buyLicense(item: CatalogItem) {
-		actionLoading = item.plugin_id;
-		try {
-			await post('/api/appstore/licenses/buy', {
-				user_id: 'rl',
-				plugin_id: item.plugin_id,
-				plugin_name: item.name,
-				oci_image: item.oci_image
-			});
-			await fetchCatalog();
-			if (selectedPlugin && selectedPlugin.plugin_id === item.plugin_id) {
-				await openDetail(item.plugin_id);
-			}
-		} catch (e) {
-			console.error('[appstore] Buy license failed:', e);
-		} finally {
-			actionLoading = null;
-		}
-	}
-
-	async function installPlugin(item: CatalogItem) {
-		actionLoading = item.plugin_id;
-		try {
-			await post('/api/appstore/plugins/install', {
-				license_id: item.license_id,
-				plugin_id: item.plugin_id,
-				plugin_name: item.name,
-				version: item.version,
-				oci_image: item.oci_image
-			});
-			await fetchCatalog();
-			if (selectedPlugin && selectedPlugin.plugin_id === item.plugin_id) {
-				await openDetail(item.plugin_id);
-			}
-		} catch (e) {
-			console.error('[appstore] Install failed:', e);
-		} finally {
-			actionLoading = null;
-		}
-	}
-
-	async function removePlugin(item: CatalogItem) {
+	async function removePlugin(item: OfferingItem) {
 		actionLoading = item.plugin_id;
 		try {
 			await post('/api/appstore/plugins/remove', {
 				license_id: item.license_id,
 				plugin_id: item.plugin_id
 			});
+			removePluginFromSidebar(item.oci_image ? extractPluginName(item.oci_image) : item.name);
+			toastSuccess(`${item.name} removed`);
 			await fetchCatalog();
 			if (selectedPlugin && selectedPlugin.plugin_id === item.plugin_id) {
-				await openDetail(item.plugin_id);
+				await openDetail(item.offering_id);
 			}
 		} catch (e) {
-			console.error('[appstore] Remove failed:', e);
+			toastError(`Failed to remove plugin: ${e instanceof Error ? e.message : 'Unknown error'}`);
 		} finally {
 			actionLoading = null;
 		}
 	}
 
-	async function revokeLicense(item: CatalogItem) {
+	async function revokeLicense(item: OfferingItem) {
 		actionLoading = item.plugin_id;
 		try {
 			await post('/api/appstore/licenses/revoke', {
 				license_id: item.license_id
 			});
+			toastSuccess(`License for ${item.name} revoked`);
 			await fetchCatalog();
 			if (selectedPlugin && selectedPlugin.plugin_id === item.plugin_id) {
-				await openDetail(item.plugin_id);
+				await openDetail(item.offering_id);
 			}
 		} catch (e) {
-			console.error('[appstore] Revoke license failed:', e);
+			toastError(`Failed to revoke license: ${e instanceof Error ? e.message : 'Unknown error'}`);
 		} finally {
 			actionLoading = null;
 		}
 	}
 
-	function requestDanger(item: CatalogItem, action: DangerAction) {
+	function requestDanger(item: OfferingItem, action: DangerAction) {
 		dangerTarget = item;
 		dangerAction = action;
 	}
@@ -205,6 +170,7 @@
 				url: publishUrl.trim()
 			});
 			urlPublishSuccess = 'Published successfully';
+			toastSuccess('Plugin published to catalog');
 			publishUrl = '';
 			await fetchCatalog();
 			setTimeout(() => {
@@ -218,13 +184,14 @@
 		}
 	}
 
-	function requestInstall(item: CatalogItem) {
+	function requestInstall(item: OfferingItem) {
 		installTarget = item;
 		installStep = 'confirm';
 		installModalError = null;
 	}
 
 	function cancelInstall() {
+		stopPullPolling();
 		installTarget = null;
 		installStep = 'confirm';
 		installModalError = null;
@@ -233,52 +200,103 @@
 	async function confirmInstall() {
 		if (!installTarget) return;
 		const item = installTarget;
-		const action = getActionState(item);
 
 		try {
-			if (action === 'get') {
-				installStep = 'buying';
-				await post('/api/appstore/licenses/buy', {
-					user_id: 'rl',
-					plugin_id: item.plugin_id,
+			installStep = 'buying';
+			// Combined endpoint: initiate_license + accept_offering_terms
+			// PMs handle grant + install asynchronously after this returns
+			await post('/api/appstore/install', {
+				plugin_id: item.plugin_id,
+				offering_data: {
+					offering_id: item.offering_id,
 					plugin_name: item.name,
-					oci_image: item.oci_image
-				});
-				await fetchCatalog();
-				const updated = catalog.find((p) => p.plugin_id === item.plugin_id);
-				if (updated && updated.license_id) {
-					installStep = 'installing';
-					await post('/api/appstore/plugins/install', {
-						license_id: updated.license_id,
-						plugin_id: updated.plugin_id,
-						plugin_name: updated.name,
-						version: updated.version,
-						oci_image: updated.oci_image
-					});
-				}
-			} else {
-				installStep = 'installing';
-				await post('/api/appstore/plugins/install', {
-					license_id: item.license_id,
-					plugin_id: item.plugin_id,
-					plugin_name: item.name,
+					description: item.description,
+					icon: item.icon,
+					group_name: item.group_name,
+					oci_image: item.oci_image,
+					package_url: item.package_url,
+					selling_formula: item.selling_formula,
+					author_id: item.author_id,
+					author_signature: item.author_signature,
+					license_type: item.license_type,
+					fee_cents: item.fee_cents,
+					fee_currency: item.fee_currency,
+					duration_days: item.duration_days,
+					node_limit: item.node_limit,
+					org: item.org,
 					version: item.version,
-					oci_image: item.oci_image
-				});
-			}
-			installStep = 'done';
+					manifest_tag: item.manifest_tag,
+					tags: item.tags,
+					homepage: item.homepage,
+					min_daemon_version: item.min_daemon_version,
+					publisher_identity: item.publisher_identity,
+					manifest_url: item.manifest_url,
+					manifest_checksum: item.manifest_checksum,
+					oci_image_verified: item.oci_image_verified,
+					oci_image_digest: item.oci_image_digest,
+					plugin_type: item.plugin_type,
+					callback_module: item.callback_module
+				}
+			});
+			// PMs fire asynchronously: grant_license -> install_plugin -> OCI pull
+			// Wait briefly for PM chain to propagate, then poll for download progress
+			toastSuccess(`Installing ${item.name}...`);
+			installStep = 'installing';
+			await new Promise((r) => setTimeout(r, 1500));
+			addPluginToSidebar(item.oci_image ? extractPluginName(item.oci_image) : item.name, item.icon ?? undefined, item.group_name ?? 'APPS');
 			await fetchCatalog();
 			if (selectedPlugin && selectedPlugin.plugin_id === item.plugin_id) {
-				await openDetail(item.plugin_id);
+				await openDetail(item.offering_id);
 			}
-			setTimeout(() => cancelInstall(), 1500);
+			if (item.plugin_type === 'in_vm') {
+				installStep = 'downloading';
+				// In-VM plugins load directly — no OCI pull needed.
+				// Set pullStatus to complete so the UI shows the "Start" button.
+				pullStatus.set({ status: 'complete', percent: 100 });
+			} else {
+				installStep = 'downloading';
+				startPullPolling(item.plugin_id);
+			}
 		} catch (e) {
 			installModalError = e instanceof Error ? e.message : String(e);
 			installStep = 'error';
 		}
 	}
 
-	function handleAction(item: CatalogItem) {
+	async function startPlugin(pluginId: string) {
+		const target = installTarget;
+		try {
+			await post('/api/plugins/start', { plugin_id: pluginId });
+		} catch (e) {
+			if (e instanceof ApiError && e.code === 'plugin_already_running') {
+				// Already running — navigate to plugin
+			} else {
+				installModalError = e instanceof Error ? e.message : String(e);
+				installStep = 'error';
+				return;
+			}
+		}
+		cancelInstall();
+		// Navigate to the plugin page so user sees startup progress
+		if (target?.oci_image) {
+			const routeName = extractPluginName(target.oci_image);
+			goto(`/plugin/${routeName}`);
+		}
+	}
+
+	async function cancelPull() {
+		if (!installTarget) return;
+		try {
+			await post(`/api/appstore/plugins/${encodeURIComponent(installTarget.plugin_id)}/cancel-pull`, {});
+		} catch (e) {
+			toastError(`Failed to cancel download: ${e instanceof Error ? e.message : 'Unknown error'}`);
+		}
+		stopPullPolling();
+		installStep = 'confirm';
+		installTarget = null;
+	}
+
+	function handleAction(item: OfferingItem) {
 		const state = getActionState(item);
 		switch (state) {
 			case 'get':
@@ -337,7 +355,7 @@
 			<!-- Search -->
 			<input
 				bind:value={searchQuery}
-				placeholder="Search plugins..."
+				placeholder="Search apps..."
 				class="w-56 bg-surface-700 border border-surface-600 rounded-lg
 					px-3 py-1.5 text-xs text-surface-100 placeholder-surface-500
 					focus:outline-none focus:border-accent-500"
@@ -362,7 +380,7 @@
 					? 'bg-accent-600 text-surface-50'
 					: 'text-surface-400 hover:text-surface-200 hover:bg-surface-700'}"
 			>
-				My Plugins
+				My Apps
 				{#if installedCount > 0}
 					<span class="ml-1 px-1.5 py-0.5 rounded-full text-[10px] bg-success-500/20 text-success-400">
 						{installedCount}
@@ -439,10 +457,10 @@
 					<div class="flex flex-col items-center justify-center py-20 text-center">
 						{#if searchQuery.trim()}
 							<div class="text-2xl mb-3 text-surface-500">{'\u{1F50D}'}</div>
-							<p class="text-sm text-surface-400">No plugins matching "{searchQuery}"</p>
+							<p class="text-sm text-surface-400">No apps matching "{searchQuery}"</p>
 						{:else}
 							<div class="text-2xl mb-3 text-surface-500">{'\u{1F4E6}'}</div>
-							<p class="text-sm text-surface-400">No plugins available yet</p>
+							<p class="text-sm text-surface-400">No apps available yet</p>
 						{/if}
 					</div>
 				{:else}
@@ -457,7 +475,7 @@
 							>
 								<!-- Card header (clickable for details) -->
 								<button
-									onclick={() => openDetail(item.plugin_id)}
+									onclick={() => openDetail(item.offering_id)}
 									class="w-full text-left p-4 pb-2 cursor-pointer"
 								>
 									<div class="flex items-start gap-3">
@@ -533,13 +551,13 @@
 					</div>
 				{/if}
 			{:else if activeTab === 'my-plugins'}
-				<!-- My Plugins tab -->
+				<!-- My Apps tab -->
 				{#if licensedPlugins.length === 0}
 					<div class="flex flex-col items-center justify-center py-20 text-center">
 						<div class="text-2xl mb-3 text-surface-500">{'\u{1F4E6}'}</div>
-						<h3 class="text-sm font-medium text-surface-200 mb-1">No plugins yet</h3>
+						<h3 class="text-sm font-medium text-surface-200 mb-1">No apps yet</h3>
 						<p class="text-xs text-surface-400">
-							Browse the catalog and get plugins to see them here
+							Browse the catalog and get apps to see them here
 						</p>
 						<button
 							onclick={() => (activeTab = 'browse')}
@@ -560,7 +578,7 @@
 								<span class="text-xl shrink-0">{item.icon ?? '\u{1F4E6}'}</span>
 								<div class="flex-1 min-w-0">
 									<button
-										onclick={() => openDetail(item.plugin_id)}
+										onclick={() => openDetail(item.offering_id)}
 										class="text-left cursor-pointer"
 									>
 										<div class="flex items-center gap-2">
@@ -568,9 +586,16 @@
 											<span class="text-[10px] px-1.5 py-0.5 rounded-full bg-surface-700 text-surface-400 border border-surface-600">
 												v{item.installed_version ?? item.version}
 											</span>
-											{#if item.installed === 1}
-												<span class="text-[10px] px-1.5 py-0.5 rounded-full bg-success-500/20 text-success-400">
-													Running
+											{#if item.status_label}
+												<span class="text-[10px] px-1.5 py-0.5 rounded-full
+													{item.status_label === 'Running'
+													? 'bg-success-500/20 text-success-400'
+													: item.status_label === 'Downloading'
+														? 'bg-accent-500/20 text-accent-400'
+														: item.status_label === 'Stopped'
+															? 'bg-warning-500/20 text-warning-400'
+															: 'bg-surface-500/20 text-surface-400'}">
+													{item.status_label}
 												</span>
 											{/if}
 										</div>
@@ -643,11 +668,16 @@
 					</div>
 				{:else if selectedPlugin}
 					{@const detail = selectedPlugin}
-					{@const detailAction = detail.license
-						? (detail.license.installed === 1
-							? (detail.version !== detail.license.installed_version ? 'update' : 'installed')
-							: (detail.license.revoked === 1 ? 'revoked' : 'install'))
-						: 'get'}
+					{@const detailAsItem = {
+						...detail,
+						license_id: detail.license?.license_id ?? null,
+						installed: detail.installed ?? null,
+						installed_version: detail.license?.installed_version ?? null,
+						status_label: detail.status_label ?? null
+					} satisfies OfferingItem}
+					{@const detailAction = detail.license?.revoked_at != null
+						? 'revoked'
+						: getActionState(detailAsItem)}
 					{@const detailActionLoading = actionLoading === detail.plugin_id}
 					{@const detailPrice = formatPrice(detail)}
 
@@ -716,15 +746,7 @@
 
 						<!-- Action button -->
 						<button
-							onclick={() => {
-								const asItem: CatalogItem = {
-									...detail,
-									license_id: detail.license?.license_id ?? null,
-									installed: detail.license?.installed ?? null,
-									installed_version: detail.license?.installed_version ?? null
-								};
-								handleAction(asItem);
-							}}
+							onclick={() => handleAction(detailAsItem)}
 							disabled={detailActionLoading || detailAction === 'revoked'}
 							class="w-full py-2.5 rounded-lg text-sm font-medium transition-colors cursor-pointer
 								{detailActionLoading
@@ -755,17 +777,9 @@
 						</button>
 
 						<!-- Revoke license (separate from uninstall) -->
-						{#if detail.license && !detail.license.revoked}
+						{#if detail.license && !detail.license.revoked_at}
 							<button
-								onclick={() => {
-									const asItem = {
-										...detail,
-										license_id: detail.license?.license_id ?? null,
-										installed: detail.license?.installed ?? null,
-										installed_version: detail.license?.installed_version ?? null
-									};
-									requestDanger(asItem, 'revoke');
-								}}
+								onclick={() => requestDanger(detailAsItem, 'revoke')}
 								class="w-full py-2 rounded-lg text-xs font-medium transition-colors cursor-pointer
 									text-surface-500 hover:text-danger-400 hover:bg-danger-500/10"
 							>
@@ -791,8 +805,12 @@
 						<div class="space-y-3">
 							<h3 class="text-[11px] text-surface-500 uppercase tracking-wider">Details</h3>
 							<div class="grid grid-cols-[auto_1fr] gap-x-4 gap-y-2 text-xs">
-								<span class="text-surface-500">OCI Image</span>
-								<span class="text-surface-300 font-mono break-all">{detail.oci_image}</span>
+								<span class="text-surface-500">{detail.plugin_type === 'in_vm' && detail.package_url ? 'Package' : 'OCI Image'}</span>
+								{#if detail.plugin_type === 'in_vm' && detail.package_url}
+									<span class="text-surface-300 font-mono break-all">{detail.package_url}</span>
+								{:else if detail.oci_image}
+									<span class="text-surface-300 font-mono break-all">{detail.oci_image}</span>
+								{/if}
 
 								{#if detail.publisher_identity}
 									<span class="text-surface-500">Publisher</span>
@@ -826,12 +844,12 @@
 										</span>
 									</div>
 									<div class="flex items-center gap-2 text-xs">
-										<span class="{detail.seller_signature ? 'text-success-400' : 'text-warning-400'}">
-											{detail.seller_signature ? '\u{2705}' : '\u{26A0}\u{FE0F}'}
+										<span class="{detail.author_signature ? 'text-success-400' : 'text-warning-400'}">
+											{detail.author_signature ? '\u{2705}' : '\u{26A0}\u{FE0F}'}
 										</span>
 										<span class="text-surface-400">Manifest signed</span>
 										<span class="text-surface-300">
-											{detail.seller_signature ? 'Yes' : 'No'}
+											{detail.author_signature ? 'Yes' : 'No'}
 										</span>
 									</div>
 									<div class="flex items-center gap-2 text-xs">
@@ -865,26 +883,28 @@
 								<h3 class="text-[11px] text-surface-500 uppercase tracking-wider">License</h3>
 								<div class="grid grid-cols-[auto_1fr] gap-x-4 gap-y-2 text-xs">
 									<span class="text-surface-500">Status</span>
-									<span class="{detail.license.revoked ? 'text-danger-400' : 'text-success-400'}">
-										{detail.license.revoked ? 'Revoked' : 'Active'}
+									<span class="{detail.license.revoked_at ? 'text-danger-400' : 'text-success-400'}">
+										{detail.license.revoked_at ? 'Revoked' : detail.license.status_label ?? 'Active'}
 									</span>
 
-									<span class="text-surface-500">Granted</span>
-									<span class="text-surface-300">{new Date(detail.license.granted_at).toLocaleDateString()}</span>
-
-									{#if detail.license.installed === 1}
-										<span class="text-surface-500">Installed</span>
-										<span class="text-surface-300">
-											v{detail.license.installed_version}
-											{#if detail.license.installed_at}
-												 ({new Date(detail.license.installed_at).toLocaleDateString()})
-											{/if}
-										</span>
+									{#if detail.license.granted_at}
+										<span class="text-surface-500">Granted</span>
+										<span class="text-surface-300">{new Date(detail.license.granted_at).toLocaleDateString()}</span>
 									{/if}
 
-									{#if detail.license.upgraded_at}
-										<span class="text-surface-500">Last Upgrade</span>
-										<span class="text-surface-300">{new Date(detail.license.upgraded_at).toLocaleDateString()}</span>
+									{#if detail.license.accepted_at}
+										<span class="text-surface-500">Accepted</span>
+										<span class="text-surface-300">{new Date(detail.license.accepted_at).toLocaleDateString()}</span>
+									{/if}
+
+									{#if detail.license.installed_version}
+										<span class="text-surface-500">Installed</span>
+										<span class="text-surface-300">v{detail.license.installed_version}</span>
+									{/if}
+
+									{#if detail.license.expired_at}
+										<span class="text-surface-500">Expired</span>
+										<span class="text-surface-300">{new Date(detail.license.expired_at).toLocaleDateString()}</span>
 									{/if}
 								</div>
 							</div>
@@ -920,9 +940,9 @@
 
 				<p class="text-xs text-surface-400 leading-relaxed">
 					{#if dangerAction === 'uninstall'}
-						This will stop and remove the container for this plugin. Your license remains active and you can reinstall later.
+						This will stop and remove the container for this app. Your license remains active and you can reinstall later.
 					{:else}
-						This will permanently revoke your license for this plugin. If the plugin is installed, it will be uninstalled first. You will need to buy a new license to use it again.
+						This will permanently revoke your license for this app. If the app is installed, it will be uninstalled first. You will need to buy a new license to use it again.
 					{/if}
 				</p>
 
@@ -986,26 +1006,39 @@
 							</span>
 						</div>
 						<div class="flex items-center gap-2 text-xs">
-							<span class="{target.seller_signature ? 'text-success-400' : 'text-warning-400'}">
-								{target.seller_signature ? '\u{2705}' : '\u{26A0}\u{FE0F}'}
+							<span class="{target.author_signature ? 'text-success-400' : 'text-warning-400'}">
+								{target.author_signature ? '\u{2705}' : '\u{26A0}\u{FE0F}'}
 							</span>
 							<span class="text-surface-300">
-								Manifest {target.seller_signature ? 'signed' : 'not signed'}
+								Manifest {target.author_signature ? 'signed' : 'not signed'}
 							</span>
 						</div>
-						<div class="flex items-center gap-2 text-xs">
-							<span class="{target.oci_image_verified === 1 ? 'text-success-400' : 'text-warning-400'}">
-								{target.oci_image_verified === 1 ? '\u{2705}' : '\u{26A0}\u{FE0F}'}
-							</span>
-							<span class="text-surface-300">
-								Container image {target.oci_image_verified === 1 ? 'verified' : 'not verified'}
-							</span>
-						</div>
+						{#if target.plugin_type === 'in_vm'}
+							<div class="flex items-center gap-2 text-xs">
+								<span class="text-info-400">{'\u{2139}\u{FE0F}'}</span>
+								<span class="text-surface-300">In-VM plugin (no container needed)</span>
+							</div>
+						{:else}
+							<div class="flex items-center gap-2 text-xs">
+								<span class="{target.oci_image_verified === 1 ? 'text-success-400' : 'text-warning-400'}">
+									{target.oci_image_verified === 1 ? '\u{2705}' : '\u{26A0}\u{FE0F}'}
+								</span>
+								<span class="text-surface-300">
+									Container image {target.oci_image_verified === 1 ? 'verified' : 'not verified'}
+								</span>
+							</div>
+						{/if}
 					</div>
 
-					<p class="text-xs text-surface-400 leading-relaxed">
-						This app will run as a container on your system. Only install apps from publishers you trust.
-					</p>
+					{#if target.plugin_type === 'in_vm'}
+						<p class="text-xs text-surface-400 leading-relaxed">
+							This app will run inside the daemon (in-VM plugin). Only install apps from publishers you trust.
+						</p>
+					{:else}
+						<p class="text-xs text-surface-400 leading-relaxed">
+							This app will run as a container on your system. Only install apps from publishers you trust.
+						</p>
+					{/if}
 
 					<div class="flex gap-3">
 						<button
@@ -1041,8 +1074,93 @@
 			{:else if installStep === 'installing'}
 				<div class="p-8 text-center space-y-4">
 					<div class="text-3xl animate-pulse">{'\u{1F4E6}'}</div>
-					<div class="text-sm text-surface-200 font-medium">Provisioning container...</div>
-					<div class="text-xs text-surface-500">Installing {target.name} v{target.version}</div>
+					<div class="text-sm text-surface-200 font-medium">Installing...</div>
+					<div class="text-xs text-surface-500">Setting up {target.name} v{target.version}</div>
+				</div>
+
+			{:else if installStep === 'downloading'}
+				<div class="p-6 space-y-5">
+					<div class="flex items-start gap-4">
+						<span class="text-3xl">{target.icon ?? '\u{1F4E6}'}</span>
+						<div>
+							<h2 class="text-base font-bold text-surface-100">{target.name}</h2>
+							<div class="text-xs text-surface-500">
+								{target.plugin_type === 'in_vm' ? 'Loading plugin' : 'Downloading container image'}
+							</div>
+						</div>
+					</div>
+
+					{#if target.plugin_type !== 'in_vm'}
+					<div class="space-y-2">
+						<div class="w-full bg-surface-700 rounded-full h-2.5 overflow-hidden">
+							<div
+								class="h-full rounded-full transition-all duration-300
+									{$pullStatus.status === 'error' ? 'bg-danger-500' : 'bg-accent-500'}"
+								style="width: {$pullStatus.status === 'ready' || $pullStatus.status === 'complete' ? 100 : Math.max($pullStatus.percent ?? 0, 2)}%"
+							></div>
+						</div>
+						<div class="flex justify-between text-[10px]">
+							<span class="text-surface-400">
+								{#if $pullStatus.status === 'ready' || $pullStatus.status === 'complete'}
+									Download complete
+								{:else if $pullStatus.status === 'error'}
+									Download failed
+								{:else if $pullStatus.status === 'extracting'}
+									Extracting layers...
+								{:else}
+									Downloading...
+								{/if}
+							</span>
+							{#if $pullStatus.percent != null && $pullStatus.status !== 'ready' && $pullStatus.status !== 'complete'}
+								<span class="text-surface-500">{$pullStatus.percent}%</span>
+							{/if}
+						</div>
+						{#if $pullStatus.line}
+							<div class="text-[10px] text-surface-500 font-mono truncate">{$pullStatus.line}</div>
+						{/if}
+					</div>
+					{/if}
+
+					{#if $pullStatus.status === 'ready' || $pullStatus.status === 'complete'}
+						<div class="flex gap-3">
+							<button
+								onclick={() => cancelInstall()}
+								class="flex-1 py-2.5 rounded-lg text-sm font-medium
+									bg-surface-700 text-surface-300 hover:bg-surface-600 border border-surface-600
+									transition-colors cursor-pointer"
+							>
+								Close
+							</button>
+							<button
+								onclick={() => startPlugin(target.plugin_id)}
+								class="flex-1 py-2.5 rounded-lg text-sm font-medium
+									bg-success-500 text-surface-50 hover:bg-success-400
+									transition-colors cursor-pointer"
+							>
+								Start
+							</button>
+						</div>
+					{:else if $pullStatus.status === 'error'}
+						<div class="text-xs text-danger-400 bg-surface-900/50 p-3 rounded-lg border border-surface-700">
+							{$pullStatus.reason ?? 'Pull failed'}
+						</div>
+						<button
+							onclick={() => cancelInstall()}
+							class="w-full py-2.5 rounded-lg text-sm font-medium
+								bg-surface-700 text-surface-300 hover:bg-surface-600 border border-surface-600
+								transition-colors cursor-pointer"
+						>
+							Close
+						</button>
+					{:else}
+						<button
+							onclick={cancelPull}
+							class="w-full py-2 rounded-lg text-xs font-medium transition-colors cursor-pointer
+								text-surface-500 hover:text-danger-400 hover:bg-danger-500/10"
+						>
+							Cancel Download
+						</button>
+					{/if}
 				</div>
 
 			{:else if installStep === 'done'}

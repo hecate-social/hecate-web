@@ -1,157 +1,84 @@
 <script lang="ts">
-	import { isStarting, isUnavailable, showOverlay, health, unavailableSince, debugError, connectionStatus } from '$lib/stores/daemon.js';
+	import type { CheckStatus } from '$lib/stores/startup';
+	import { checks, startupDone } from '$lib/stores/startup';
 	import { fade } from 'svelte/transition';
-	import { onDestroy } from 'svelte';
 
-	const ESCALATION_MS = 15_000;
-	const CYCLE_MS = 4_000;
-	let waitingLong = $state(false);
-	let tickTimer: ReturnType<typeof setInterval> | null = null;
-	let cycleTimer: ReturnType<typeof setInterval> | null = null;
+	let visible = $derived(!$startupDone);
 
-	// Hecate's mythological companions
-	// Hecuba: Queen of Troy, transformed into a black dog
-	// Galinthias: handmaid turned polecat, Hecate's sacred attendant
-	// the Lampades: underworld torch-bearing nymphs, gift from Zeus
-	// the Serpents: sacred animals often depicted with her triple form
-	// her Hounds: dogs sacred to Hecate, announce her approach at crossroads
-	const familiars = ['Hecuba', 'Galinthias', 'the Lampades', 'the Serpents', 'her Hounds'];
-	let familiarIdx = $state(Math.floor(Math.random() * familiars.length));
-	let familiar = $derived(familiars[familiarIdx]);
-
-	function pickNext() {
-		let next: number;
-		do {
-			next = Math.floor(Math.random() * familiars.length);
-		} while (next === familiarIdx && familiars.length > 1);
-		familiarIdx = next;
-	}
-
-	function startTicking() {
-		stopTicking();
-		waitingLong = false;
-		pickNext();
-		tickTimer = setInterval(() => {
-			const since = $unavailableSince;
-			waitingLong = since !== null && Date.now() - since >= ESCALATION_MS;
-		}, 1000);
-		cycleTimer = setInterval(pickNext, CYCLE_MS);
-	}
-
-	function stopTicking() {
-		if (tickTimer) {
-			clearInterval(tickTimer);
-			tickTimer = null;
-		}
-		if (cycleTimer) {
-			clearInterval(cycleTimer);
-			cycleTimer = null;
+	function icon(status: CheckStatus): string {
+		switch (status) {
+			case 'done':    return '\u{2713}';  // checkmark
+			case 'active':  return '\u{25CF}';  // filled circle
+			case 'failed':  return '\u{2717}';  // cross
+			default:        return '\u{25CB}';  // empty circle
 		}
 	}
 
-	$effect(() => {
-		if ($showOverlay) {
-			startTicking();
-		} else {
-			stopTicking();
-			waitingLong = false;
+	function iconColor(status: CheckStatus): string {
+		switch (status) {
+			case 'done':    return 'text-emerald-400';
+			case 'active':  return 'text-amber-400 animate-pulse';
+			case 'failed':  return 'text-red-400';
+			default:        return 'text-surface-600';
 		}
-	});
+	}
 
-	onDestroy(stopTicking);
+	function labelColor(status: CheckStatus): string {
+		switch (status) {
+			case 'done':    return 'text-surface-200';
+			case 'active':  return 'text-surface-200';
+			case 'failed':  return 'text-red-400';
+			default:        return 'text-surface-500';
+		}
+	}
 </script>
 
-{#if $showOverlay}
+{#if visible}
 	<div
-		class="fixed inset-0 z-50 flex flex-col items-center justify-center bg-surface-950/90 backdrop-blur-sm"
+		class="fixed inset-0 z-50 flex flex-col items-center justify-center bg-surface-950/95 backdrop-blur-sm"
 		transition:fade={{ duration: 300 }}
 	>
 		<!-- Ambient glow -->
 		<div
 			class="absolute inset-0 pointer-events-none"
-			style="background: radial-gradient(ellipse at center, rgba(139, 71, 255, 0.12) 0%, rgba(245, 158, 11, 0.06) 30%, transparent 60%);"
+			style="background: radial-gradient(ellipse at center, rgba(139, 71, 255, 0.08) 0%, rgba(245, 158, 11, 0.04) 30%, transparent 60%);"
 		></div>
 
-		<!-- Content -->
-		<div class="relative flex flex-col items-center gap-6">
-			<!-- Hecate artwork -->
-			<div class="splash-portrait">
-				<img
-					src="/artwork/silhouette-keybearer.jpg"
-					alt="Hecate, keeper of the key"
-					class="w-56 h-56 object-cover rounded-full"
-					style="mask-image: radial-gradient(circle, black 50%, transparent 80%); -webkit-mask-image: radial-gradient(circle, black 50%, transparent 80%);"
-				/>
-			</div>
-
+		<div class="relative flex flex-col items-center gap-8">
 			<!-- Brand -->
 			<h1
-				class="text-2xl font-bold tracking-widest -mt-2"
+				class="text-3xl font-bold tracking-widest"
 				style="background: linear-gradient(135deg, #fbbf24, #f59e0b, #a875ff); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;"
 			>
 				HECATE
 			</h1>
 
-			<!-- Status -->
-			<div class="flex flex-col items-center gap-2">
-				{#if $isUnavailable}
-					<div class="flex items-center gap-2">
-						<span class="text-health-err animate-pulse text-sm">{'\u{25CF}'}</span>
-						<span class="text-surface-300 text-sm">Summoning {familiar}...</span>
-					</div>
-				{:else}
-					<div class="flex items-center gap-2">
-						<span class="text-health-warn animate-pulse text-sm">{'\u{25CF}'}</span>
-						<span class="text-surface-300 text-sm">Daemon starting...</span>
-					</div>
-					{#if $health}
-						<span class="text-surface-500 text-xs">
-							uptime {$health.uptime_seconds}s
+			<!-- Checklist -->
+			<div class="flex flex-col gap-3 min-w-[220px]">
+				{#each $checks as check (check.id)}
+					<div class="flex items-center gap-3">
+						<span class={`text-sm w-4 text-center ${iconColor(check.status)}`}>
+							{icon(check.status)}
 						</span>
-					{/if}
-				{/if}
+						<div class="flex flex-col">
+							<span class={`text-xs font-medium ${labelColor(check.status)}`}>
+								{check.label}
+							</span>
+							{#if check.detail && check.status === 'active'}
+								<span class="text-[10px] text-surface-500">{check.detail}</span>
+							{/if}
+						</div>
+					</div>
+				{/each}
 			</div>
 
-			<!-- Animated bar -->
+			<!-- Progress bar -->
 			<div class="w-48 h-0.5 bg-surface-800 rounded-full overflow-hidden">
-				<div class="h-full bg-gradient-to-r from-amber-500 via-purple-500 to-amber-500 animate-shimmer rounded-full"></div>
+				<div
+					class="h-full bg-gradient-to-r from-amber-500 to-purple-500 rounded-full transition-all duration-500"
+					style="width: {($checks.filter(c => c.status === 'done').length / $checks.length) * 100}%"
+				></div>
 			</div>
-
-			<p class="text-[10px] text-surface-600 mt-2 italic">
-				{$isUnavailable ? 'She who holds the key, lights the way.' : 'Waiting for domain services...'}
-			</p>
-
-			<!-- Escalation hint after 15s -->
-			{#if waitingLong && $isUnavailable}
-				<p class="text-[11px] text-surface-400 mt-2" transition:fade={{ duration: 200 }}>
-					Ensure the Hecate daemon container is running.
-				</p>
-			{/if}
-
-			<!-- Debug: show why health check fails -->
-			{#if $debugError}
-				<p class="text-[10px] text-red-400/70 mt-3 max-w-md text-center font-mono break-all">
-					[debug] conn={$connectionStatus} | {$debugError}
-				</p>
-			{/if}
 		</div>
 	</div>
 {/if}
-
-<style>
-	@keyframes shimmer {
-		0% { transform: translateX(-100%); }
-		100% { transform: translateX(200%); }
-	}
-	.animate-shimmer {
-		width: 40%;
-		animation: shimmer 1.5s ease-in-out infinite;
-	}
-	@keyframes portrait-glow {
-		0%, 100% { filter: drop-shadow(0 0 12px rgba(245, 158, 11, 0.3)); }
-		50% { filter: drop-shadow(0 0 24px rgba(168, 117, 255, 0.4)); }
-	}
-	.splash-portrait {
-		animation: portrait-glow 3s ease-in-out infinite;
-	}
-</style>

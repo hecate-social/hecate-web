@@ -3,11 +3,11 @@
 	import { goto } from '$app/navigation';
 	import { health } from '$lib/stores/daemon';
 	import { settings } from '$lib/stores/settings';
-	import type { SellerListing } from '$lib/types/appstore';
+	import type { AuthorListing } from '$lib/types/appstore';
 	import { getListingStatus, formatPrice, parseTags } from '$lib/types/appstore';
 
 	// --- Data ---
-	let listings: SellerListing[] = $state([]);
+	let listings: AuthorListing[] = $state([]);
 	let isLoading = $state(true);
 	let error: string | null = $state(null);
 
@@ -18,7 +18,7 @@
 	let confirmAction: { id: string; type: 'announce' | 'publish' | 'retract' | 'archive' } | null = $state(null);
 
 	// --- Form state ---
-	let editingListing: SellerListing | null = $state(null);
+	let editingListing: AuthorListing | null = $state(null);
 	let form = $state({
 		plugin_id: '',
 		plugin_name: '',
@@ -65,7 +65,7 @@
 		};
 	}
 
-	function populateForm(listing: SellerListing) {
+	function populateForm(listing: AuthorListing) {
 		const tags = parseTags(listing.tags);
 		form = {
 			plugin_id: listing.plugin_id,
@@ -93,7 +93,7 @@
 	// --- Fetch ---
 	async function fetchListings() {
 		try {
-			const res = await apiGet<{ items: SellerListing[] }>('/api/appstore/seller/listings');
+			const res = await apiGet<{ items: AuthorListing[] }>('/api/appstore/offerings/author');
 			listings = res.items;
 		} catch (e) {
 			error = e instanceof Error ? e.message : String(e);
@@ -114,7 +114,7 @@
 		view = 'create';
 	}
 
-	function startEdit(listing: SellerListing) {
+	function startEdit(listing: AuthorListing) {
 		editingListing = listing;
 		populateForm(listing);
 		view = 'edit';
@@ -132,8 +132,8 @@
 				.split(',')
 				.map((t) => t.trim())
 				.filter(Boolean);
-			await post('/api/appstore/licenses/initiate', {
-				seller_id: $settings?.identity?.hecate_user_id,
+			await post('/api/appstore/offerings/initiate', {
+				author_id: $settings?.identity?.hecate_user_id,
 				plugin_id: form.plugin_id,
 				plugin_name: form.plugin_name,
 				description: form.description,
@@ -171,7 +171,7 @@
 				.split(',')
 				.map((t) => t.trim())
 				.filter(Boolean);
-			await patch(`/api/appstore/licenses/${encodeURIComponent(editingListing.plugin_id)}/amend`, {
+			await patch(`/api/appstore/offerings/${encodeURIComponent(editingListing.offering_id)}/amend`, {
 				plugin_name: form.plugin_name,
 				description: form.description,
 				icon: form.icon || null,
@@ -205,7 +205,7 @@
 		if (!confirmAction) return;
 		actionLoading = confirmAction.id;
 		try {
-			await post(`/api/appstore/licenses/${encodeURIComponent(confirmAction.id)}/${confirmAction.type}`, {});
+			await post(`/api/appstore/offerings/${encodeURIComponent(confirmAction.id)}/${confirmAction.type}`, {});
 			confirmAction = null;
 			await fetchListings();
 		} catch (e) {
@@ -360,10 +360,10 @@
 				</div>
 			{:else}
 				<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-					{#each listings as listing (listing.plugin_id)}
-						{@const status = getListingStatus(listing.status, listing.retracted)}
+					{#each listings as listing (listing.offering_id)}
+						{@const status = getListingStatus(listing.status, listing.status_label)}
 						{@const price = formatPrice(listing)}
-						{@const loading = actionLoading === listing.plugin_id}
+						{@const loading = actionLoading === listing.offering_id}
 						<div
 							class="group rounded-xl border border-surface-600 bg-surface-800/80
 								hover:border-surface-500 transition-all"
@@ -386,10 +386,12 @@
 												? 'bg-amber-500/15 text-amber-400'
 												: status === 'announced'
 													? 'bg-blue-500/15 text-blue-400'
-													: status === 'retracted'
-														? 'bg-red-500/15 text-red-400'
-														: 'bg-success-500/15 text-success-400'}">
-												{status === 'draft' ? 'Draft' : status === 'announced' ? 'Announced' : status === 'retracted' ? 'Retracted' : 'Published'}
+													: status === 'archived'
+														? 'bg-surface-500/15 text-surface-400'
+														: status === 'retracted'
+															? 'bg-red-500/15 text-red-400'
+															: 'bg-success-500/15 text-success-400'}">
+												{status === 'draft' ? 'Draft' : status === 'announced' ? 'Announced' : status === 'archived' ? 'Archived' : status === 'retracted' ? 'Retracted' : 'Published'}
 											</span>
 										</div>
 										<div class="text-[11px] text-surface-500 mt-0.5">{listing.org}</div>
@@ -420,7 +422,7 @@
 										Edit
 									</button>
 									<button
-										onclick={() => (confirmAction = { id: listing.plugin_id, type: 'announce' })}
+										onclick={() => (confirmAction = { id: listing.offering_id, type: 'announce' })}
 										disabled={loading}
 										class="px-3 py-1.5 rounded-lg text-xs font-medium bg-accent-600
 											text-surface-50 hover:bg-accent-500 transition-colors cursor-pointer
@@ -429,7 +431,7 @@
 										{loading ? '...' : 'Announce'}
 									</button>
 									<button
-										onclick={() => (confirmAction = { id: listing.plugin_id, type: 'archive' })}
+										onclick={() => (confirmAction = { id: listing.offering_id, type: 'archive' })}
 										disabled={loading}
 										class="px-3 py-1.5 rounded-lg text-xs font-medium bg-danger-500
 											text-surface-50 hover:bg-danger-400 transition-colors cursor-pointer
@@ -447,7 +449,7 @@
 										Edit
 									</button>
 									<button
-										onclick={() => (confirmAction = { id: listing.plugin_id, type: 'publish' })}
+										onclick={() => (confirmAction = { id: listing.offering_id, type: 'publish' })}
 										disabled={loading}
 										class="px-3 py-1.5 rounded-lg text-xs font-medium bg-success-500
 											text-surface-50 hover:bg-success-400 transition-colors cursor-pointer
@@ -456,7 +458,7 @@
 										{loading ? '...' : 'Publish'}
 									</button>
 									<button
-										onclick={() => (confirmAction = { id: listing.plugin_id, type: 'retract' })}
+										onclick={() => (confirmAction = { id: listing.offering_id, type: 'retract' })}
 										disabled={loading}
 										class="px-3 py-1.5 rounded-lg text-xs font-medium bg-amber-500
 											text-surface-50 hover:bg-amber-400 transition-colors cursor-pointer
@@ -466,7 +468,7 @@
 									</button>
 								{:else if status === 'published'}
 									<button
-										onclick={() => (confirmAction = { id: listing.plugin_id, type: 'retract' })}
+										onclick={() => (confirmAction = { id: listing.offering_id, type: 'retract' })}
 										disabled={loading}
 										class="px-3 py-1.5 rounded-lg text-xs font-medium bg-amber-500
 											text-surface-50 hover:bg-amber-400 transition-colors cursor-pointer
@@ -484,7 +486,7 @@
 										Edit
 									</button>
 									<button
-										onclick={() => (confirmAction = { id: listing.plugin_id, type: 'announce' })}
+										onclick={() => (confirmAction = { id: listing.offering_id, type: 'announce' })}
 										disabled={loading}
 										class="px-3 py-1.5 rounded-lg text-xs font-medium bg-accent-600
 											text-surface-50 hover:bg-accent-500 transition-colors cursor-pointer
@@ -493,7 +495,7 @@
 										{loading ? '...' : 'Re-announce'}
 									</button>
 									<button
-										onclick={() => (confirmAction = { id: listing.plugin_id, type: 'archive' })}
+										onclick={() => (confirmAction = { id: listing.offering_id, type: 'archive' })}
 										disabled={loading}
 										class="px-3 py-1.5 rounded-lg text-xs font-medium bg-danger-500
 											text-surface-50 hover:bg-danger-400 transition-colors cursor-pointer

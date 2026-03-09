@@ -1,6 +1,6 @@
 // Plugin registry — core pages (always present) + discovered third-party plugins
 import { derived } from 'svelte/store';
-import { plugins } from '$lib/stores/plugins';
+import { apps } from '$lib/stores/apps';
 
 export interface PluginTab {
 	id: string;
@@ -35,35 +35,48 @@ const CORE_CARDS: PluginCardData[] = [
 
 const CORE_IDS = new Set(CORE_TABS.map((t) => t.id));
 
-// Reactive: core tabs + discovered plugin tabs (excluding plugins that are now core)
-export const pluginTabs = derived(plugins, ($plugins) => {
-	const discovered: PluginTab[] = Array.from($plugins.values())
-		.filter((p) => !CORE_IDS.has(p.manifest.name))
-		.map((p) => ({
-			id: p.manifest.name,
-			name: capitalize(p.manifest.name),
-			icon: p.manifest.icon,
-			path: `/plugin/${p.manifest.name}`,
+// Reactive: core tabs + installed plugin tabs
+export const pluginTabs = derived(apps, ($apps) => {
+	const discovered: PluginTab[] = Array.from($apps.values())
+		.filter((a) => !CORE_IDS.has(a.info.name))
+		.map((a) => ({
+			id: a.info.name,
+			name: capitalize(a.info.name),
+			icon: a.manifest?.icon ?? a.info.icon ?? '\uD83D\uDD0C',
+			path: `/plugin/${a.info.name}`,
 			isPlugin: true
 		}));
 	return [...CORE_TABS, ...discovered];
 });
 
-// Reactive: core cards + discovered plugin cards (excluding plugins that are now core)
-export const pluginCards = derived(plugins, ($plugins) => {
-	const discovered: PluginCardData[] = Array.from($plugins.values())
-		.filter((p) => !CORE_IDS.has(p.manifest.name))
-		.map((p) => ({
-			id: p.manifest.name,
-			name: capitalize(p.manifest.name),
-			icon: p.manifest.icon,
-			path: `/plugin/${p.manifest.name}`,
-			description: p.manifest.description,
-			ready: true,
+// Reactive: core cards + installed plugin cards
+export const pluginCards = derived(apps, ($apps) => {
+	const discovered: PluginCardData[] = Array.from($apps.values())
+		.filter((a) => !CORE_IDS.has(a.info.name))
+		.map((a) => ({
+			id: a.info.name,
+			name: capitalize(a.info.name),
+			icon: a.manifest?.icon ?? a.info.icon ?? '\uD83D\uDD0C',
+			path: `/plugin/${a.info.name}`,
+			description: a.manifest?.description ?? statusDescription(a.info.status_label),
+			ready: a.online,
 			isPlugin: true
 		}));
 	return [...CORE_CARDS, ...discovered];
 });
+
+function statusDescription(statusLabel: string): string {
+	switch (statusLabel) {
+		case 'Running': return 'Running';
+		case 'Starting': return 'Starting up...';
+		case 'Downloading': return 'Downloading image...';
+		case 'Installed':
+		case 'Ready': return 'Installed — click Start in Appstore';
+		case 'Stopping': return 'Stopping...';
+		case 'Stopped': return 'Stopped — click Start in Appstore';
+		default: return statusLabel || 'Installed';
+	}
+}
 
 // Reactive: all navigable paths (for keyboard nav)
 export const pluginPaths = derived(pluginTabs, ($tabs) => [

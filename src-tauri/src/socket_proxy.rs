@@ -5,15 +5,13 @@ use tauri::http::{Request, Response};
 
 use crate::traffic;
 
-/// Tauri command: check daemon health directly via Unix socket.
-/// Bypasses the custom URI scheme protocol entirely.
-#[tauri::command]
+/// Check daemon health via Unix socket. Used by daemon_watcher heartbeat loop.
 pub fn check_daemon_health() -> Result<serde_json::Value, String> {
-    let socket_path = resolve_socket_path();
-    if !Path::new(&socket_path).exists() {
-        return Err("socket_not_found".into());
-    }
+    check_health_at(&resolve_socket_path())
+}
 
+/// GET /health on an arbitrary Unix socket and return the parsed JSON body.
+fn check_health_at(socket_path: &str) -> Result<serde_json::Value, String> {
     let mut stream = UnixStream::connect(&socket_path).map_err(|e| e.to_string())?;
     stream
         .set_read_timeout(Some(std::time::Duration::from_secs(2)))
@@ -64,6 +62,25 @@ pub fn check_daemon_health() -> Result<serde_json::Value, String> {
     serde_json::from_slice(&body).map_err(|e| e.to_string())
 }
 
+/// Resolve the hecate home directory.
+/// Derived from the daemon socket path by stripping `hecate-daemon/sockets/api.sock`.
+/// In dev mode (HECATE_SOCKET_PATH set), this returns e.g. `~/.hecate-dev`.
+/// In production, returns `~/.hecate` or `/run/hecate`.
+pub fn hecate_home() -> std::path::PathBuf {
+    let sock = resolve_socket_path();
+    let p = std::path::Path::new(&sock);
+    // socket path: {home}/hecate-daemon/sockets/api.sock → go up 3 levels
+    p.ancestors().nth(3)
+        .map(|a| a.to_path_buf())
+        .unwrap_or_else(|| {
+            if let Ok(home) = std::env::var("HOME") {
+                std::path::PathBuf::from(home).join(".hecate")
+            } else {
+                std::path::PathBuf::from("/run/hecate")
+            }
+        })
+}
+
 /// Resolve the daemon socket path for the main hecate-daemon.
 /// Priority: HECATE_SOCKET_PATH env > /run/hecate/ > $HOME/.hecate/hecate-daemon/sockets/
 pub fn resolve_socket_path() -> String {
@@ -85,17 +102,13 @@ pub fn resolve_socket_path() -> String {
 }
 
 /// Resolve socket path for a plugin daemon by name.
-/// Path: $HOME/.hecate/hecate-app-{name}d/sockets/api.sock
+/// Path: {hecate_home}/hecate-app-{name}d/sockets/api.sock
 pub fn resolve_plugin_socket_path(plugin_name: &str) -> String {
-    if let Ok(home) = std::env::var("HOME") {
-        let path = Path::new(&home)
-            .join(".hecate")
-            .join(format!("hecate-app-{}d", plugin_name))
-            .join("sockets")
-            .join("api.sock");
-        return path.to_string_lossy().to_string();
-    }
-    format!("/run/hecate-app-{}d/api.sock", plugin_name)
+    let path = hecate_home()
+        .join(format!("hecate-app-{}d", plugin_name))
+        .join("sockets")
+        .join("api.sock");
+    path.to_string_lossy().to_string()
 }
 
 /// Route a request path to the correct socket.

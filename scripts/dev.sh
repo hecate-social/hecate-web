@@ -1,17 +1,36 @@
 #!/bin/bash
 # Clean restart of cargo tauri dev
 # Kills orphaned processes + nukes ALL webview state
+#
+# Prerequisites: npm install (if node_modules missing)
 set -e
 
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
+
 echo "Killing orphaned processes..."
-pkill -f "vite.*1420" 2>/dev/null || true
 pkill -f "hecate-web" 2>/dev/null || true
 sleep 0.5
 
-if ss -tlnp 2>/dev/null | grep -q ":1420 "; then
-    echo "ERROR: port 1420 still in use"
-    ss -tlnp | grep ":1420 "
-    exit 1
+# Ensure npm deps are installed
+if [ ! -d "$PROJECT_DIR/node_modules" ]; then
+    echo "Installing npm dependencies..."
+    (cd "$PROJECT_DIR" && npm install)
+fi
+
+# Start Vite dev server if not running
+if ! ss -tlnp 2>/dev/null | grep -q ":1420 "; then
+    echo "Starting Vite dev server..."
+    (cd "$PROJECT_DIR" && npm run dev) &
+    echo -n "Waiting for Vite on :1420"
+    for i in $(seq 1 30); do
+        if ss -tlnp 2>/dev/null | grep -q ":1420 "; then
+            echo " ready!"
+            break
+        fi
+        echo -n "."
+        sleep 1
+    done
 fi
 
 # Nuke ALL webview state (cache, localStorage, everything)

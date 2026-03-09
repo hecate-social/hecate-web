@@ -1,8 +1,8 @@
 <script lang="ts">
-	import { open } from '@tauri-apps/plugin-shell';
-	import { health, connectionStatus, isStarting } from '$lib/stores/daemon.js';
+	import { openExternal } from '$lib/tauri';
+	import { health, connectionStatus, isReady } from '$lib/stores/daemon.js';
 	import { pluginCards, type PluginCardData } from '$lib/plugins-registry';
-	import { plugins } from '$lib/stores/plugins.js';
+	import { apps } from '$lib/stores/apps';
 	import {
 		sidebarGroups,
 		ungroupedApps,
@@ -38,7 +38,7 @@
 				name: id.charAt(0).toUpperCase() + id.slice(1),
 				icon: '\uD83D\uDD0C',
 				path: `/plugin/${id}`,
-				description: 'Plugin not currently available',
+				description: 'Loading...',
 				ready: false,
 				isPlugin: true
 			}
@@ -246,14 +246,14 @@
 	<div
 		class="flex items-center gap-3 px-4 py-2 rounded-full bg-surface-800/60 border border-surface-600/50 text-xs"
 	>
-		{#if $connectionStatus === 'connected'}
+		{#if $isReady}
 			<span class="text-health-ok">{'\u{25CF}'}</span>
 			<span class="text-surface-200">Connected</span>
 			{#if $health}
 				<span class="text-surface-500">|</span>
 				<span class="text-surface-300">v{$health.version}</span>
 			{/if}
-		{:else if $isStarting}
+		{:else if $connectionStatus === 'connected'}
 			<span class="text-health-warn animate-pulse">{'\u{25CF}'}</span>
 			<span class="text-surface-300">Daemon starting...</span>
 		{:else if $connectionStatus === 'connecting'}
@@ -333,8 +333,8 @@
 										>
 											<PluginCard
 												{card}
-												online={!card.isPlugin || $plugins.has(card.id)}
-												version={$plugins.get(card.id)?.manifest.version ?? null}
+												online={!card.isPlugin || ($apps.get(card.id)?.online ?? false)}
+												version={$apps.get(card.id)?.manifest?.version ?? $apps.get(card.id)?.info.installed_version ?? null}
 												updateVersion={card.isPlugin ? $pluginUpdateVersion(card.id) : null}
 											/>
 										</div>
@@ -377,8 +377,8 @@
 								>
 									<PluginCard
 										{card}
-										online={!card.isPlugin || $plugins.has(card.id)}
-										version={$plugins.get(card.id)?.manifest.version ?? null}
+										online={!card.isPlugin || ($apps.get(card.id)?.online ?? false)}
+										version={$apps.get(card.id)?.manifest?.version ?? $apps.get(card.id)?.info.installed_version ?? null}
 										updateVersion={card.isPlugin ? $pluginUpdateVersion(card.id) : null}
 									/>
 								</div>
@@ -419,7 +419,7 @@
 				{/if}
 			</div>
 		</div>
-	{:else if $connectionStatus === 'connected'}
+	{:else if $isReady}
 		<div class="flex flex-col items-center gap-3 text-center max-w-md">
 			<span class="text-4xl">{'\u{2699}'}</span>
 			<p class="text-sm text-surface-400">
@@ -430,7 +430,7 @@
 
 	<!-- Donate -->
 	<button
-		onclick={() => open(DONATE_URL)}
+		onclick={() => openExternal(DONATE_URL)}
 		class="flex items-center gap-2 px-4 py-2 rounded-full cursor-pointer
 			text-xs text-surface-400 hover:text-accent-400
 			bg-surface-800/40 border border-surface-700/50 hover:border-accent-500/30

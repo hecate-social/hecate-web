@@ -1,44 +1,57 @@
 <script lang="ts">
-	import { connectionStatus } from '../stores/daemon.js';
+	import { connectionStatus, isReady } from '../stores/daemon.js';
 	import { hasUpdate, updateVersion, updateState, showUpdateModal } from '../stores/updater.js';
 	import { settings } from '../stores/settings';
 	import { toggleSidebar } from '../stores/sidebar.js';
 	import { txActive, rxActive } from '../stores/traffic.js';
-	import { getCurrentWindow } from '@tauri-apps/api/window';
-	import { getVersion } from '@tauri-apps/api/app';
+	import { isTauri } from '$lib/tauri';
+	import { get as apiGet } from '$lib/api';
 
 	let realmId = $derived($settings?.realms?.[0]?.realm_id ?? null);
+	let showWindowControls = $state(false);
+	let appVersion = $state('...');
 
 	function daemonLed(): string {
-		switch ($connectionStatus) {
-			case 'connected':
-				return 'text-health-ok';
-			case 'connecting':
-				return 'text-health-loading animate-pulse';
-			default:
-				return 'text-health-err';
-		}
+		if ($connectionStatus !== 'connected') return 'text-health-err';
+		return $isReady ? 'text-health-ok' : 'text-health-warn animate-pulse';
 	}
 
 	async function minimize() {
+		if (!isTauri()) return;
+		const { getCurrentWindow } = await import('@tauri-apps/api/window');
 		await getCurrentWindow().minimize();
 	}
 
 	async function toggleMaximize() {
+		if (!isTauri()) return;
+		const { getCurrentWindow } = await import('@tauri-apps/api/window');
 		await getCurrentWindow().toggleMaximize();
 	}
 
 	async function close() {
+		if (!isTauri()) return;
+		const { getCurrentWindow } = await import('@tauri-apps/api/window');
 		await getCurrentWindow().close();
 	}
 
-	let appVersion = $state('...');
-	getVersion().then((v) => (appVersion = v));
+	// Detect Tauri at mount time
+	if (typeof window !== 'undefined') {
+		showWindowControls = isTauri();
+		if (isTauri()) {
+			import('@tauri-apps/api/app').then(({ getVersion }) =>
+				getVersion().then((v: string) => (appVersion = v))
+			);
+		} else {
+			apiGet<{ version?: string }>('/api/health')
+				.then((h) => { if (h.version) appVersion = h.version; })
+				.catch(() => {});
+		}
+	}
 </script>
 
 <nav
-	data-tauri-drag-region
 	class="flex items-center bg-surface-800 border-b border-surface-600 shrink-0 select-none h-10"
+	class:tauri-drag={showWindowControls}
 >
 	<!-- Sidebar toggle -->
 	<button
@@ -85,7 +98,7 @@
 	{/if}
 
 	<!-- Drag region spacer -->
-	<div class="flex-1" data-tauri-drag-region></div>
+	<div class="flex-1"></div>
 
 	<!-- App update badge -->
 	{#if $updateState !== 'idle'}
@@ -103,38 +116,49 @@
 		</button>
 	{/if}
 
-	<!-- Window controls -->
-	<div class="flex items-center h-10">
-		<button
-			onclick={minimize}
-			class="w-10 h-10 flex items-center justify-center text-surface-400
-				hover:text-surface-100 hover:bg-surface-700 transition-colors"
-			aria-label="Minimize"
-		>
-			<svg width="10" height="1" viewBox="0 0 10 1" fill="currentColor">
-				<rect width="10" height="1" />
-			</svg>
-		</button>
-		<button
-			onclick={toggleMaximize}
-			class="w-10 h-10 flex items-center justify-center text-surface-400
-				hover:text-surface-100 hover:bg-surface-700 transition-colors"
-			aria-label="Maximize"
-		>
-			<svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1">
-				<rect x="0.5" y="0.5" width="9" height="9" />
-			</svg>
-		</button>
-		<button
-			onclick={close}
-			class="w-10 h-10 flex items-center justify-center text-surface-400
-				hover:text-surface-100 hover:bg-danger-600 transition-colors"
-			aria-label="Close"
-		>
-			<svg width="10" height="10" viewBox="0 0 10 10" stroke="currentColor" stroke-width="1.2">
-				<line x1="0" y1="0" x2="10" y2="10" />
-				<line x1="10" y1="0" x2="0" y2="10" />
-			</svg>
-		</button>
-	</div>
+	<!-- Window controls (Tauri only) -->
+	{#if showWindowControls}
+		<div class="flex items-center h-10">
+			<button
+				onclick={minimize}
+				class="w-10 h-10 flex items-center justify-center text-surface-400
+					hover:text-surface-100 hover:bg-surface-700 transition-colors"
+				aria-label="Minimize"
+			>
+				<svg width="10" height="1" viewBox="0 0 10 1" fill="currentColor">
+					<rect width="10" height="1" />
+				</svg>
+			</button>
+			<button
+				onclick={toggleMaximize}
+				class="w-10 h-10 flex items-center justify-center text-surface-400
+					hover:text-surface-100 hover:bg-surface-700 transition-colors"
+				aria-label="Maximize"
+			>
+				<svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1">
+					<rect x="0.5" y="0.5" width="9" height="9" />
+				</svg>
+			</button>
+			<button
+				onclick={close}
+				class="w-10 h-10 flex items-center justify-center text-surface-400
+					hover:text-surface-100 hover:bg-danger-600 transition-colors"
+				aria-label="Close"
+			>
+				<svg width="10" height="10" viewBox="0 0 10 10" stroke="currentColor" stroke-width="1.2">
+					<line x1="0" y1="0" x2="10" y2="10" />
+					<line x1="10" y1="0" x2="0" y2="10" />
+				</svg>
+			</button>
+		</div>
+	{/if}
 </nav>
+
+<style>
+	.tauri-drag {
+		-webkit-app-region: drag;
+	}
+	.tauri-drag button, .tauri-drag a {
+		-webkit-app-region: no-drag;
+	}
+</style>

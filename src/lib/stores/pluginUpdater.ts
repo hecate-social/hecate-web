@@ -1,6 +1,9 @@
+// Plugin updater store — Tauri-only feature.
+// When running inside Tauri, checks for plugin OCI image updates.
+// In browser mode, all operations are no-ops.
+
 import { writable, derived } from 'svelte/store';
-import { invoke } from '@tauri-apps/api/core';
-import { listen, type UnlistenFn } from '@tauri-apps/api/event';
+import { isTauri } from '$lib/tauri';
 
 export interface PluginUpdate {
 	name: string;
@@ -22,7 +25,9 @@ export const pluginUpdateVersion = derived(
 );
 
 export async function checkPluginUpdates(): Promise<void> {
+	if (!isTauri()) return;
 	try {
+		const { invoke } = await import('@tauri-apps/api/core');
 		const updates = await invoke<PluginUpdate[]>('check_plugin_updates');
 		const map = new Map<string, PluginUpdate>();
 		for (const u of updates) {
@@ -35,6 +40,8 @@ export async function checkPluginUpdates(): Promise<void> {
 }
 
 export async function installPluginUpdate(name: string): Promise<void> {
+	if (!isTauri()) return;
+
 	let update: PluginUpdate | undefined;
 	pluginUpdates.subscribe(($u) => (update = $u.get(name)))();
 	if (!update) return;
@@ -45,17 +52,16 @@ export async function installPluginUpdate(name: string): Promise<void> {
 		return next;
 	});
 
-	const unlisteners: UnlistenFn[] = [];
-
 	try {
+		const { invoke } = await import('@tauri-apps/api/core');
+		const { listen } = await import('@tauri-apps/api/event');
+
+		const unlisteners: (() => void)[] = [];
+
 		unlisteners.push(
 			await listen<string>('plugin-update-pulling', (event) => {
 				if (event.payload === name) {
-					pluginUpdateStates.update((m) => {
-						const next = new Map(m);
-						next.set(name, 'pulling');
-						return next;
-					});
+					pluginUpdateStates.update((m) => new Map(m).set(name, 'pulling'));
 				}
 			})
 		);
@@ -63,11 +69,7 @@ export async function installPluginUpdate(name: string): Promise<void> {
 		unlisteners.push(
 			await listen<string>('plugin-update-restarting', (event) => {
 				if (event.payload === name) {
-					pluginUpdateStates.update((m) => {
-						const next = new Map(m);
-						next.set(name, 'restarting');
-						return next;
-					});
+					pluginUpdateStates.update((m) => new Map(m).set(name, 'restarting'));
 				}
 			})
 		);
@@ -75,35 +77,17 @@ export async function installPluginUpdate(name: string): Promise<void> {
 		unlisteners.push(
 			await listen<string>('plugin-update-done', (event) => {
 				if (event.payload === name) {
-					// Remove from updates and reset state
-					pluginUpdates.update((m) => {
-						const next = new Map(m);
-						next.delete(name);
-						return next;
-					});
-					pluginUpdateStates.update((m) => {
-						const next = new Map(m);
-						next.delete(name);
-						return next;
-					});
+					pluginUpdates.update((m) => { const n = new Map(m); n.delete(name); return n; });
+					pluginUpdateStates.update((m) => { const n = new Map(m); n.delete(name); return n; });
 					showPluginUpdateModal.set(null);
 				}
 			})
 		);
 
-		await invoke('install_plugin_update', {
-			name,
-			version: update.latest_version
-		});
-
+		await invoke('install_plugin_update', { name, version: update.latest_version });
 		unlisteners.forEach((u) => u());
 	} catch (e) {
-		pluginUpdateStates.update((m) => {
-			const next = new Map(m);
-			next.delete(name);
-			return next;
-		});
-		unlisteners.forEach((u) => u());
+		pluginUpdateStates.update((m) => { const n = new Map(m); n.delete(name); return n; });
 		throw e;
 	}
 }

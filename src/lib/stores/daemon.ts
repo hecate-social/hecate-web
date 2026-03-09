@@ -1,85 +1,90 @@
+///
+/// Daemon connection store — polling pattern.
+///
+/// Polls /api/health every few seconds to track daemon state.
+/// Progression: connecting → starting → ready
+///
 import { writable, derived } from 'svelte/store';
-import { invoke } from '@tauri-apps/api/core';
+import { get as apiGet } from '$lib/api';
 import type { DaemonHealth, ConnectionStatus } from '../types.js';
+
+const POLL_INTERVAL_MS = 5000;
+
+// --- Raw state ---
 
 export const health = writable<DaemonHealth | null>(null);
 export const connectionStatus = writable<ConnectionStatus>('connecting');
-export const lastError = writable<string | null>(null);
 export const unavailableSince = writable<number | null>(null);
-export const debugError = writable<string>('');
+
+// --- Checklist derivations (read by UI) ---
 
 export const isConnected = derived(connectionStatus, ($s) => $s === 'connected');
-export const isHealthy = derived(health, ($h) => $h?.status === 'healthy' && $h?.ready === true);
-export const isStarting = derived(health, ($h) => $h?.status === 'starting' || ($h !== null && !$h.ready));
+export const isReady = derived(health, ($h) => $h?.ready === true);
+export const isStarting = derived(
+	[connectionStatus, health],
+	([$conn, $h]) => $conn === 'connected' && $h !== null && !$h.ready
+);
 export const isUnavailable = derived(connectionStatus, ($s) => $s === 'error');
 export const showOverlay = derived(
-	[isStarting, isUnavailable],
-	([$starting, $unavailable]) => $starting || $unavailable
+	[connectionStatus, health],
+	([$conn, $h]) => $conn !== 'connected' || $h === null || !$h.ready
 );
 
-const POLL_INTERVAL = 5_000;
+// --- Heartbeat handler ---
 
-let healthTimer: ReturnType<typeof setInterval> | null = null;
+let pollTimer: ReturnType<typeof setInterval> | null = null;
 let onReconnectCallback: (() => void) | null = null;
 
 export function onReconnect(cb: () => void): void {
 	onReconnectCallback = cb;
 }
 
-function handleHealthEvent(payload: DaemonHealth | null) {
+function handleHealthPayload(payload: DaemonHealth | null) {
 	if (payload && typeof payload === 'object' && 'status' in payload) {
-		const wasDisconnected = get_connectionStatus() !== 'connected';
+		const wasDisconnected = getCurrentValue(connectionStatus) !== 'connected';
 		health.set(payload);
 		connectionStatus.set('connected');
-		lastError.set(null);
 		unavailableSince.set(null);
-		debugError.set('');
 		if (wasDisconnected && onReconnectCallback) {
 			onReconnectCallback();
 		}
 	} else {
 		health.set(null);
 		connectionStatus.set('error');
-		if (get_unavailableSince() === null) {
+		if (getCurrentValue(unavailableSince) === null) {
 			unavailableSince.set(Date.now());
 		}
 	}
 }
 
-function get_unavailableSince(): number | null {
-	let value: number | null = null;
-	unavailableSince.subscribe((v) => (value = v))();
-	return value;
-}
-
-function get_connectionStatus(): ConnectionStatus {
-	let value: ConnectionStatus = 'connecting';
-	connectionStatus.subscribe((v) => (value = v))();
-	return value;
-}
-
-/**
- * Directly call the daemon health endpoint via Unix socket (Rust command).
- * Bypasses the background watcher cache entirely.
- */
-export async function fetchHealth(): Promise<void> {
+async function pollHealth(): Promise<void> {
 	try {
-		const h = await invoke<DaemonHealth>('check_daemon_health');
-		handleHealthEvent(h);
+		const data = await apiGet<DaemonHealth>('/health');
+		handleHealthPayload(data);
 	} catch {
-		handleHealthEvent(null);
+		handleHealthPayload(null);
 	}
 }
+
+// --- Lifecycle ---
 
 export async function startPolling(): Promise<void> {
 	stopPolling();
-	healthTimer = setInterval(fetchHealth, POLL_INTERVAL);
-	await fetchHealth();
+	await pollHealth();
+	pollTimer = setInterval(pollHealth, POLL_INTERVAL_MS);
 }
 
 export function stopPolling(): void {
-	if (healthTimer) {
-		clearInterval(healthTimer);
-		healthTimer = null;
+	if (pollTimer) {
+		clearInterval(pollTimer);
+		pollTimer = null;
 	}
+}
+
+// --- Helpers ---
+
+function getCurrentValue<T>(store: { subscribe: (fn: (v: T) => void) => () => void }): T {
+	let value: T;
+	store.subscribe((v) => (value = v))();
+	return value!;
 }

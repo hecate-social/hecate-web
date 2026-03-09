@@ -48,10 +48,9 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: npm
 
-      - name: Install frontend dependencies
-        run: npm ci
+      - name: Install Tauri CLI
+        run: npm install
 
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@stable
@@ -75,7 +74,7 @@ jobs:
           releaseBody: |
             ## Hecate Desktop ${{ github.ref_name }}
 
-            Native desktop application for the Hecate AI-powered developer studio.
+            Thin native desktop wrapper for the Hecate daemon. All UI is served by the daemon over Unix socket.
 
             ### Installation
 

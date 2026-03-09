@@ -2,7 +2,7 @@
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
 	import { pluginTabs, type PluginTab } from '$lib/plugins-registry';
-	import { plugins } from '$lib/stores/plugins.js';
+	import { apps } from '$lib/stores/apps';
 	import {
 		sidebarGroups,
 		sidebarCollapsed,
@@ -64,8 +64,16 @@
 		};
 	}
 
-	function isPluginOnline(id: string): boolean {
-		return $plugins.has(id);
+	type PluginIndicator = 'online' | 'starting' | 'downloading' | 'offline';
+
+	function pluginIndicator(id: string): PluginIndicator {
+		const app = $apps.get(id);
+		if (!app) return 'offline';
+		if (app.online) return 'online';
+		const label = app.info.status_label;
+		if (label === 'Starting') return 'starting';
+		if (label === 'Downloading') return 'downloading';
+		return 'offline';
 	}
 
 	function isActive(appId: string): boolean {
@@ -281,7 +289,7 @@
 			<!-- Group apps -->
 			{#if !group.collapsed}
 				{#each apps as tab (tab.id)}
-					{@const online = tab.isPlugin ? isPluginOnline(tab.id) : true}
+					{@const indicator = tab.isPlugin ? pluginIndicator(tab.id) : 'online'}
 					<button
 						draggable="true"
 						ondragstart={(e) => onDragStart(e, tab.id)}
@@ -290,7 +298,8 @@
 							{$sidebarCollapsed ? 'justify-center px-0' : 'px-3'}
 							{isActive(tab.id)
 								? 'bg-surface-700 text-surface-50 border-l-2 border-hecate-500'
-								: 'text-surface-300 hover:text-surface-100 hover:bg-surface-700/50 border-l-2 border-transparent'}"
+								: 'text-surface-300 hover:text-surface-100 hover:bg-surface-700/50 border-l-2 border-transparent'}
+							{tab.isPlugin && indicator === 'offline' ? 'opacity-60' : ''}"
 						onclick={() => navigateToApp(tab)}
 						oncontextmenu={(e) => onContextMenu(e, 'app', tab.id)}
 					>
@@ -298,7 +307,13 @@
 						{#if !$sidebarCollapsed}
 							<span class="text-xs truncate flex-1 text-left">{tab.name}</span>
 							{#if tab.isPlugin}
-								<span class="text-[8px] {online ? 'text-health-ok' : 'text-surface-500'}">{'\u25CF'}</span>
+									{#if indicator === 'online'}
+										<span class="text-[8px] text-health-ok">{'\u25CF'}</span>
+									{:else if indicator === 'starting' || indicator === 'downloading'}
+										<span class="text-[8px] text-amber-400 animate-pulse">{'\u25CF'}</span>
+									{:else}
+										<span class="text-[8px] text-surface-600">{'\u25CB'}</span>
+									{/if}
 							{/if}
 							{#if tab.isPlugin && $hasPluginUpdate(tab.id)}
 								<button
@@ -333,7 +348,7 @@
 			{/if}
 
 			{#each ungrouped as tab (tab.id)}
-				{@const online = tab.isPlugin ? isPluginOnline(tab.id) : true}
+				{@const indicator = tab.isPlugin ? pluginIndicator(tab.id) : 'online'}
 				<button
 					draggable="true"
 					ondragstart={(e) => onDragStart(e, tab.id)}
@@ -342,7 +357,8 @@
 						{$sidebarCollapsed ? 'justify-center px-0' : 'px-3'}
 						{isActive(tab.id)
 							? 'bg-surface-700 text-surface-50 border-l-2 border-hecate-500'
-							: 'text-surface-300 hover:text-surface-100 hover:bg-surface-700/50 border-l-2 border-transparent'}"
+							: 'text-surface-300 hover:text-surface-100 hover:bg-surface-700/50 border-l-2 border-transparent'}
+						{tab.isPlugin && indicator === 'offline' ? 'opacity-60' : ''}"
 					onclick={() => navigateToApp(tab)}
 					oncontextmenu={(e) => onContextMenu(e, 'app', tab.id)}
 				>
@@ -350,7 +366,13 @@
 					{#if !$sidebarCollapsed}
 						<span class="text-xs truncate flex-1 text-left">{tab.name}</span>
 						{#if tab.isPlugin}
-							<span class="text-[8px] {online ? 'text-health-ok' : 'text-surface-500'}">{'\u25CF'}</span>
+							{#if indicator === 'online'}
+								<span class="text-[8px] text-health-ok">{'\u25CF'}</span>
+							{:else if indicator === 'starting' || indicator === 'downloading'}
+								<span class="text-[8px] text-amber-400 animate-pulse">{'\u25CF'}</span>
+							{:else}
+								<span class="text-[8px] text-surface-600">{'\u25CB'}</span>
+							{/if}
 						{/if}
 						{#if tab.isPlugin && $hasPluginUpdate(tab.id)}
 							<button

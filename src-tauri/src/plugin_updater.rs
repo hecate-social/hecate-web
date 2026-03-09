@@ -16,6 +16,18 @@ struct GithubRelease {
     body: Option<String>,
 }
 
+/// Parsed OCI image reference from a .container file.
+struct ContainerImage {
+    /// Full image without tag, e.g. "ghcr.io/hecate-apps/hecate-app-scribed"
+    image_base: String,
+    /// GitHub org, e.g. "hecate-apps"
+    github_org: String,
+    /// GitHub repo name, e.g. "hecate-app-scribe" (without trailing 'd')
+    github_repo: String,
+    /// Installed version tag, e.g. "0.1.0"
+    version: String,
+}
+
 fn is_newer(remote: &str, local: &str) -> bool {
     let parse = |v: &str| -> (u32, u32, u32) {
         let parts: Vec<u32> = v.split('.').filter_map(|p| p.parse().ok()).collect();
@@ -29,28 +41,53 @@ fn is_newer(remote: &str, local: &str) -> bool {
 }
 
 fn gitops_apps_dir() -> Option<PathBuf> {
-    let home = std::env::var("HOME").ok()?;
-    Some(PathBuf::from(home).join(".hecate").join("gitops").join("apps"))
+    Some(crate::socket_proxy::hecate_home().join("gitops").join("apps"))
 }
 
-fn parse_installed_version(container_path: &PathBuf) -> Option<String> {
+/// Parse the Image= line from a .container file.
+/// Extracts org, repo name, and version from OCI image references like:
+///   ghcr.io/hecate-apps/hecate-app-scribed:0.1.0
+///   ghcr.io/hecate-social/hecate-app-marthad:0.1.1
+fn parse_container_image(container_path: &PathBuf) -> Option<ContainerImage> {
     let content = std::fs::read_to_string(container_path).ok()?;
     for line in content.lines() {
         let trimmed = line.trim();
-        if trimmed.starts_with("Image=") {
-            // Image=ghcr.io/hecate-social/hecate-app-marthad:0.1.1
-            if let Some(colon_pos) = trimmed.rfind(':') {
-                return Some(trimmed[colon_pos + 1..].to_string());
-            }
+        if !trimmed.starts_with("Image=") {
+            continue;
         }
+        // Image=ghcr.io/hecate-apps/hecate-app-scribed:0.1.0
+        let image_ref = trimmed.strip_prefix("Image=")?;
+        let colon_pos = image_ref.rfind(':')?;
+        let image_base = &image_ref[..colon_pos];
+        let version = &image_ref[colon_pos + 1..];
+
+        // Parse: ghcr.io/{org}/{image_name}
+        let parts: Vec<&str> = image_base.split('/').collect();
+        if parts.len() < 3 {
+            continue;
+        }
+        let org = parts[1];
+        let image_name = parts[2]; // e.g. "hecate-app-scribed"
+
+        // Derive GitHub repo: strip trailing 'd' from daemon image name
+        // hecate-app-scribed -> hecate-app-scribe
+        let github_repo = image_name.strip_suffix('d')
+            .unwrap_or(image_name)
+            .to_string();
+
+        return Some(ContainerImage {
+            image_base: image_base.to_string(),
+            github_org: org.to_string(),
+            github_repo,
+            version: version.to_string(),
+        });
     }
     None
 }
 
-/// Discover plugin names from ~/.hecate/hecate-app-*d directories.
+/// Discover plugin names from hecate-app-*d directories.
 fn discover_plugin_names() -> Result<Vec<String>, String> {
-    let home = std::env::var("HOME").map_err(|e| e.to_string())?;
-    let hecate_dir = PathBuf::from(&home).join(".hecate");
+    let hecate_dir = crate::socket_proxy::hecate_home();
     let entries = std::fs::read_dir(&hecate_dir).map_err(|e| e.to_string())?;
 
     let mut plugins = Vec::new();
@@ -90,32 +127,32 @@ pub async fn check_plugin_updates() -> Result<Vec<PluginUpdate>, String> {
     for name in &plugin_names {
         let container_file = apps_dir.join(format!("hecate-app-{}d.container", name));
 
-        let installed = match parse_installed_version(&container_file) {
-            Some(v) => v,
+        let image = match parse_container_image(&container_file) {
+            Some(img) => img,
             None => {
                 eprintln!(
-                    "[plugin-updater] No .container file or version for {}",
+                    "[plugin-updater] No .container file or parseable Image= for {}",
                     name
                 );
                 continue;
             }
         };
 
-        // Query GitHub releases API
-        let repo = format!("hecate-social/hecate-app-{}", name);
+        // Query GitHub releases API using org derived from OCI image
+        let repo = format!("{}/{}", image.github_org, image.github_repo);
         let url = format!(
             "https://api.github.com/repos/{}/releases/latest",
             repo
         );
 
-        eprintln!("[plugin-updater] checking {} (local: {})", repo, installed);
+        eprintln!("[plugin-updater] checking {} (local: {})", repo, image.version);
 
         let response = match client.get(&url).send().await {
             Ok(r) => r,
             Err(e) => {
                 eprintln!(
                     "[plugin-updater] GitHub request failed for {}: {}",
-                    name, e
+                    repo, e
                 );
                 continue;
             }
@@ -125,7 +162,7 @@ pub async fn check_plugin_updates() -> Result<Vec<PluginUpdate>, String> {
             eprintln!(
                 "[plugin-updater] GitHub returned {} for {}",
                 response.status(),
-                name
+                repo
             );
             continue;
         }
@@ -135,7 +172,7 @@ pub async fn check_plugin_updates() -> Result<Vec<PluginUpdate>, String> {
             Err(e) => {
                 eprintln!(
                     "[plugin-updater] Failed to parse release for {}: {}",
-                    name, e
+                    repo, e
                 );
                 continue;
             }
@@ -143,21 +180,21 @@ pub async fn check_plugin_updates() -> Result<Vec<PluginUpdate>, String> {
 
         let remote_version = release.tag_name.trim_start_matches('v').to_string();
 
-        if is_newer(&remote_version, &installed) {
+        if is_newer(&remote_version, &image.version) {
             eprintln!(
                 "[plugin-updater] Update available for {}: {} -> {}",
-                name, installed, remote_version
+                name, image.version, remote_version
             );
             updates.push(PluginUpdate {
                 name: name.clone(),
-                installed_version: installed,
+                installed_version: image.version,
                 latest_version: remote_version,
                 body: release.body.unwrap_or_default(),
             });
         } else {
             eprintln!(
                 "[plugin-updater] {} is up to date ({})",
-                name, installed
+                name, image.version
             );
         }
     }
@@ -178,7 +215,10 @@ pub async fn install_plugin_update(
         return Err(format!("No .container file found for plugin {}", name));
     }
 
-    let image_prefix = format!("ghcr.io/hecate-social/hecate-app-{}d:", name);
+    let image = parse_container_image(&container_file)
+        .ok_or_else(|| format!("Cannot parse Image= from .container file for {}", name))?;
+
+    let new_image_ref = format!("{}:{}", image.image_base, version);
     let service_name = format!("hecate-app-{}d", name);
 
     // Read current .container file
@@ -186,7 +226,7 @@ pub async fn install_plugin_update(
         std::fs::read_to_string(&container_file).map_err(|e| format!("Failed to read .container file: {}", e))?;
 
     // Replace Image= line with new version
-    let new_image = format!("Image={}{}", image_prefix, version);
+    let new_image_line = format!("Image={}", new_image_ref);
 
     let mut found = false;
     let updated: Vec<String> = content
@@ -195,7 +235,7 @@ pub async fn install_plugin_update(
             let trimmed = line.trim();
             if trimmed.starts_with("Image=") && trimmed.contains(&format!("hecate-app-{}d:", name)) {
                 found = true;
-                new_image.clone()
+                new_image_line.clone()
             } else {
                 line.to_string()
             }
@@ -224,13 +264,12 @@ pub async fn install_plugin_update(
 
     // Pull new image
     let _ = app.emit("plugin-update-pulling", &name);
-    eprintln!("[plugin-updater] Pulling image for {}...", name);
+    eprintln!("[plugin-updater] Pulling image {}...", new_image_ref);
 
-    let pull_image = format!("{}{}", image_prefix, version);
-    let pull_image_clone = pull_image.clone();
+    let pull_image = new_image_ref.clone();
     let pull_output = tokio::task::spawn_blocking(move || {
         std::process::Command::new("podman")
-            .args(["pull", &pull_image_clone])
+            .args(["pull", &pull_image])
             .output()
     })
     .await

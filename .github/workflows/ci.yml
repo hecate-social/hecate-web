@@ -30,21 +30,6 @@ jobs:
             patchelf \
             xdg-utils
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: npm
-
-      - name: Install frontend dependencies
-        run: npm ci
-
-      - name: Frontend type check
-        run: npm run check
-
-      - name: Build frontend
-        run: npm run build
-
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@stable
 

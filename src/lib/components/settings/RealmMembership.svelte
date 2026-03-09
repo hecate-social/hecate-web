@@ -1,11 +1,11 @@
 <script lang="ts">
-	import { invoke } from '@tauri-apps/api/core';
-	import { listen, type UnlistenFn } from '@tauri-apps/api/event';
 	import { onDestroy } from 'svelte';
+	import { openWebview, closeWebview } from '$lib/tauri';
 	import {
 		settings,
 		fetchSettings,
 		initiateRealmJoin,
+		checkRealmJoinStatus,
 		cancelRealmJoin,
 		leaveRealm,
 		type RealmJoinSession
@@ -17,21 +17,13 @@
 	let realmUrl: string = $state('https://macula.io');
 	let session: RealmJoinSession | null = $state(null);
 	let errorMessage: string = $state('');
-	let unlisten: UnlistenFn | null = $state(null);
+	let joinPollTimer: ReturnType<typeof setInterval> | null = $state(null);
 	let leavingId: string | null = $state(null);
 
-	function stopListening() {
-		if (unlisten) {
-			unlisten();
-			unlisten = null;
-		}
-	}
-
-	async function closeWebview() {
-		try {
-			await invoke('close_webview', { label: 'joining' });
-		} catch {
-			// already closed
+	function stopJoinPolling() {
+		if (joinPollTimer) {
+			clearInterval(joinPollTimer);
+			joinPollTimer = null;
 		}
 	}
 
@@ -42,28 +34,27 @@
 			session = await initiateRealmJoin(realmUrl);
 			joinStep = 'waiting';
 
-			await invoke('open_webview', {
-				label: 'joining',
-				url: session.joining_url,
-				title: 'Join Realm \u2014 Hecate',
-				width: 800,
-				height: 700
-			});
+			await openWebview('joining', session.joining_url, 'Join Realm \u2014 Hecate');
 
-			unlisten = await listen<{ status: string }>('daemon-realm-join-status', async (event) => {
-				const status = event.payload.status;
-				if (status === 'joined') {
-					stopListening();
-					joinStep = 'success';
-					await closeWebview();
-					await fetchSettings();
-				} else if (status === 'failed') {
-					stopListening();
-					await closeWebview();
-					joinStep = 'error';
-					errorMessage = 'Join session expired or failed. Please try again.';
+			// Poll join status instead of Tauri events
+			joinPollTimer = setInterval(async () => {
+				try {
+					const status = await checkRealmJoinStatus();
+					if (status.status === 'joined') {
+						stopJoinPolling();
+						joinStep = 'success';
+						await closeWebview('joining');
+						await fetchSettings();
+					} else if (status.status === 'failed') {
+						stopJoinPolling();
+						await closeWebview('joining');
+						joinStep = 'error';
+						errorMessage = 'Join session expired or failed. Please try again.';
+					}
+				} catch {
+					// Keep polling
 				}
-			});
+			}, 2000);
 		} catch (e) {
 			joinStep = 'error';
 			errorMessage = e instanceof Error ? e.message : String(e);
@@ -71,9 +62,9 @@
 	}
 
 	async function handleCancel() {
-		stopListening();
+		stopJoinPolling();
 		await cancelRealmJoin();
-		await closeWebview();
+		await closeWebview('joining');
 		session = null;
 		joinStep = 'idle';
 	}
@@ -99,7 +90,7 @@
 	}
 
 	onDestroy(() => {
-		stopListening();
+		stopJoinPolling();
 	});
 </script>
 

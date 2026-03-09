@@ -4,10 +4,8 @@
 	"version": "0.15.5",
 	"identifier": "social.hecate.web",
 	"build": {
-		"frontendDist": "../build",
-		"devUrl": "http://localhost:1420",
-		"beforeDevCommand": "npm run dev",
-		"beforeBuildCommand": "npm run build"
+		"frontendDist": "./fallback",
+		"devUrl": "http://localhost:1420"
 	},
 	"app": {
 		"windows": [
@@ -23,7 +21,7 @@
 			}
 		],
 		"security": {
-			"csp": "default-src 'self'; script-src 'self' blob:; style-src 'self' 'unsafe-inline'; connect-src 'self' hecate://localhost ipc: http://ipc.localhost; img-src 'self' asset: https://asset.localhost; media-src 'self'"
+			"csp": "default-src hecate://localhost 'self'; script-src hecate://localhost 'self' 'unsafe-inline' blob:; style-src hecate://localhost 'self' 'unsafe-inline'; connect-src hecate://localhost 'self' ipc: http://ipc.localhost; img-src hecate://localhost 'self' asset: https://asset.localhost; media-src hecate://localhost 'self'; font-src hecate://localhost 'self'"
 		}
 	},
 	"bundle": {

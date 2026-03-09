@@ -4,8 +4,8 @@ import adapter from '@sveltejs/adapter-static';
 const config = {
 	kit: {
 		adapter: adapter({
-			pages: 'build',
-			assets: 'build',
+			pages: '../hecate-daemon/priv/static',
+			assets: '../hecate-daemon/priv/static',
 			fallback: 'index.html'
 		})
 	}

@@ -7,15 +7,17 @@
 	import OnboardingOverlay from '$lib/components/OnboardingOverlay.svelte';
 	import UpdateModal from '$lib/components/UpdateModal.svelte';
 	import PluginUpdateModal from '$lib/components/PluginUpdateModal.svelte';
-	import { startPolling, stopPolling, onReconnect } from '$lib/stores/daemon.js';
-	import { fetchSettings, startSettingsWatcher, stopSettingsWatcher } from '$lib/stores/settings';
-	import { startIdentityWatcher, stopIdentityWatcher } from '$lib/stores/nodeIdentity';
-	import { startPluginWatcher, stopPluginWatcher } from '$lib/stores/plugins';
+	import ToastContainer from '$lib/components/ToastContainer.svelte';
+	import { stopPolling } from '$lib/stores/daemon.js';
+	import { stopSettingsWatcher } from '$lib/stores/settings';
+	import { stopAppWatcher } from '$lib/stores/apps';
+	import { stopIdentityWatcher } from '$lib/stores/nodeIdentity';
+	import { stopTrafficWatcher } from '$lib/stores/traffic.js';
+	import { toggleSidebar } from '$lib/stores/sidebar.js';
 	import { checkForUpdate } from '$lib/stores/updater.js';
 	import { checkPluginUpdates } from '$lib/stores/pluginUpdater.js';
-	import { toggleSidebar, initSidebar } from '$lib/stores/sidebar.js';
-	import { startTrafficWatcher, stopTrafficWatcher } from '$lib/stores/traffic.js';
 	import { pluginPaths } from '$lib/plugins-registry';
+	import { runStartupChecklist } from '$lib/stores/startup';
 	import '$lib/stores/theme.js';
 	import { onMount, onDestroy } from 'svelte';
 	import { goto } from '$app/navigation';
@@ -27,19 +29,9 @@
 	let showAlphaBanner = $state(typeof localStorage !== 'undefined' && localStorage.getItem('hecate-alpha-banner-dismissed') !== '1');
 
 	onMount(() => {
-		startPolling();
-		startPluginWatcher();
-		startSettingsWatcher();
-		startIdentityWatcher();
-		startTrafficWatcher();
-		checkForUpdate();
-		checkPluginUpdates();
-		onReconnect(() => {
-			initSidebar();
-			fetchSettings();
-		});
-		initSidebar();
-		fetchSettings();
+		// Single entry point — the checklist executor drives everything.
+		runStartupChecklist();
+
 		updateInterval = setInterval(() => {
 			checkForUpdate();
 			checkPluginUpdates();
@@ -48,7 +40,7 @@
 
 	onDestroy(() => {
 		stopPolling();
-		stopPluginWatcher();
+		stopAppWatcher();
 		stopSettingsWatcher();
 		stopIdentityWatcher();
 		stopTrafficWatcher();
@@ -56,14 +48,12 @@
 	});
 
 	function handleGlobalKeydown(e: KeyboardEvent) {
-		// Ctrl+B — toggle sidebar
 		if (e.ctrlKey && e.key === 'b') {
 			e.preventDefault();
 			toggleSidebar();
 			return;
 		}
 
-		// Ctrl+Tab / Ctrl+Shift+Tab — cycle pages
 		if (e.ctrlKey && e.key === 'Tab') {
 			e.preventDefault();
 			const paths = get(pluginPaths);
@@ -122,3 +112,5 @@
 
 	<StatusBar />
 </div>
+
+<ToastContainer />

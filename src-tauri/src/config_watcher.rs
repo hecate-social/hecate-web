@@ -9,11 +9,7 @@ const DEBOUNCE: Duration = Duration::from_millis(500);
 const RECHECK_INTERVAL: Duration = Duration::from_secs(60);
 
 fn config_dir() -> PathBuf {
-    if let Ok(home) = std::env::var("HOME") {
-        PathBuf::from(home).join(".hecate").join("config")
-    } else {
-        PathBuf::from("/run/hecate/config")
-    }
+    crate::socket_proxy::hecate_home().join("config")
 }
 
 pub fn start(app: tauri::AppHandle) {

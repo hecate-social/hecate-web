@@ -1,14 +1,14 @@
 <script lang="ts">
-	import { invoke } from '@tauri-apps/api/core';
-	import { listen, type UnlistenFn } from '@tauri-apps/api/event';
 	import { fade } from 'svelte/transition';
 	import { onDestroy } from 'svelte';
-	import { isConnected } from '$lib/stores/daemon.js';
+	import { isReady } from '$lib/stores/daemon.js';
+	import { openWebview, closeWebview } from '$lib/tauri';
 	import {
 		settings,
 		settingsLoading,
 		fetchSettings,
 		initiateRealmJoin,
+		checkRealmJoinStatus,
 		cancelRealmJoin,
 		type RealmJoinSession
 	} from '$lib/stores/settings';
@@ -19,26 +19,19 @@
 	let realmUrl: string = $state('https://macula.io');
 	let session: RealmJoinSession | null = $state(null);
 	let errorMessage: string = $state('');
-	let unlisten: UnlistenFn | null = $state(null);
+	let joinPollTimer: ReturnType<typeof setInterval> | null = $state(null);
 	let dismissTimer: ReturnType<typeof setTimeout> | null = $state(null);
+	let dismissed = $state(false);
 
 	let visible = $derived(
-		$isConnected && !$settingsLoading &&
+		!dismissed && $isReady && !$settingsLoading &&
 		($settings === null || ($settings.realms?.length ?? 0) === 0)
 	);
 
-	function stopListening() {
-		if (unlisten) {
-			unlisten();
-			unlisten = null;
-		}
-	}
-
-	async function closeWebview() {
-		try {
-			await invoke('close_webview', { label: 'joining' });
-		} catch {
-			// already closed
+	function stopJoinPolling() {
+		if (joinPollTimer) {
+			clearInterval(joinPollTimer);
+			joinPollTimer = null;
 		}
 	}
 
@@ -48,43 +41,42 @@
 		try {
 			session = await initiateRealmJoin(realmUrl);
 
-			await invoke('open_webview', {
-				label: 'joining',
-				url: session.joining_url,
-				title: 'Join Realm \u2014 Hecate',
-				width: 800,
-				height: 700
-			});
+			await openWebview('joining', session.joining_url, 'Join Realm \u2014 Hecate');
 
-			unlisten = await listen<{ status: string }>('daemon-realm-join-status', async (event) => {
-				const status = event.payload.status;
-				if (status === 'joined') {
-					stopListening();
-					await closeWebview();
-					step = 'success';
-					// Retry fetchSettings until the projection has stored realm data
-					const retryFetch = async (attempts: number) => {
-						await fetchSettings();
-						if (($settings?.realms?.length ?? 0) === 0 && attempts > 0) {
-							dismissTimer = setTimeout(() => retryFetch(attempts - 1), 1500);
-						}
-					};
-					dismissTimer = setTimeout(() => retryFetch(5), 1500);
-				} else if (status === 'failed') {
-					stopListening();
-					await closeWebview();
-					errorMessage = 'Join session expired or failed. Please try again.';
+			// Poll join status instead of Tauri events
+			joinPollTimer = setInterval(async () => {
+				try {
+					const status = await checkRealmJoinStatus();
+					if (status.status === 'joined') {
+						stopJoinPolling();
+						await closeWebview('joining');
+						step = 'success';
+						const retryFetch = async (attempts: number) => {
+							await fetchSettings();
+							if (($settings?.realms?.length ?? 0) === 0 && attempts > 0) {
+								dismissTimer = setTimeout(() => retryFetch(attempts - 1), 1500);
+							}
+						};
+						dismissTimer = setTimeout(() => retryFetch(5), 1500);
+						setTimeout(() => { dismissed = true; }, 10000);
+					} else if (status.status === 'failed') {
+						stopJoinPolling();
+						await closeWebview('joining');
+						errorMessage = 'Join session expired or failed. Please try again.';
+					}
+				} catch {
+					// Keep polling
 				}
-			});
+			}, 2000);
 		} catch (e) {
 			errorMessage = e instanceof Error ? e.message : String(e);
 		}
 	}
 
 	async function handleCancel() {
-		stopListening();
+		stopJoinPolling();
 		await cancelRealmJoin();
-		await closeWebview();
+		await closeWebview('joining');
 		session = null;
 		errorMessage = '';
 		step = 'realm-url';
@@ -96,7 +88,7 @@
 	}
 
 	onDestroy(() => {
-		stopListening();
+		stopJoinPolling();
 		if (dismissTimer) clearTimeout(dismissTimer);
 	});
 </script>
@@ -109,23 +101,12 @@
 		<!-- Ambient glow -->
 		<div
 			class="absolute inset-0 pointer-events-none"
-			style="background: radial-gradient(ellipse at center, rgba(139, 71, 255, 0.12) 0%, rgba(245, 158, 11, 0.06) 30%, transparent 60%);"
+			style="background: radial-gradient(ellipse at center, rgba(139, 71, 255, 0.08) 0%, rgba(245, 158, 11, 0.04) 30%, transparent 60%);"
 		></div>
 
 		{#if step === 'welcome'}
 			<!-- STEP 1: Welcome -->
 			<div class="relative flex flex-col items-center gap-6 max-w-md px-6" transition:fade={{ duration: 200 }}>
-				<!-- Hecate artwork -->
-				<div class="splash-portrait">
-					<img
-						src="/artwork/silhouette-keybearer.jpg"
-						alt="Hecate, keeper of the key"
-						class="w-48 h-48 object-cover rounded-full"
-						style="mask-image: radial-gradient(circle, black 50%, transparent 80%); -webkit-mask-image: radial-gradient(circle, black 50%, transparent 80%);"
-					/>
-				</div>
-
-				<!-- Headline -->
 				<h1
 					class="text-3xl font-bold tracking-wide"
 					style="background: linear-gradient(135deg, #fbbf24, #f59e0b, #a875ff); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;"
@@ -135,7 +116,7 @@
 
 				<p class="text-sm text-surface-300 text-center leading-relaxed">
 					Your node needs to join a <span class="text-amber-400 font-medium">Realm</span> to
-					connect to the mesh and unlock its full capabilities.
+					connect to the mesh and start using plugins.
 				</p>
 
 				<!-- What joining gives you -->
@@ -163,7 +144,6 @@
 					</div>
 				</div>
 
-				<!-- CTA -->
 				<button
 					onclick={() => { step = 'realm-url'; }}
 					class="mt-4 px-8 py-3 rounded-xl text-sm font-semibold transition-all cursor-pointer
@@ -174,13 +154,16 @@
 					Join a Realm
 				</button>
 
-				<p class="text-[10px] text-surface-600 italic mt-1">
-					She who holds the key, lights the way.
-				</p>
+				<button
+					onclick={() => { dismissed = true; }}
+					class="text-[11px] text-surface-500 hover:text-surface-300 transition-colors cursor-pointer"
+				>
+					Skip for now
+				</button>
 			</div>
 
 		{:else if step === 'realm-url'}
-			<!-- STEP 1.5: Realm URL -->
+			<!-- STEP 2: Realm URL -->
 			<div class="relative flex flex-col items-center gap-5 max-w-sm px-6" transition:fade={{ duration: 200 }}>
 				<h2
 					class="text-xl font-bold tracking-wide"
@@ -231,7 +214,7 @@
 			</div>
 
 		{:else if step === 'joining'}
-			<!-- STEP 2: Joining -->
+			<!-- STEP 3: Joining -->
 			<div class="relative flex flex-col items-center gap-6 max-w-sm px-6" transition:fade={{ duration: 200 }}>
 				<h2
 					class="text-xl font-bold tracking-wide"
@@ -241,7 +224,6 @@
 				</h2>
 
 				{#if errorMessage}
-					<!-- Error state -->
 					<div class="flex flex-col items-center gap-4 w-full">
 						<div class="w-14 h-14 rounded-full bg-danger-500/15 border border-danger-500/30 flex items-center justify-center">
 							<span class="text-danger-400 text-2xl">{'\u{2717}'}</span>
@@ -265,19 +247,16 @@
 						</div>
 					</div>
 				{:else if session}
-					<!-- Waiting for login -->
 					<p class="text-xs text-surface-400 text-center">
 						A browser window has opened. Log in to join the realm.
 					</p>
 
-					<!-- Waiting indicator -->
 					<div class="flex flex-col items-center gap-3 mt-4">
 						<div class="flex items-center gap-2">
 							<span class="text-amber-400 animate-pulse text-sm">{'\u{25CF}'}</span>
 							<span class="text-surface-400 text-xs">Waiting for login...</span>
 						</div>
 
-						<!-- Shimmer bar -->
 						<div class="w-48 h-0.5 bg-surface-800 rounded-full overflow-hidden">
 							<div class="h-full bg-gradient-to-r from-amber-500 via-purple-500 to-amber-500 animate-shimmer rounded-full"></div>
 						</div>
@@ -291,7 +270,6 @@
 						Cancel
 					</button>
 				{:else}
-					<!-- Initiating (brief loading state) -->
 					<div class="flex items-center gap-2 text-sm text-surface-400">
 						<span class="animate-pulse">...</span>
 						<span>Starting join session...</span>
@@ -300,9 +278,8 @@
 			</div>
 
 		{:else if step === 'success'}
-			<!-- STEP 3: Success -->
+			<!-- STEP 4: Success -->
 			<div class="relative flex flex-col items-center gap-5" transition:fade={{ duration: 200 }}>
-				<!-- Green checkmark with glow -->
 				<div class="success-glow w-20 h-20 rounded-full bg-success-500/15 border-2 border-success-500/40 flex items-center justify-center">
 					<span class="text-success-400 text-4xl">{'\u{2713}'}</span>
 				</div>
@@ -325,10 +302,17 @@
 
 				<p class="text-sm text-surface-400">Your node is now part of the mesh.</p>
 
-				<!-- Shimmer bar (brief) -->
 				<div class="w-32 h-0.5 bg-surface-800 rounded-full overflow-hidden">
 					<div class="h-full bg-gradient-to-r from-emerald-500 via-success-400 to-emerald-500 animate-shimmer rounded-full"></div>
 				</div>
+
+				<button
+					onclick={() => { dismissed = true; }}
+					class="mt-2 px-6 py-2 rounded-lg text-xs font-medium transition-colors cursor-pointer
+						bg-surface-700 text-surface-300 hover:text-surface-100 border border-surface-600"
+				>
+					Continue
+				</button>
 			</div>
 		{/if}
 	</div>
@@ -342,13 +326,6 @@
 	.animate-shimmer {
 		width: 40%;
 		animation: shimmer 1.5s ease-in-out infinite;
-	}
-	@keyframes portrait-glow {
-		0%, 100% { filter: drop-shadow(0 0 12px rgba(245, 158, 11, 0.3)); }
-		50% { filter: drop-shadow(0 0 24px rgba(168, 117, 255, 0.4)); }
-	}
-	.splash-portrait {
-		animation: portrait-glow 3s ease-in-out infinite;
 	}
 	@keyframes success-pulse {
 		0%, 100% { box-shadow: 0 0 20px rgba(34, 197, 94, 0.2); }
