@@ -239,7 +239,7 @@
 		</h1>
 
 		<p class="text-surface-300 text-sm text-center max-w-md">
-			Your node, your models, your data.
+			Sovereign computing. No cloud required.
 		</p>
 	</div>
 
@@ -424,7 +424,7 @@
 		<div class="flex flex-col items-center gap-3 text-center max-w-md">
 			<span class="text-4xl">{'\u{2699}'}</span>
 			<p class="text-sm text-surface-400">
-				Use the sidebar to navigate to Settings, LLM, or the Appstore.
+				Head to the Appstore to get started, or explore Settings and LLM in the sidebar.
 			</p>
 		</div>
 	{/if}
@@ -443,7 +443,7 @@
 
 	<!-- Footer tagline -->
 	<p class="text-[10px] text-surface-500 text-center pb-4">
-		Open source. Self-hosted. Yours.
+		Open source. Self-hosted. Autonomous.
 	</p>
 </div>
 

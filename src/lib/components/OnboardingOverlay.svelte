@@ -115,8 +115,8 @@
 				</h1>
 
 				<p class="text-sm text-surface-300 text-center leading-relaxed">
-					Your node needs to join a <span class="text-amber-400 font-medium">Realm</span> to
-					connect to the mesh and start using plugins.
+					Join a <span class="text-amber-400 font-medium">Realm</span> to connect with
+					other nodes and unlock the full experience.
 				</p>
 
 				<!-- What joining gives you -->
@@ -126,21 +126,21 @@
 							<span class="text-purple-400 text-base">{'\u{1F511}'}</span>
 						</div>
 						<span class="text-[11px] text-surface-400 font-medium">Identity</span>
-						<span class="text-[10px] text-surface-500 leading-tight">Cryptographic keys tied to your account</span>
+						<span class="text-[10px] text-surface-500 leading-tight">Your identity, secured by your own keys</span>
 					</div>
 					<div class="flex flex-col items-center gap-2 text-center">
 						<div class="w-10 h-10 rounded-full bg-amber-500/15 border border-amber-500/30 flex items-center justify-center">
 							<span class="text-amber-400 text-base">{'\u{1F6E1}'}</span>
 						</div>
 						<span class="text-[11px] text-surface-400 font-medium">Trust</span>
-						<span class="text-[10px] text-surface-500 leading-tight">Realm-verified membership for peer auth</span>
+						<span class="text-[10px] text-surface-500 leading-tight">Verified by your realm, trusted by peers</span>
 					</div>
 					<div class="flex flex-col items-center gap-2 text-center">
 						<div class="w-10 h-10 rounded-full bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center">
 							<span class="text-emerald-400 text-base">{'\u{1F310}'}</span>
 						</div>
 						<span class="text-[11px] text-surface-400 font-medium">Connectivity</span>
-						<span class="text-[10px] text-surface-500 leading-tight">Join the mesh and discover peers</span>
+						<span class="text-[10px] text-surface-500 leading-tight">Discover and connect with other nodes</span>
 					</div>
 				</div>
 
@@ -300,7 +300,7 @@
 					</span>
 				{/if}
 
-				<p class="text-sm text-surface-400">Your node is now part of the mesh.</p>
+				<p class="text-sm text-surface-400">You're connected. Welcome to the mesh.</p>
 
 				<div class="w-32 h-0.5 bg-surface-800 rounded-full overflow-hidden">
 					<div class="h-full bg-gradient-to-r from-emerald-500 via-success-400 to-emerald-500 animate-shimmer rounded-full"></div>

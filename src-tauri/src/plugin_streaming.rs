@@ -2,7 +2,7 @@ use std::io::{BufRead, BufReader, Read, Write};
 use std::os::unix::net::UnixStream;
 use tauri::{AppHandle, Emitter};
 
-use crate::socket_proxy::resolve_plugin_socket_path;
+use crate::socket_proxy::resolve_socket_for_path;
 use crate::traffic;
 
 /// Generic SSE stream proxy for plugin daemons.
@@ -66,13 +66,21 @@ fn do_plugin_sse_stream(
     path: &str,
     event_name: &str,
 ) -> Result<(), Box<dyn std::error::Error>> {
-    let socket_path = resolve_plugin_socket_path(plugin);
+    // Use the same routing logic as regular API calls:
+    // - Container plugin (has its own socket) → connect to plugin socket, use path as-is
+    // - In-VM plugin (no socket) → connect to daemon socket, prefix path with /plugin/{name}/api
+    let candidate_path = format!("/plugin/{}/api{}", plugin, path);
+    let (socket_path, resolved_path) = resolve_socket_for_path(&candidate_path);
+    eprintln!(
+        "[plugin_sse_stream] routing: socket={} path={}",
+        socket_path, resolved_path
+    );
     let mut stream = UnixStream::connect(&socket_path)?;
     stream.set_read_timeout(None)?;
 
     let http_req = format!(
         "GET {} HTTP/1.1\r\nHost: localhost\r\nAccept: text/event-stream\r\nConnection: keep-alive\r\n\r\n",
-        path
+        resolved_path
     );
 
     stream.write_all(http_req.as_bytes())?;

@@ -24,6 +24,7 @@ export interface PluginInfo {
 	status_label: string;
 	icon: string | null;
 	group_name: string | null;
+	group_icon: string | null;
 }
 
 export interface PluginManifest {
@@ -61,6 +62,13 @@ export const apps = writable<Map<string, AppState>>(new Map());
 export const appList = derived(apps, ($apps) => Array.from($apps.values()));
 
 // --- Helpers ---
+
+/** Derive the technical route name from plugin_id (strip org prefix). */
+function routeName(info: PluginInfo): string {
+	const id = info.plugin_id;
+	const slash = id.lastIndexOf('/');
+	return slash >= 0 ? id.substring(slash + 1) : id;
+}
 
 function createPluginApi(pluginName: string): PluginApi {
 	return {
@@ -134,9 +142,8 @@ async function pollStatuses(): Promise<void> {
 	// Reconcile: bring online any plugins that may be running but aren't loaded yet.
 	const current = get(apps);
 	for (const [name, app] of current) {
-		if (!app.online && (app.info.status_label === 'Running' || app.info.status_label === 'Starting')) {
-			console.log(`[apps] Attempting bringOnline for ${name} (status: ${app.info.status_label})`);
-			bringOnline(name);
+		if (!app.online && (app.info.status_label === 'Running' || app.info.status_label === 'Starting' || app.info.status_label === 'Extracted')) {
+			bringOnline(name, routeName(app.info));
 		}
 	}
 }
@@ -176,13 +183,18 @@ async function loadPluginElement(pluginName: string, tag: string): Promise<boole
 
 const onlining = new Set<string>();
 
-async function bringOnline(name: string): Promise<void> {
+async function bringOnline(name: string, techName?: string): Promise<void> {
 	if (onlining.has(name)) return;
 	onlining.add(name);
+	const apiName = techName ?? name;
+	let step = 'init';
 	try {
-		const api = createPluginApi(name);
+		const api = createPluginApi(apiName);
+		step = 'manifest';
 		const manifest = await api.get<PluginManifest>('/manifest');
-		const loaded = await loadPluginElement(name, manifest.tag);
+		step = 'loadElement';
+		const loaded = await loadPluginElement(apiName, manifest.tag);
+		step = 'done';
 
 		apps.update((current) => {
 			const next = new Map(current);
@@ -198,12 +210,16 @@ async function bringOnline(name: string): Promise<void> {
 			return next;
 		});
 	} catch (e) {
+		const errName = e instanceof Error ? e.constructor.name : typeof e;
+		const errMsg = e instanceof Error ? e.message : String(e);
+		const errStack = e instanceof Error ? e.stack?.split('\n').slice(0, 4).join(' | ') : '';
+		const detail = `step=${step} [${errName}] ${errMsg}${errStack ? ' @ ' + errStack : ''}`;
 		apps.update((current) => {
 			const next = new Map(current);
 			const existing = next.get(name);
 			if (existing) {
 				next.set(name, { ...existing,
-					_debugError: `bringOnline failed: ${e instanceof Error ? e.message : String(e)}` });
+					_debugError: detail });
 			}
 			return next;
 		});

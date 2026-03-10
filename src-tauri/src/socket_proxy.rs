@@ -119,7 +119,7 @@ pub fn resolve_plugin_socket_path(plugin_name: &str) -> String {
 /// there with a rewritten path; otherwise route to the main daemon as-is.
 ///
 /// Everything else -> hecate-daemon socket (path unchanged)
-fn resolve_socket_for_path(path: &str) -> (String, String) {
+pub fn resolve_socket_for_path(path: &str) -> (String, String) {
     if let Some(rest) = path.strip_prefix("/plugin/") {
         let plugin_name = if let Some(slash_pos) = rest.find('/') {
             &rest[..slash_pos]

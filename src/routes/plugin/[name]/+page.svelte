@@ -85,6 +85,7 @@
 		if (app?.tag && container && !mountedElement) {
 			const el = document.createElement(app.tag);
 			(el as any).api = app.api;
+			(el as any).name = pluginName;
 			container.appendChild(el);
 			mountedElement = el;
 			mountedFor = pluginName;

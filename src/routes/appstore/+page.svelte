@@ -214,6 +214,7 @@
 					description: item.description,
 					icon: item.icon,
 					group_name: item.group_name,
+					group_icon: item.group_icon,
 					oci_image: item.oci_image,
 					package_url: item.package_url,
 					selling_formula: item.selling_formula,
@@ -244,7 +245,7 @@
 			toastSuccess(`Installing ${item.name}...`);
 			installStep = 'installing';
 			await new Promise((r) => setTimeout(r, 1500));
-			addPluginToSidebar(item.oci_image ? extractPluginName(item.oci_image) : item.name, item.icon ?? undefined, item.group_name ?? 'APPS');
+			addPluginToSidebar(item.oci_image ? extractPluginName(item.oci_image) : item.name, item.icon ?? undefined, item.group_name ?? 'APPS', item.group_icon ?? undefined);
 			await fetchCatalog();
 			if (selectedPlugin && selectedPlugin.plugin_id === item.plugin_id) {
 				await openDetail(item.offering_id);

@@ -7,6 +7,7 @@ export interface OfferingItem {
 	description: string | null;
 	icon: string | null;
 	group_name: string | null;
+	group_icon: string | null;
 	oci_image: string | null;
 	package_url: string | null;
 	plugin_type: string | null;

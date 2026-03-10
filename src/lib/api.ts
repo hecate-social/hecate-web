@@ -1,13 +1,15 @@
 // Daemon API client
 //
-// Inside Tauri: requests go to hecate://localhost (custom protocol → Unix socket)
+// Inside Tauri (production): requests go to hecate://localhost (custom protocol → Unix socket)
 // During vite dev: requests go same-origin (vite proxy → Unix socket)
 
 import { get as getStore } from 'svelte/store';
 import { settings } from '$lib/stores/settings';
 import { isTauri } from '$lib/tauri';
 
-const BASE = isTauri() ? 'hecate://localhost' : '';
+// In dev mode, always use the Vite proxy (same-origin) even inside Tauri.
+// The hecate:// custom protocol only works reliably in production builds.
+const BASE = isTauri() && !import.meta.env.DEV ? 'hecate://localhost' : '';
 
 function authHeaders(): Record<string, string> {
 	const s = getStore(settings);
@@ -40,12 +42,16 @@ function parseErrorBody(text: string, fallback: string): { code: string | null; 
 }
 
 async function handleResponse<T>(resp: Response): Promise<T> {
+	const text = await resp.text();
 	if (!resp.ok) {
-		const text = await resp.text().catch(() => resp.statusText);
 		const { code, message } = parseErrorBody(text, resp.statusText);
 		throw new ApiError(resp.status, code, message);
 	}
-	return resp.json();
+	try {
+		return JSON.parse(text);
+	} catch {
+		throw new Error(`Invalid JSON from ${resp.url}: ${text.slice(0, 200)}`);
+	}
 }
 
 export async function get<T>(path: string): Promise<T> {

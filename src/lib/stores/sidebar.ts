@@ -131,7 +131,7 @@ export async function initSidebar(): Promise<void> {
  *  Used after install so the entry appears immediately without waiting
  *  for the async PM chain to project the launcher layout.
  */
-export function addPluginToSidebar(pluginName: string, icon: string = '\uD83D\uDD0C', groupName: string = 'APPS'): void {
+export function addPluginToSidebar(pluginName: string, icon: string = '\uD83D\uDD0C', groupName: string = 'APPS', groupIcon?: string): void {
 	sidebarGroups.update(($groups) => {
 		// Check if already present in any group
 		for (const g of $groups) {
@@ -151,7 +151,7 @@ export function addPluginToSidebar(pluginName: string, icon: string = '\uD83D\uD
 			{
 				id: `grp-${Date.now()}`,
 				name: groupName,
-				icon,
+				icon: groupIcon ?? icon,
 				collapsed: false,
 				appIds: [pluginName]
 			}
