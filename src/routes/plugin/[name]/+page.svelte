@@ -12,21 +12,32 @@
 	const pluginName = $derived(page.params?.name ?? '');
 	const app = $derived($apps.get(pluginName));
 
+	// Technical route name derived from plugin_id (e.g. "hecate-apps/hecate-app-snake-duel" -> "hecate-app-snake-duel")
+	// Used for SSE routing where the daemon needs the technical name, not the display name.
+	const techName = $derived.by(() => {
+		if (!app?.info.plugin_id) return pluginName;
+		const id = app.info.plugin_id;
+		const slash = id.lastIndexOf('/');
+		return slash >= 0 ? id.substring(slash + 1) : id;
+	});
+
 	const statusLabel = $derived(app?.info.status_label ?? '');
 	const isInstalled = $derived(!!app && statusLabel !== 'Removed');
 	const isOnline = $derived(app?.online ?? false);
 	const debugError = $derived((app as any)?._debugError as string | undefined);
-	const isDownloading = $derived(statusLabel === 'Downloading');
-	const isReady = $derived(statusLabel === 'Ready' || statusLabel === 'Installed');
-	const isStopped = $derived(statusLabel === 'Stopped');
-	const isStarting = $derived(statusLabel === 'Starting');
 
-	// Timeout tracking for Starting state
+	// Available-actions-based state: drives button visibility and UI state
+	const actions = $derived(app?.info.available_actions ?? []);
+	const canStart = $derived(actions.includes('start'));
+	const canStop = $derived(actions.includes('stop'));
+	const inProgress = $derived(actions.length === 0 && !!app && isInstalled);
+
+	// Timeout tracking for in-progress states
 	let now = $state(Date.now());
 	let tickInterval: ReturnType<typeof setInterval> | null = null;
 
 	$effect(() => {
-		if (isStarting || isDownloading) {
+		if (inProgress) {
 			if (!tickInterval) {
 				tickInterval = setInterval(() => { now = Date.now(); }, 1000);
 			}
@@ -43,9 +54,8 @@
 	});
 
 	const elapsed = $derived(app ? now - app.statusChangedAt : 0);
-	const startingWarn = $derived(isStarting && elapsed >= WARN_TIMEOUT_MS && elapsed < ERROR_TIMEOUT_MS);
-	const startingError = $derived(isStarting && elapsed >= ERROR_TIMEOUT_MS);
-	const downloadingWarn = $derived(isDownloading && elapsed >= ERROR_TIMEOUT_MS);
+	const progressWarn = $derived(inProgress && elapsed >= WARN_TIMEOUT_MS && elapsed < ERROR_TIMEOUT_MS);
+	const progressError = $derived(inProgress && elapsed >= ERROR_TIMEOUT_MS);
 
 	let starting = $state(false);
 
@@ -59,7 +69,7 @@
 			toastInfo(`Starting ${pluginName}...`);
 		} catch (e) {
 			if (e instanceof ApiError && e.code === 'plugin_already_running') {
-				// Already running — trigger refresh to bring online
+				// Already running -- trigger refresh to bring online
 				await refreshApps();
 			} else {
 				toastError(`Failed to start ${pluginName}`);
@@ -85,7 +95,7 @@
 		if (app?.tag && container && !mountedElement) {
 			const el = document.createElement(app.tag);
 			(el as any).api = app.api;
-			(el as any).name = pluginName;
+			(el as any).name = techName;
 			container.appendChild(el);
 			mountedElement = el;
 			mountedFor = pluginName;
@@ -120,30 +130,9 @@
 
 {#if isOnline}
 	<div bind:this={container} class="h-full overflow-auto p-4"></div>
-{:else if isDownloading}
+{:else if inProgress}
 	<div class="flex flex-col items-center justify-center h-full gap-4">
-		<div class="relative">
-			<span class="text-4xl animate-pulse">{'\u{2B07}\uFE0F'}</span>
-		</div>
-		<h2 class="text-lg font-bold text-surface-100">
-			{app?.manifest?.display_name || app?.info.display_name || pluginName.charAt(0).toUpperCase() + pluginName.slice(1)}
-		</h2>
-		<p class="text-sm text-surface-400">
-			Downloading app...
-		</p>
-		<div class="w-48 h-1.5 bg-surface-700 rounded-full overflow-hidden">
-			<div class="h-full bg-hecate-500 rounded-full animate-pulse" style="width: 60%"></div>
-		</div>
-		{#if downloadingWarn}
-			<div class="mt-2 px-4 py-2 rounded-md bg-amber-500/10 border border-amber-500/30 max-w-sm">
-				<p class="text-xs text-amber-400 font-medium">Download is taking longer than expected</p>
-				<p class="text-xs text-surface-400 mt-1">The OCI image may be large or the registry may be slow. Check your network connection.</p>
-			</div>
-		{/if}
-	</div>
-{:else if isStarting}
-	<div class="flex flex-col items-center justify-center h-full gap-4">
-		{#if startingError}
+		{#if progressError}
 			<span class="text-4xl">{'\u{26A0}\uFE0F'}</span>
 		{:else}
 			<span class="text-4xl animate-spin">{'\u{2699}\uFE0F'}</span>
@@ -151,30 +140,32 @@
 		<h2 class="text-lg font-bold text-surface-100">
 			{app?.manifest?.display_name || app?.info.display_name || pluginName.charAt(0).toUpperCase() + pluginName.slice(1)}
 		</h2>
-		{#if startingError}
+		{#if progressError}
 			<div class="px-4 py-3 rounded-md bg-red-500/10 border border-red-500/30 max-w-sm text-center">
 				<p class="text-sm text-red-400 font-medium">App failed to start</p>
 				<p class="text-xs text-surface-400 mt-1">The container may have crashed or the socket was never created. Check daemon logs for details.</p>
 			</div>
-		{:else if startingWarn}
-			<p class="text-sm text-surface-400">Starting app...</p>
+		{:else if progressWarn}
+			<p class="text-sm text-surface-400">{statusLabel || 'Working'}...</p>
 			<div class="px-4 py-2 rounded-md bg-amber-500/10 border border-amber-500/30 max-w-sm text-center">
 				<p class="text-xs text-amber-400 font-medium">Taking longer than usual</p>
 				<p class="text-xs text-surface-400 mt-1">First start may take a moment while the container initializes.</p>
 			</div>
 		{:else}
-			<p class="text-sm text-surface-400">Starting app...</p>
+			<p class="text-sm text-surface-400">{statusLabel || 'Working'}...</p>
+			<div class="w-48 h-1.5 bg-surface-700 rounded-full overflow-hidden">
+				<div class="h-full bg-hecate-500 rounded-full animate-pulse" style="width: 60%"></div>
+			</div>
 		{/if}
 	</div>
-{:else if isReady || isStopped}
+{:else if canStart}
 	<div class="flex flex-col items-center justify-center h-full gap-4">
 		<span class="text-4xl">{'\u{1F4E6}'}</span>
 		<h2 class="text-lg font-bold text-surface-100">
 			{app?.manifest?.display_name || app?.info.display_name || pluginName.charAt(0).toUpperCase() + pluginName.slice(1)}
 		</h2>
 		<p class="text-sm text-surface-400 text-center max-w-md">
-			{isStopped ? 'App is stopped.' : 'App is installed and ready.'}
-			Press Start to launch it.
+			{statusLabel}. Press Start to launch it.
 		</p>
 		<button
 			onclick={startPlugin}
@@ -232,12 +223,12 @@
 							<td class="text-surface-500 pr-3 py-0.5 whitespace-nowrap">Status</td>
 							<td class="text-surface-200 py-0.5">
 								<span class="inline-flex items-center gap-1.5">
-									<span class="size-1.5 rounded-full {isOnline ? 'bg-emerald-400' : statusLabel === 'Starting' ? 'bg-amber-400 animate-pulse' : 'bg-surface-500'}"></span>
+									<span class="size-1.5 rounded-full {isOnline ? 'bg-emerald-400' : inProgress ? 'bg-amber-400 animate-pulse' : 'bg-surface-500'}"></span>
 									{statusLabel || 'Unknown'}
 								</span>
 							</td>
 						</tr>
-						{#if isStarting || isDownloading}
+						{#if inProgress}
 							<tr>
 								<td class="text-surface-500 pr-3 py-0.5 whitespace-nowrap">Elapsed</td>
 								<td class="text-surface-200 py-0.5">{formatElapsed(elapsed)}</td>

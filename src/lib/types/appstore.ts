@@ -34,6 +34,7 @@ export interface OfferingItem {
 	refreshed_at: number | null;
 	status: number;
 	status_label: string | null;
+	available_actions: string[];
 	// Enriched by consumer license read model
 	license_id: string | null;
 	installed: number | null;
@@ -48,6 +49,7 @@ export interface License {
 	plugin_name: string | null;
 	status: number;
 	status_label: string | null;
+	available_actions: string[];
 	oci_image: string | null;
 	package_url: string | null;
 	installed_version: string | null;
@@ -66,55 +68,74 @@ export interface AuthorListing extends OfferingItem {
 	announced_at: number | null;
 }
 
-export type ListingStatus = 'draft' | 'announced' | 'published' | 'retracted' | 'archived';
-
-const LISTING_STATUS_MAP: Record<string, ListingStatus> = {
-	Initiated: 'draft',
-	Announced: 'announced',
-	Published: 'published',
-	Retracted: 'retracted',
-	Archived: 'archived'
-};
-
-export function getListingStatus(
-	status: number,
-	statusLabel?: string | null
-): ListingStatus {
-	if (statusLabel && statusLabel in LISTING_STATUS_MAP) {
-		return LISTING_STATUS_MAP[statusLabel];
-	}
-	if (status & 32) return 'archived';
-	if (status & 4) return 'published';
-	if (status & 2) return 'announced';
-	return 'draft';
-}
-
 export interface OfferingDetail extends OfferingItem {
 	license: License | null;
 }
 
 export type ActionState = 'get' | 'install' | 'installed' | 'update' | 'revoked' | 'loading';
 
-const INSTALLED_LABELS = new Set([
-	'Installed',
-	'Running',
-	'Starting',
-	'Downloading',
-	'Ready',
-	'Stopped'
-]);
-
-export function isPluginInstalled(item: OfferingItem): boolean {
-	return item.status_label != null && INSTALLED_LABELS.has(item.status_label);
-}
-
 export function getActionState(item: OfferingItem): ActionState {
-	if (isPluginInstalled(item)) {
+	const actions = item.available_actions ?? [];
+	// Plugin is installed and operational (can be stopped/upgraded/removed)
+	if (actions.includes('stop') || actions.includes('remove')) {
 		if (item.installed_version && item.version !== item.installed_version) return 'update';
 		return 'installed';
 	}
+	// Plugin is installed but stopped (can be started)
+	if (actions.includes('start')) {
+		if (item.installed_version && item.version !== item.installed_version) return 'update';
+		return 'installed';
+	}
+	// Plugin can be installed (has license or action says "install")
+	if (actions.includes('install')) return 'install';
+	// No license yet — needs to be acquired first
 	if (!item.license_id) return 'get';
 	return 'install';
+}
+
+export function isPluginInstalled(item: OfferingItem): boolean {
+	const actions = item.available_actions ?? [];
+	return actions.includes('stop') || actions.includes('start') || actions.includes('remove') || actions.includes('upgrade');
+}
+
+/** Derive status badge CSS class from available_actions.
+ *  - actions includes "stop" -> running (green)
+ *  - actions includes "start" -> stopped (yellow)
+ *  - actions includes "remove" but not "stop"/"start" -> installed (blue)
+ *  - otherwise -> pending/neutral (gray)
+ */
+export function statusBadgeClass(actions: string[]): string {
+	if (actions.includes('stop')) return 'bg-success-500/20 text-success-400';
+	if (actions.includes('start')) return 'bg-warning-500/20 text-warning-400';
+	if (actions.includes('remove')) return 'bg-accent-500/20 text-accent-400';
+	return 'bg-surface-500/20 text-surface-400';
+}
+
+/** Map a listing lifecycle action name to button styling. */
+const ACTION_BUTTON_STYLES: Record<string, string> = {
+	announce: 'bg-accent-600 text-surface-50 hover:bg-accent-500',
+	publish: 'bg-success-500 text-surface-50 hover:bg-success-400',
+	retract: 'bg-amber-500 text-surface-50 hover:bg-amber-400',
+	archive: 'bg-danger-500 text-surface-50 hover:bg-danger-400',
+	draft: 'bg-surface-700 text-surface-300 hover:bg-surface-600 border border-surface-600',
+	amend: 'bg-surface-700 text-surface-300 hover:bg-surface-600 border border-surface-600'
+};
+
+export function actionButtonStyle(action: string): string {
+	return ACTION_BUTTON_STYLES[action] ?? 'bg-surface-700 text-surface-300 hover:bg-surface-600 border border-surface-600';
+}
+
+/** Human-friendly label for a listing action button. */
+export function actionButtonLabel(action: string): string {
+	const labels: Record<string, string> = {
+		announce: 'Announce',
+		publish: 'Publish',
+		retract: 'Retract',
+		archive: 'Archive',
+		draft: 'Draft',
+		amend: 'Edit'
+	};
+	return labels[action] ?? action.charAt(0).toUpperCase() + action.slice(1);
 }
 
 export function formatPrice(item: OfferingItem): string {

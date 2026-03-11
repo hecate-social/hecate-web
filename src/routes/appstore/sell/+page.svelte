@@ -4,7 +4,7 @@
 	import { health } from '$lib/stores/daemon';
 	import { settings } from '$lib/stores/settings';
 	import type { AuthorListing } from '$lib/types/appstore';
-	import { getListingStatus, formatPrice, parseTags } from '$lib/types/appstore';
+	import { formatPrice, parseTags, actionButtonStyle, actionButtonLabel } from '$lib/types/appstore';
 	import { resolveEmoji } from '$lib/emoji';
 
 	// --- Data ---
@@ -16,7 +16,7 @@
 	type View = 'list' | 'create' | 'edit';
 	let view: View = $state('list');
 	let actionLoading: string | null = $state(null);
-	let confirmAction: { id: string; type: 'announce' | 'publish' | 'retract' | 'archive' } | null = $state(null);
+	let confirmAction: { id: string; type: string } | null = $state(null);
 
 	// --- Form state ---
 	let editingListing: AuthorListing | null = $state(null);
@@ -302,19 +302,10 @@
 				<div class="fixed inset-0 bg-surface-950/60 z-50 flex items-center justify-center">
 					<div class="bg-surface-800 border border-surface-600 rounded-xl p-6 max-w-sm w-full mx-4 shadow-2xl">
 						<h3 class="text-sm font-semibold text-surface-100 mb-3">
-							{confirmAction.type === 'announce' ? 'Announce Listing?'
-								: confirmAction.type === 'publish' ? 'Publish Listing?'
-								: confirmAction.type === 'retract' ? 'Retract Listing?'
-								: 'Archive Listing?'}
+							{actionButtonLabel(confirmAction.type)} Listing?
 						</h3>
 						<p class="text-xs text-surface-400 mb-6">
-							{confirmAction.type === 'announce'
-								? 'This will make your listing visible as pre-release. Continue?'
-								: confirmAction.type === 'publish'
-									? 'This will make your listing live in the marketplace. Continue?'
-									: confirmAction.type === 'retract'
-										? 'This will pull your listing back to draft. Continue?'
-										: 'This will permanently remove this listing. Continue?'}
+							Are you sure you want to {confirmAction.type} this listing? This action cannot be undone easily.
 						</p>
 						<div class="flex gap-2 justify-end">
 							<button
@@ -328,13 +319,7 @@
 								onclick={confirmLifecycle}
 								disabled={actionLoading !== null}
 								class="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors cursor-pointer
-									{confirmAction.type === 'announce'
-									? 'bg-accent-600 text-surface-50 hover:bg-accent-500'
-									: confirmAction.type === 'publish'
-										? 'bg-success-500 text-surface-50 hover:bg-success-400'
-										: confirmAction.type === 'retract'
-											? 'bg-amber-500 text-surface-50 hover:bg-amber-400'
-											: 'bg-danger-500 text-surface-50 hover:bg-danger-400'}
+									{actionButtonStyle(confirmAction.type)}
 									{actionLoading ? 'opacity-50 cursor-wait' : ''}"
 							>
 								{actionLoading ? '...' : 'Confirm'}
@@ -362,7 +347,7 @@
 			{:else}
 				<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
 					{#each listings as listing (listing.offering_id)}
-						{@const status = getListingStatus(listing.status, listing.status_label)}
+						{@const actions = listing.available_actions ?? []}
 						{@const price = formatPrice(listing)}
 						{@const loading = actionLoading === listing.offering_id}
 						<div
@@ -382,18 +367,18 @@
 												text-surface-400 border border-surface-600 shrink-0">
 												v{listing.version}
 											</span>
-											<span class="text-[10px] px-1.5 py-0.5 rounded-full shrink-0
-												{status === 'draft'
-												? 'bg-amber-500/15 text-amber-400'
-												: status === 'announced'
+											{#if listing.status_label}
+												<span class="text-[10px] px-1.5 py-0.5 rounded-full shrink-0
+													{actions.includes('publish')
 													? 'bg-blue-500/15 text-blue-400'
-													: status === 'archived'
-														? 'bg-surface-500/15 text-surface-400'
-														: status === 'retracted'
-															? 'bg-red-500/15 text-red-400'
-															: 'bg-success-500/15 text-success-400'}">
-												{status === 'draft' ? 'Draft' : status === 'announced' ? 'Announced' : status === 'archived' ? 'Archived' : status === 'retracted' ? 'Retracted' : 'Published'}
-											</span>
+													: actions.includes('retract')
+														? 'bg-success-500/15 text-success-400'
+														: actions.length === 0
+															? 'bg-surface-500/15 text-surface-400'
+															: 'bg-amber-500/15 text-amber-400'}">
+													{listing.status_label}
+												</span>
+											{/if}
 										</div>
 										<div class="text-[11px] text-surface-500 mt-0.5">{listing.org}</div>
 										<div class="text-[10px] mt-1
@@ -411,9 +396,9 @@
 								</div>
 							</div>
 
-							<!-- Card footer with actions -->
+							<!-- Card footer with actions driven by available_actions -->
 							<div class="px-4 pb-3 pt-1 flex items-center justify-end gap-2">
-								{#if status === 'draft'}
+								{#if actions.includes('amend')}
 									<button
 										onclick={() => startEdit(listing)}
 										class="px-3 py-1.5 rounded-lg text-xs font-medium text-surface-300
@@ -421,90 +406,19 @@
 											transition-colors cursor-pointer"
 									>
 										Edit
-									</button>
-									<button
-										onclick={() => (confirmAction = { id: listing.offering_id, type: 'announce' })}
-										disabled={loading}
-										class="px-3 py-1.5 rounded-lg text-xs font-medium bg-accent-600
-											text-surface-50 hover:bg-accent-500 transition-colors cursor-pointer
-											{loading ? 'opacity-50 cursor-wait' : ''}"
-									>
-										{loading ? '...' : 'Announce'}
-									</button>
-									<button
-										onclick={() => (confirmAction = { id: listing.offering_id, type: 'archive' })}
-										disabled={loading}
-										class="px-3 py-1.5 rounded-lg text-xs font-medium bg-danger-500
-											text-surface-50 hover:bg-danger-400 transition-colors cursor-pointer
-											{loading ? 'opacity-50 cursor-wait' : ''}"
-									>
-										{loading ? '...' : 'Archive'}
-									</button>
-								{:else if status === 'announced'}
-									<button
-										onclick={() => startEdit(listing)}
-										class="px-3 py-1.5 rounded-lg text-xs font-medium text-surface-300
-											bg-surface-700 hover:bg-surface-600 border border-surface-600
-											transition-colors cursor-pointer"
-									>
-										Edit
-									</button>
-									<button
-										onclick={() => (confirmAction = { id: listing.offering_id, type: 'publish' })}
-										disabled={loading}
-										class="px-3 py-1.5 rounded-lg text-xs font-medium bg-success-500
-											text-surface-50 hover:bg-success-400 transition-colors cursor-pointer
-											{loading ? 'opacity-50 cursor-wait' : ''}"
-									>
-										{loading ? '...' : 'Publish'}
-									</button>
-									<button
-										onclick={() => (confirmAction = { id: listing.offering_id, type: 'retract' })}
-										disabled={loading}
-										class="px-3 py-1.5 rounded-lg text-xs font-medium bg-amber-500
-											text-surface-50 hover:bg-amber-400 transition-colors cursor-pointer
-											{loading ? 'opacity-50 cursor-wait' : ''}"
-									>
-										{loading ? '...' : 'Retract'}
-									</button>
-								{:else if status === 'published'}
-									<button
-										onclick={() => (confirmAction = { id: listing.offering_id, type: 'retract' })}
-										disabled={loading}
-										class="px-3 py-1.5 rounded-lg text-xs font-medium bg-amber-500
-											text-surface-50 hover:bg-amber-400 transition-colors cursor-pointer
-											{loading ? 'opacity-50 cursor-wait' : ''}"
-									>
-										{loading ? '...' : 'Retract'}
-									</button>
-								{:else}
-									<button
-										onclick={() => startEdit(listing)}
-										class="px-3 py-1.5 rounded-lg text-xs font-medium text-surface-300
-											bg-surface-700 hover:bg-surface-600 border border-surface-600
-											transition-colors cursor-pointer"
-									>
-										Edit
-									</button>
-									<button
-										onclick={() => (confirmAction = { id: listing.offering_id, type: 'announce' })}
-										disabled={loading}
-										class="px-3 py-1.5 rounded-lg text-xs font-medium bg-accent-600
-											text-surface-50 hover:bg-accent-500 transition-colors cursor-pointer
-											{loading ? 'opacity-50 cursor-wait' : ''}"
-									>
-										{loading ? '...' : 'Re-announce'}
-									</button>
-									<button
-										onclick={() => (confirmAction = { id: listing.offering_id, type: 'archive' })}
-										disabled={loading}
-										class="px-3 py-1.5 rounded-lg text-xs font-medium bg-danger-500
-											text-surface-50 hover:bg-danger-400 transition-colors cursor-pointer
-											{loading ? 'opacity-50 cursor-wait' : ''}"
-									>
-										{loading ? '...' : 'Archive'}
 									</button>
 								{/if}
+								{#each actions.filter(a => a !== 'amend') as action (action)}
+									<button
+										onclick={() => (confirmAction = { id: listing.offering_id, type: action })}
+										disabled={loading}
+										class="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors cursor-pointer
+											{actionButtonStyle(action)}
+											{loading ? 'opacity-50 cursor-wait' : ''}"
+									>
+										{loading ? '...' : actionButtonLabel(action)}
+									</button>
+								{/each}
 							</div>
 						</div>
 					{/each}

@@ -71,9 +71,11 @@
 		const app = $apps.get(id);
 		if (!app) return 'offline';
 		if (app.online) return 'online';
-		const label = app.info.status_label;
-		if (label === 'Starting') return 'starting';
-		if (label === 'Downloading') return 'downloading';
+		const actions = app.info.available_actions ?? [];
+		// No available actions means something is in progress (starting, downloading, etc.)
+		if (actions.length === 0) return 'starting';
+		// 'start' available means the plugin is stopped/ready
+		if (actions.includes('start')) return 'offline';
 		return 'offline';
 	}
 

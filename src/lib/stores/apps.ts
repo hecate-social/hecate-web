@@ -22,6 +22,7 @@ export interface PluginInfo {
 	upgraded_at: number | null;
 	status: number;
 	status_label: string;
+	available_actions: string[];
 	icon: string | null;
 	group_name: string | null;
 	group_icon: string | null;
@@ -95,16 +96,18 @@ async function pollStatuses(): Promise<void> {
 				if (existing) {
 					const statusChanged = existing.info.status_label !== info.status_label;
 					if (statusChanged) {
+						const nowHasStop = (info.available_actions ?? []).includes('stop');
+						const hadStop = (existing.info.available_actions ?? []).includes('stop');
 						logActivity(
 							`${info.name} status: ${existing.info.status_label} \u2192 ${info.status_label}`,
-							info.status_label === 'Running' ? 'success' : 'info',
+							nowHasStop ? 'success' : 'info',
 							info.name
 						);
 
 						// Detect transitions for toast notifications
-						if (info.status_label === 'Running' && !existing.online) {
+						if (nowHasStop && !hadStop) {
 							toastSuccess(`${info.name} is online`);
-						} else if (existing.info.status_label === 'Running' && info.status_label !== 'Running') {
+						} else if (hadStop && !nowHasStop) {
 							toastWarning(`${info.name} went offline`);
 						}
 					}
@@ -140,9 +143,11 @@ async function pollStatuses(): Promise<void> {
 	}
 
 	// Reconcile: bring online any plugins that may be running but aren't loaded yet.
+	// Use available_actions: if 'stop' is available, the plugin is running.
 	const current = get(apps);
 	for (const [name, app] of current) {
-		if (!app.online && (app.info.status_label === 'Running' || app.info.status_label === 'Starting' || app.info.status_label === 'Extracted')) {
+		const actions = app.info.available_actions ?? [];
+		if (!app.online && (actions.includes('stop') || actions.length === 0 && app.info.status !== 0)) {
 			bringOnline(name, routeName(app.info));
 		}
 	}

@@ -7,7 +7,7 @@
 	import { pullStatus, startPullPolling, stopPullPolling } from '$lib/stores/pull-progress';
 	import { toastSuccess, toastError } from '$lib/stores/toasts';
 	import type { OfferingItem, OfferingDetail } from '$lib/types/appstore';
-	import { getActionState, isPluginInstalled, formatPrice, parseTags, extractPluginName } from '$lib/types/appstore';
+	import { getActionState, isPluginInstalled, statusBadgeClass, formatPrice, parseTags, extractPluginName } from '$lib/types/appstore';
 	import { resolveEmoji } from '$lib/emoji';
 
 	// --- Data ---
@@ -25,10 +25,22 @@
 
 	// --- Publish from URL state ---
 	let showUrlPublish = $state(false);
-	let publishUrl = $state('');
+	type GitHost = 'github.com' | 'gitlab.com' | 'codeberg.org' | 'custom';
+	let publishHost: GitHost = $state('github.com');
+	let publishCustomHost = $state('');
+	let publishOrg = $state('');
+	let publishRepo = $state('');
 	let urlPublishLoading = $state(false);
 	let urlPublishError: string | null = $state(null);
 	let urlPublishSuccess: string | null = $state(null);
+
+	const publishUrl = $derived.by(() => {
+		const host = publishHost === 'custom' ? publishCustomHost.trim() : publishHost;
+		const org = publishOrg.trim();
+		const repo = publishRepo.trim();
+		if (!host || !org || !repo) return '';
+		return `https://${host}/${org}/${repo}`;
+	});
 
 	// --- Install confirmation modal state ---
 	type InstallStep = 'confirm' | 'buying' | 'installing' | 'downloading' | 'done' | 'error';
@@ -162,17 +174,18 @@
 	}
 
 	async function publishFromUrl() {
-		if (!publishUrl.trim()) return;
+		if (!publishUrl) return;
 		urlPublishLoading = true;
 		urlPublishError = null;
 		urlPublishSuccess = null;
 		try {
 			await post('/api/appstore/publish-from-url', {
-				url: publishUrl.trim()
+				url: publishUrl
 			});
 			urlPublishSuccess = 'Published successfully';
 			toastSuccess('Plugin published to catalog');
-			publishUrl = '';
+			publishOrg = '';
+			publishRepo = '';
 			await fetchCatalog();
 			setTimeout(() => {
 				showUrlPublish = false;
@@ -400,24 +413,66 @@
 
 		<!-- Publish from URL form -->
 		{#if showUrlPublish}
-			<div class="mt-3 flex flex-col gap-2">
-				<form
-					onsubmit={(e) => { e.preventDefault(); publishFromUrl(); }}
-					class="flex gap-2"
-				>
+			<form
+				onsubmit={(e) => { e.preventDefault(); publishFromUrl(); }}
+				class="mt-3 flex flex-col gap-3 p-3 bg-surface-800 border border-surface-700 rounded-lg"
+			>
+				<!-- Host selector -->
+				<div class="flex items-center gap-1.5">
+					<span class="text-xs text-surface-400 w-10 shrink-0">Host</span>
+					{#each [
+						{ id: 'github.com', label: 'GitHub' },
+						{ id: 'gitlab.com', label: 'GitLab' },
+						{ id: 'codeberg.org', label: 'Codeberg' },
+						{ id: 'custom', label: 'Other' }
+					] as host}
+						<button
+							type="button"
+							onclick={() => { publishHost = host.id as GitHost; }}
+							class="px-2.5 py-1 rounded-md text-xs font-medium transition-colors
+								{publishHost === host.id
+								? 'bg-accent-600 text-surface-50'
+								: 'bg-surface-700 text-surface-300 hover:bg-surface-600 border border-surface-600'}"
+						>
+							{host.label}
+						</button>
+					{/each}
+					{#if publishHost === 'custom'}
+						<input
+							bind:value={publishCustomHost}
+							placeholder="gitea.example.com"
+							disabled={urlPublishLoading}
+							class="w-44 bg-surface-700 border border-surface-600 rounded-md
+								px-2.5 py-1 text-xs text-surface-100 placeholder-surface-500
+								focus:outline-none focus:border-accent-500 disabled:opacity-50"
+						/>
+					{/if}
+				</div>
+
+				<!-- Org + Repo row -->
+				<div class="flex items-center gap-1.5">
+					<span class="text-xs text-surface-400 w-10 shrink-0">Repo</span>
 					<input
-						bind:value={publishUrl}
-						placeholder="https://github.com/org/repo"
+						bind:value={publishOrg}
+						placeholder="organization"
 						disabled={urlPublishLoading}
-						class="flex-1 bg-surface-700 border border-surface-600 rounded-lg
-							px-3 py-1.5 text-xs text-surface-100 placeholder-surface-500
-							focus:outline-none focus:border-accent-500
-							disabled:opacity-50"
+						class="w-40 bg-surface-700 border border-surface-600 rounded-md
+							px-2.5 py-1 text-xs text-surface-100 placeholder-surface-500
+							focus:outline-none focus:border-accent-500 disabled:opacity-50"
+					/>
+					<span class="text-surface-500 text-xs">/</span>
+					<input
+						bind:value={publishRepo}
+						placeholder="plugin-name"
+						disabled={urlPublishLoading}
+						class="flex-1 bg-surface-700 border border-surface-600 rounded-md
+							px-2.5 py-1 text-xs text-surface-100 placeholder-surface-500
+							focus:outline-none focus:border-accent-500 disabled:opacity-50"
 					/>
 					<button
 						type="submit"
-						disabled={urlPublishLoading || !publishUrl.trim()}
-						class="px-4 py-1.5 rounded-lg text-xs font-medium transition-colors
+						disabled={urlPublishLoading || !publishUrl}
+						class="px-4 py-1 rounded-md text-xs font-medium transition-colors
 							{urlPublishLoading
 							? 'bg-surface-600 text-surface-400 cursor-wait'
 							: 'bg-accent-600 text-surface-50 hover:bg-accent-500 cursor-pointer'}
@@ -425,14 +480,20 @@
 					>
 						{urlPublishLoading ? 'Publishing...' : 'Publish'}
 					</button>
-				</form>
+				</div>
+
+				<!-- Computed URL preview -->
+				{#if publishUrl}
+					<div class="text-[10px] text-surface-500 font-mono px-1 truncate">{publishUrl}</div>
+				{/if}
+
 				{#if urlPublishError}
 					<div class="text-xs text-danger-400 px-1">{urlPublishError}</div>
 				{/if}
 				{#if urlPublishSuccess}
 					<div class="text-xs text-success-400 px-1">{urlPublishSuccess}</div>
 				{/if}
-			</div>
+			</form>
 		{/if}
 	</div>
 
@@ -597,13 +658,7 @@
 											</span>
 											{#if item.status_label}
 												<span class="text-[10px] px-1.5 py-0.5 rounded-full
-													{item.status_label === 'Running'
-													? 'bg-success-500/20 text-success-400'
-													: item.status_label === 'Downloading'
-														? 'bg-accent-500/20 text-accent-400'
-														: item.status_label === 'Stopped'
-															? 'bg-warning-500/20 text-warning-400'
-															: 'bg-surface-500/20 text-surface-400'}">
+													{statusBadgeClass(item.available_actions ?? [])}">
 													{item.status_label}
 												</span>
 											{/if}
@@ -893,7 +948,7 @@
 								<div class="grid grid-cols-[auto_1fr] gap-x-4 gap-y-2 text-xs">
 									<span class="text-surface-500">Status</span>
 									<span class="{detail.license.revoked_at ? 'text-danger-400' : 'text-success-400'}">
-										{detail.license.revoked_at ? 'Revoked' : detail.license.status_label ?? 'Active'}
+										{detail.license.status_label ?? 'Active'}
 									</span>
 
 									{#if detail.license.granted_at}

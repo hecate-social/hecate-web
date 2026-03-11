@@ -59,25 +59,12 @@ export const pluginCards = derived(apps, ($apps) => {
 			name: a.manifest?.display_name || a.info.display_name || capitalize(a.info.name),
 			icon: resolveEmoji(a.manifest?.icon ?? a.info.icon),
 			path: `/plugin/${a.info.name}`,
-			description: a.manifest?.description ?? statusDescription(a.info.status_label),
+			description: a.manifest?.description ?? a.info.status_label,
 			ready: a.online,
 			isPlugin: true
 		}));
 	return [...CORE_CARDS, ...discovered];
 });
-
-function statusDescription(statusLabel: string): string {
-	switch (statusLabel) {
-		case 'Running': return 'Running';
-		case 'Starting': return 'Starting up...';
-		case 'Downloading': return 'Downloading image...';
-		case 'Installed':
-		case 'Ready': return 'Installed — click Start in Appstore';
-		case 'Stopping': return 'Stopping...';
-		case 'Stopped': return 'Stopped — click Start in Appstore';
-		default: return statusLabel || 'Installed';
-	}
-}
 
 // Reactive: all navigable paths (for keyboard nav)
 export const pluginPaths = derived(pluginTabs, ($tabs) => [

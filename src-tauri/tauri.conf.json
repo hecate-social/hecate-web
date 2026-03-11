@@ -1,13 +1,14 @@
 {
 	"$schema": "https://raw.githubusercontent.com/nickvdyck/tauri-settings-schema/refs/heads/main/schemas/v2/tauri.conf.json",
 	"productName": "Hecate",
-	"version": "0.15.5",
+	"version": "0.15.6",
 	"identifier": "social.hecate.web",
 	"build": {
 		"frontendDist": "./fallback",
 		"devUrl": "http://localhost:1420"
 	},
 	"app": {
+		"withGlobalTauri": true,
 		"windows": [
 			{
 				"title": "Hecate",
