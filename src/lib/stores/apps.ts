@@ -15,7 +15,10 @@ export interface PluginInfo {
 	plugin_id: string;
 	name: string;
 	display_name: string | null;
-	oci_image: string;
+	plugin_type: string | null;
+	oci_image: string | null;
+	package_url: string | null;
+	callback_module: string | null;
 	installed_version: string;
 	license_id: string;
 	installed_at: number | null;
@@ -26,6 +29,7 @@ export interface PluginInfo {
 	icon: string | null;
 	group_name: string | null;
 	group_icon: string | null;
+	description: string | null;
 }
 
 export interface PluginManifest {

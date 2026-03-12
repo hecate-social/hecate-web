@@ -2,7 +2,8 @@
 	import { openExternal } from '$lib/tauri';
 	import { health, connectionStatus, isReady } from '$lib/stores/daemon.js';
 	import { pluginCards, type PluginCardData } from '$lib/plugins-registry';
-	import { apps } from '$lib/stores/apps';
+	import { apps, refreshApps } from '$lib/stores/apps';
+	import { post } from '$lib/api';
 	import {
 		sidebarGroups,
 		ungroupedApps,
@@ -12,9 +13,11 @@
 		toggleGroupCollapsed,
 		moveApp,
 		ungroupApp,
-		updateGroupIcon
+		updateGroupIcon,
+		removePluginFromSidebar
 	} from '$lib/stores/sidebar.js';
 	import { pluginUpdateVersion } from '$lib/stores/pluginUpdater.js';
+	import { toastSuccess, toastError } from '$lib/stores/toasts';
 	import PluginCard from '$lib/components/PluginCard.svelte';
 	import EmojiPicker from '$lib/components/EmojiPicker.svelte';
 	import { resolveEmoji } from '$lib/emoji';
@@ -70,6 +73,10 @@
 	// --- Emoji picker ---
 	let emojiPickerGroupId = $state<string | null>(null);
 	let emojiPickerPos = $state<{ x: number; y: number }>({ x: 0, y: 0 });
+
+	// --- Remove confirmation ---
+	let removeTarget = $state<{ appId: string; name: string } | null>(null);
+	let removeLoading = $state(false);
 
 	// --- Drag handlers ---
 
@@ -158,6 +165,39 @@
 	function moveAppToUngrouped(appId: string) {
 		ungroupApp(appId);
 		closeContextMenu();
+	}
+
+	// --- Remove plugin ---
+
+	function requestRemove(appId: string) {
+		const card = cardsMap.get(appId);
+		removeTarget = { appId, name: card?.name ?? appId };
+		closeContextMenu();
+	}
+
+	function cancelRemove() {
+		removeTarget = null;
+	}
+
+	async function confirmRemove() {
+		if (!removeTarget || removeLoading) return;
+		const { appId } = removeTarget;
+		removeLoading = true;
+		try {
+			const appState = $apps.get(appId);
+			await post('/api/appstore/plugins/remove', {
+				plugin_id: appState?.info.plugin_id ?? appId,
+				license_id: appState?.info.license_id ?? ''
+			});
+			removePluginFromSidebar(appId);
+			toastSuccess(`${removeTarget.name} removed`);
+			removeTarget = null;
+			await refreshApps();
+		} catch (e) {
+			toastError(`Failed to remove: ${e instanceof Error ? e.message : 'Unknown error'}`);
+		} finally {
+			removeLoading = false;
+		}
 	}
 
 	// --- Emoji picker ---
@@ -476,6 +516,7 @@
 		{:else if contextMenu.type === 'app'}
 			{@const appId = contextMenu.id}
 			{@const currentGroupId = findAppGroup(appId)}
+			{@const card = cardsMap.get(appId)}
 			{@const otherGroups = $sidebarGroups.filter((g) => g.id !== currentGroupId)}
 			{#if otherGroups.length > 0}
 				<div class="px-3 py-1 text-[10px] uppercase tracking-wider text-surface-500">Move to</div>
@@ -496,6 +537,15 @@
 					Move to Ungrouped
 				</button>
 			{/if}
+			{#if card?.isPlugin}
+				<div class="border-t border-surface-600 my-1"></div>
+				<button
+					class="w-full text-left px-3 py-1.5 text-xs text-danger-400 hover:bg-surface-600 rounded cursor-pointer"
+					onclick={() => requestRemove(appId)}
+				>
+					Remove
+				</button>
+			{/if}
 		{/if}
 	</menu>
 {/if}
@@ -510,5 +560,46 @@
 			onSelect={handleEmojiSelect}
 			onClose={closeEmojiPicker}
 		/>
+	</div>
+{/if}
+
+<!-- Remove confirmation modal -->
+{#if removeTarget}
+	<div
+		class="fixed inset-0 z-[70] flex items-center justify-center bg-black/60 backdrop-blur-sm"
+		onclick={cancelRemove}
+		role="dialog"
+		aria-modal="true"
+		aria-label="Remove plugin confirmation"
+	>
+		<div
+			class="bg-surface-800 border border-surface-600 rounded-xl shadow-2xl p-6 max-w-sm w-full mx-4 flex flex-col gap-4"
+			onclick={(e) => e.stopPropagation()}
+		>
+			<div class="flex flex-col items-center gap-2 text-center">
+				<span class="text-3xl">{'\uD83D\uDDD1'}</span>
+				<h3 class="text-lg font-semibold text-surface-100">
+					Remove {removeTarget.name}?
+				</h3>
+			</div>
+			<p class="text-sm text-surface-400 text-center">
+				This will uninstall the plugin and remove it from your launcher. Your license will be kept.
+			</p>
+			<div class="flex gap-3 justify-end">
+				<button
+					class="px-4 py-2 text-sm rounded-lg bg-surface-700 text-surface-300 hover:bg-surface-600 transition-colors cursor-pointer"
+					onclick={cancelRemove}
+				>
+					Cancel
+				</button>
+				<button
+					class="px-4 py-2 text-sm rounded-lg bg-danger-600 text-white hover:bg-danger-500 transition-colors cursor-pointer disabled:opacity-50"
+					disabled={removeLoading}
+					onclick={confirmRemove}
+				>
+					{removeLoading ? 'Removing...' : 'Remove'}
+				</button>
+			</div>
+		</div>
 	</div>
 {/if}

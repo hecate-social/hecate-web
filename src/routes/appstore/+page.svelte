@@ -323,12 +323,49 @@
 		switch (state) {
 			case 'get':
 			case 'install':
-			case 'update':
 				requestInstall(item);
+				break;
+			case 'update':
+				confirmUpgrade(item);
 				break;
 			case 'installed':
 				requestDanger(item, 'uninstall');
 				break;
+		}
+	}
+
+	async function confirmUpgrade(item: OfferingItem) {
+		try {
+			installTarget = item;
+			installStep = 'buying';
+			await post('/api/appstore/plugins/upgrade', {
+				plugin_id: item.plugin_id,
+				oci_image: item.oci_image,
+				package_url: item.package_url,
+				plugin_type: item.plugin_type,
+				installed_version: item.version,
+				icon: item.icon,
+				group_name: item.group_name,
+				group_icon: item.group_icon,
+				display_name: item.name,
+				description: item.description
+			});
+			toastSuccess(`Upgrading ${item.name} to v${item.version}...`);
+			installStep = 'installing';
+			await new Promise((r) => setTimeout(r, 1500));
+			await fetchCatalog();
+			if (selectedPlugin && selectedPlugin.plugin_id === item.plugin_id) {
+				await openDetail(item.offering_id);
+			}
+			if (item.plugin_type === 'in_vm') {
+				installStep = 'downloading';
+				pullStatus.set({ status: 'complete', percent: 100 });
+			} else {
+				cancelInstall();
+			}
+		} catch (e) {
+			installModalError = e instanceof Error ? e.message : String(e);
+			installStep = 'error';
 		}
 	}
 
