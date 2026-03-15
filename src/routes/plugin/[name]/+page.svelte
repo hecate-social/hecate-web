@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { page } from '$app/state';
-	import { apps } from '$lib/stores/apps';
+	import { apps, appsLoaded } from '$lib/stores/apps';
 	import { post, ApiError } from '$lib/api';
 	import { refreshApps } from '$lib/stores/apps';
 	import { toastError, toastSuccess, toastInfo } from '$lib/stores/toasts';
@@ -21,6 +21,10 @@
 		return slash >= 0 ? id.substring(slash + 1) : id;
 	});
 
+	const displayName = $derived(
+		app?.manifest?.display_name || app?.info.display_name || pluginName.charAt(0).toUpperCase() + pluginName.slice(1)
+	);
+
 	const statusLabel = $derived(app?.info.status_label ?? '');
 	const isInstalled = $derived(!!app && statusLabel !== 'Removed');
 	const isOnline = $derived(app?.online ?? false);
@@ -30,7 +34,34 @@
 	const actions = $derived(app?.info.available_actions ?? []);
 	const canStart = $derived(actions.includes('start'));
 	const canStop = $derived(actions.includes('stop'));
-	const inProgress = $derived(actions.length === 0 && !!app && isInstalled);
+	// In progress: either no actions (daemon transitioning) or running but not yet loaded in UI
+	const inProgress = $derived(!!app && isInstalled && (
+		(actions.length === 0) || (canStop && !isOnline)
+	));
+
+	const isContainer = $derived(app?.info.plugin_type === 'container');
+
+	// Phase-specific UI details derived from statusLabel
+	const phase = $derived.by(() => {
+		const label = statusLabel.toLowerCase();
+		switch (label) {
+			case 'downloading':
+				return { icon: '\u{2B07}\uFE0F', hint: isContainer ? 'Pulling image from registry...' : 'Downloading plugin package...' };
+			case 'extracting':
+			case 'extracted':
+				return { icon: '\u{1F4E6}', hint: 'Unpacking plugin package...' };
+			case 'starting':
+				return { icon: '\u{1F680}', hint: isContainer ? 'Starting container...' : 'Loading plugin...' };
+			case 'activating':
+				return { icon: '\u{26A1}', hint: 'Loading code, creating stores, mounting routes...' };
+			case 'running':
+				return { icon: '\u{26A1}', hint: 'Connecting to plugin...' };
+			case 'ready':
+				return { icon: '\u{2705}', hint: 'Download complete. Preparing to start...' };
+			default:
+				return { icon: '\u{2699}\uFE0F', hint: '' };
+		}
+	});
 
 	// Timeout tracking for in-progress states
 	let now = $state(Date.now());
@@ -131,39 +162,53 @@
 {#if isOnline}
 	<div bind:this={container} class="h-full overflow-auto p-4"></div>
 {:else if inProgress}
-	<div class="flex flex-col items-center justify-center h-full gap-4">
+	<div class="flex flex-col items-center justify-center h-full gap-5">
 		{#if progressError}
 			<span class="text-4xl">{'\u{26A0}\uFE0F'}</span>
 		{:else}
-			<span class="text-4xl animate-spin">{'\u{2699}\uFE0F'}</span>
+			<span class="text-4xl {phase.icon === '\u{2699}\uFE0F' ? 'animate-spin' : 'animate-pulse'}">{phase.icon}</span>
 		{/if}
-		<h2 class="text-lg font-bold text-surface-100">
-			{app?.manifest?.display_name || app?.info.display_name || pluginName.charAt(0).toUpperCase() + pluginName.slice(1)}
-		</h2>
+		<h2 class="text-lg font-bold text-surface-100">{displayName}</h2>
+
 		{#if progressError}
-			<div class="px-4 py-3 rounded-md bg-red-500/10 border border-red-500/30 max-w-sm text-center">
-				<p class="text-sm text-red-400 font-medium">App failed to start</p>
-				<p class="text-xs text-surface-400 mt-1">The container may have crashed or the socket was never created. Check daemon logs for details.</p>
-			</div>
-		{:else if progressWarn}
-			<p class="text-sm text-surface-400">{statusLabel || 'Working'}...</p>
-			<div class="px-4 py-2 rounded-md bg-amber-500/10 border border-amber-500/30 max-w-sm text-center">
-				<p class="text-xs text-amber-400 font-medium">Taking longer than usual</p>
-				<p class="text-xs text-surface-400 mt-1">First start may take a moment while the container initializes.</p>
+			<div class="flex flex-col items-center gap-2 max-w-sm text-center">
+				<div class="px-4 py-3 rounded-md bg-red-500/10 border border-red-500/30 w-full">
+					<p class="text-sm text-red-400 font-medium">App failed to start</p>
+					<p class="text-xs text-surface-400 mt-1">The plugin may have crashed or timed out. Check daemon logs for details.</p>
+				</div>
+				{#if debugError}
+					<p class="text-xs text-surface-500 font-mono break-all max-w-md">{debugError}</p>
+				{/if}
 			</div>
 		{:else}
-			<p class="text-sm text-surface-400">{statusLabel || 'Working'}...</p>
-			<div class="w-48 h-1.5 bg-surface-700 rounded-full overflow-hidden">
+			<!-- Phase label -->
+			<div class="flex flex-col items-center gap-1.5">
+				<p class="text-sm font-medium text-surface-200">{statusLabel || 'Working'}...</p>
+				{#if phase.hint}
+					<p class="text-xs text-surface-500">{phase.hint}</p>
+				{/if}
+			</div>
+
+			<!-- Progress bar -->
+			<div class="w-56 h-1.5 bg-surface-700 rounded-full overflow-hidden">
 				<div class="h-full bg-hecate-500 rounded-full animate-pulse" style="width: 60%"></div>
 			</div>
+
+			<!-- Elapsed time -->
+			<p class="text-[11px] text-surface-600 tabular-nums">{formatElapsed(elapsed)}</p>
+
+			{#if progressWarn}
+				<div class="px-4 py-2 rounded-md bg-amber-500/10 border border-amber-500/30 max-w-sm text-center">
+					<p class="text-xs text-amber-400 font-medium">Taking longer than usual</p>
+					<p class="text-xs text-surface-400 mt-1">First start may take a moment while the plugin initializes.</p>
+				</div>
+			{/if}
 		{/if}
 	</div>
 {:else if canStart}
 	<div class="flex flex-col items-center justify-center h-full gap-4">
 		<span class="text-4xl">{'\u{1F4E6}'}</span>
-		<h2 class="text-lg font-bold text-surface-100">
-			{app?.manifest?.display_name || app?.info.display_name || pluginName.charAt(0).toUpperCase() + pluginName.slice(1)}
-		</h2>
+		<h2 class="text-lg font-bold text-surface-100">{displayName}</h2>
 		<p class="text-sm text-surface-400 text-center max-w-md">
 			{statusLabel}. Press Start to launch it.
 		</p>
@@ -181,24 +226,25 @@
 {:else if isInstalled}
 	<div class="flex flex-col items-center justify-center h-full gap-4">
 		<span class="text-4xl">{'\u{1F50C}'}</span>
-		<h2 class="text-lg font-bold text-surface-100">
-			{app?.manifest?.display_name || app?.info.display_name || pluginName.charAt(0).toUpperCase() + pluginName.slice(1)}
-		</h2>
+		<h2 class="text-lg font-bold text-surface-100">{displayName}</h2>
 		<p class="text-sm text-surface-400 text-center max-w-md">
-			App is {statusLabel.toLowerCase() || 'installed'}. Waiting for it to become ready.
+			{statusLabel || 'Installed'}. Waiting for it to become ready.
 		</p>
 		{#if debugError}
-			<div class="mt-2 px-4 py-2 rounded-md bg-red-500/10 border border-red-500/30 max-w-lg">
-				<p class="text-xs text-red-400 font-mono break-all">{debugError}</p>
+			<div class="mt-1 px-4 py-2 rounded-md bg-red-500/10 border border-red-500/30 max-w-lg">
+				<p class="text-xs text-red-400 break-all">{debugError}</p>
 			</div>
 		{/if}
+	</div>
+{:else if !$appsLoaded}
+	<div class="flex flex-col items-center justify-center h-full gap-4">
+		<span class="text-4xl animate-pulse">{'\u{2699}\uFE0F'}</span>
+		<p class="text-sm text-surface-400">Loading...</p>
 	</div>
 {:else}
 	<div class="flex flex-col items-center justify-center h-full gap-4">
 		<span class="text-4xl">{'\u{1F50C}'}</span>
-		<h2 class="text-lg font-bold text-surface-100">
-			{app?.manifest?.display_name || app?.info.display_name || pluginName.charAt(0).toUpperCase() + pluginName.slice(1)}
-		</h2>
+		<h2 class="text-lg font-bold text-surface-100">{displayName}</h2>
 		<p class="text-sm text-surface-400 text-center max-w-md">
 			This app is not installed. Visit the App Store to install it.
 		</p>

@@ -1,13 +1,15 @@
 // Unified plugin state store
 //
 // Single source of truth for plugin state.
-// Daemon API is the source of truth for installed plugins.
-// Polling detects online/offline transitions.
+// Daemon API bootstraps the initial plugin list.
+// SSE events drive real-time status updates (no polling for status changes).
+// Polling only used as a slow fallback reconciliation loop.
 
 import { writable, derived, get } from 'svelte/store';
 import { get as apiGet, post as apiPost, put as apiPut, del as apiDel } from '$lib/api';
 import { toastSuccess, toastWarning } from '$lib/stores/toasts';
 import { logActivity } from '$lib/stores/activity';
+import { onDaemonEvent } from '$lib/stores/events';
 
 // --- Types ---
 
@@ -60,9 +62,12 @@ export interface AppState {
 
 // --- Store ---
 
-const POLL_INTERVAL_MS = 3000;
+// Slow fallback poll — SSE is the primary update mechanism.
+// This only exists to reconcile state on reconnect or missed events.
+const POLL_INTERVAL_MS = 15_000;
 
 export const apps = writable<Map<string, AppState>>(new Map());
+export const appsLoaded = writable(false);
 
 export const appList = derived(apps, ($apps) => Array.from($apps.values()));
 
@@ -146,12 +151,12 @@ async function pollStatuses(): Promise<void> {
 		return;
 	}
 
-	// Reconcile: bring online any plugins that may be running but aren't loaded yet.
-	// Use available_actions: if 'stop' is available, the plugin is running.
+	// Reconcile: bring online any plugins that are running but not yet loaded in the UI.
+	// Only attempt when 'stop' action is available — that means the container is up.
 	const current = get(apps);
 	for (const [name, app] of current) {
 		const actions = app.info.available_actions ?? [];
-		if (!app.online && (actions.includes('stop') || actions.length === 0 && app.info.status !== 0)) {
+		if (!app.online && actions.includes('stop')) {
 			bringOnline(name, routeName(app.info));
 		}
 	}
@@ -219,16 +224,16 @@ async function bringOnline(name: string, techName?: string): Promise<void> {
 			return next;
 		});
 	} catch (e) {
-		const errName = e instanceof Error ? e.constructor.name : typeof e;
 		const errMsg = e instanceof Error ? e.message : String(e);
-		const errStack = e instanceof Error ? e.stack?.split('\n').slice(0, 4).join(' | ') : '';
-		const detail = `step=${step} [${errName}] ${errMsg}${errStack ? ' @ ' + errStack : ''}`;
+		const isHtml = errMsg.includes('<!doctype') || errMsg.includes('Invalid JSON');
+		const detail = isHtml
+			? `Plugin API not ready yet — still initializing`
+			: `Failed at ${step}: ${errMsg}`;
 		apps.update((current) => {
 			const next = new Map(current);
 			const existing = next.get(name);
 			if (existing) {
-				next.set(name, { ...existing,
-					_debugError: detail });
+				next.set(name, { ...existing, _debugError: detail });
 			}
 			return next;
 		});
@@ -237,13 +242,80 @@ async function bringOnline(name: string, techName?: string): Promise<void> {
 	}
 }
 
+// --- SSE event handler ---
+
+/** Handle real-time plugin_status_changed events from daemon SSE. */
+function handlePluginStatusChanged(data: unknown): void {
+	const evt = data as {
+		plugin_id: string;
+		name: string;
+		status: number;
+		status_label: string;
+		available_actions: string[];
+	};
+
+	apps.update((current) => {
+		const next = new Map(current);
+		const existing = next.get(evt.name);
+		if (!existing) return next; // Unknown plugin — wait for next full poll
+
+		const statusChanged = existing.info.status_label !== evt.status_label;
+		if (statusChanged) {
+			const nowHasStop = (evt.available_actions ?? []).includes('stop');
+			const hadStop = (existing.info.available_actions ?? []).includes('stop');
+			logActivity(
+				`${evt.name} status: ${existing.info.status_label} \u2192 ${evt.status_label}`,
+				nowHasStop ? 'success' : 'info',
+				evt.name
+			);
+
+			if (nowHasStop && !hadStop) {
+				toastSuccess(`${evt.name} is online`);
+			} else if (hadStop && !nowHasStop) {
+				toastWarning(`${evt.name} went offline`);
+			}
+		}
+
+		const updatedInfo = {
+			...existing.info,
+			status: evt.status,
+			status_label: evt.status_label,
+			available_actions: evt.available_actions
+		};
+
+		next.set(evt.name, {
+			...existing,
+			info: updatedInfo,
+			statusChangedAt: statusChanged ? Date.now() : existing.statusChangedAt
+		});
+
+		return next;
+	});
+
+	// Reconcile: if plugin now has 'stop' action but isn't online in UI, bring it online
+	const current = get(apps);
+	const app = current.get(evt.name);
+	if (app && !app.online && (evt.available_actions ?? []).includes('stop')) {
+		bringOnline(evt.name, routeName(app.info));
+	}
+}
+
 // --- Lifecycle ---
 
 let pollInterval: ReturnType<typeof setInterval> | null = null;
+let unsubSSE: (() => void) | null = null;
 
 export async function startAppWatcher(): Promise<void> {
 	stopAppWatcher();
+
+	// Subscribe to real-time SSE events
+	unsubSSE = onDaemonEvent('plugin_status_changed', handlePluginStatusChanged);
+
+	// Bootstrap: full poll to get initial state
 	await pollStatuses();
+	appsLoaded.set(true);
+
+	// Slow fallback poll for reconciliation
 	pollInterval = setInterval(pollStatuses, POLL_INTERVAL_MS);
 }
 
@@ -251,6 +323,10 @@ export function stopAppWatcher(): void {
 	if (pollInterval) {
 		clearInterval(pollInterval);
 		pollInterval = null;
+	}
+	if (unsubSSE) {
+		unsubSSE();
+		unsubSSE = null;
 	}
 }
 
