@@ -263,15 +263,8 @@
 			if (selectedPlugin && selectedPlugin.plugin_id === item.plugin_id) {
 				await openDetail(item.offering_id);
 			}
-			if (item.plugin_type === 'in_vm') {
-				installStep = 'downloading';
-				// In-VM plugins load directly — no OCI pull needed.
-				// Set pullStatus to complete so the UI shows the "Start" button.
-				pullStatus.set({ status: 'complete', percent: 100 });
-			} else {
-				installStep = 'downloading';
-				startPullPolling(item.plugin_id);
-			}
+			installStep = 'downloading';
+			startPullPolling(item.plugin_id);
 		} catch (e) {
 			installModalError = e instanceof Error ? e.message : String(e);
 			installStep = 'error';
@@ -1191,7 +1184,6 @@
 						</div>
 					</div>
 
-					{#if target.plugin_type !== 'in_vm'}
 					<div class="space-y-2">
 						<div class="w-full bg-surface-700 rounded-full h-2.5 overflow-hidden">
 							<div
@@ -1203,13 +1195,13 @@
 						<div class="flex justify-between text-[10px]">
 							<span class="text-surface-400">
 								{#if $pullStatus.status === 'ready' || $pullStatus.status === 'complete'}
-									Download complete
+									Ready
 								{:else if $pullStatus.status === 'error'}
-									Download failed
+									Failed
 								{:else if $pullStatus.status === 'extracting'}
-									Extracting layers...
+									{target.plugin_type === 'in_vm' ? 'Extracting package...' : 'Extracting layers...'}
 								{:else}
-									Downloading...
+									{target.plugin_type === 'in_vm' ? 'Downloading package...' : 'Downloading image...'}
 								{/if}
 							</span>
 							{#if $pullStatus.percent != null && $pullStatus.status !== 'ready' && $pullStatus.status !== 'complete'}
@@ -1220,7 +1212,6 @@
 							<div class="text-[10px] text-surface-500 font-mono truncate">{$pullStatus.line}</div>
 						{/if}
 					</div>
-					{/if}
 
 					{#if $pullStatus.status === 'ready' || $pullStatus.status === 'complete'}
 						<div class="flex gap-3">
