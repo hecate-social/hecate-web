@@ -377,6 +377,8 @@
 												online={!card.isPlugin || ($apps.get(card.id)?.online ?? false)}
 												version={$apps.get(card.id)?.manifest?.version ?? $apps.get(card.id)?.info.installed_version ?? null}
 												updateVersion={card.isPlugin ? $pluginUpdateVersion(card.id) : null}
+												pluginId={$apps.get(card.id)?.info.plugin_id ?? null}
+												actions={$apps.get(card.id)?.info.available_actions ?? []}
 											/>
 										</div>
 									{/each}
@@ -421,6 +423,8 @@
 										online={!card.isPlugin || ($apps.get(card.id)?.online ?? false)}
 										version={$apps.get(card.id)?.manifest?.version ?? $apps.get(card.id)?.info.installed_version ?? null}
 										updateVersion={card.isPlugin ? $pluginUpdateVersion(card.id) : null}
+										pluginId={$apps.get(card.id)?.info.plugin_id ?? null}
+										actions={$apps.get(card.id)?.info.available_actions ?? []}
 									/>
 								</div>
 							{/each}

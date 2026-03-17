@@ -1034,7 +1034,7 @@
 
 				<p class="text-xs text-surface-400 leading-relaxed">
 					{#if dangerAction === 'uninstall'}
-						This will stop and remove the container for this app. Your license remains active and you can reinstall later.
+						This will stop and remove this app. Your license remains active and you can reinstall later.
 					{:else}
 						This will permanently revoke your license for this app. If the app is installed, it will be uninstalled first. You will need to buy a new license to use it again.
 					{/if}

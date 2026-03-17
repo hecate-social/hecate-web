@@ -1,16 +1,18 @@
 <script lang="ts">
 	import type { CheckStatus } from '$lib/stores/startup';
-	import { checks, startupDone } from '$lib/stores/startup';
+	import { checks, startupDone, elapsedMs } from '$lib/stores/startup';
 	import { fade } from 'svelte/transition';
 
 	let visible = $derived(!$startupDone);
+	let elapsed = $derived(($elapsedMs / 1000).toFixed(1));
+	let doneCount = $derived($checks.filter(c => c.status === 'done').length);
 
 	function icon(status: CheckStatus): string {
 		switch (status) {
-			case 'done':    return '\u{2713}';  // checkmark
-			case 'active':  return '\u{25CF}';  // filled circle
-			case 'failed':  return '\u{2717}';  // cross
-			default:        return '\u{25CB}';  // empty circle
+			case 'done':    return '\u{2713}';
+			case 'active':  return '\u{25CF}';
+			case 'failed':  return '\u{2717}';
+			default:        return '\u{25CB}';
 		}
 	}
 
@@ -25,10 +27,10 @@
 
 	function labelColor(status: CheckStatus): string {
 		switch (status) {
-			case 'done':    return 'text-surface-200';
-			case 'active':  return 'text-surface-200';
+			case 'done':    return 'text-surface-300';
+			case 'active':  return 'text-surface-100';
 			case 'failed':  return 'text-red-400';
-			default:        return 'text-surface-500';
+			default:        return 'text-surface-600';
 		}
 	}
 </script>
@@ -54,18 +56,28 @@
 			</h1>
 
 			<!-- Checklist -->
-			<div class="flex flex-col gap-3 min-w-[220px]">
+			<div class="flex flex-col gap-2.5 min-w-[260px]">
 				{#each $checks as check (check.id)}
-					<div class="flex items-center gap-3">
-						<span class={`text-sm w-4 text-center ${iconColor(check.status)}`}>
+					<div class="flex items-start gap-3">
+						<span class={`text-sm w-4 text-center mt-0.5 ${iconColor(check.status)}`}>
 							{icon(check.status)}
 						</span>
-						<div class="flex flex-col">
+						<div class="flex flex-col gap-0.5">
 							<span class={`text-xs font-medium ${labelColor(check.status)}`}>
 								{check.label}
 							</span>
-							{#if check.detail && check.status === 'active'}
-								<span class="text-[10px] text-surface-500">{check.detail}</span>
+							{#if check.detail && (check.status === 'active' || check.status === 'done')}
+								<span class="text-[10px] leading-tight {check.status === 'active' ? 'text-amber-400/70' : 'text-surface-500'}">
+									{check.detail.split('\n')[0]}
+								</span>
+								{#if check.detail.includes('\n')}
+									<span class="text-[9px] leading-tight text-surface-600 font-mono">
+										{check.detail.split('\n')[1]}
+									</span>
+								{/if}
+							{/if}
+							{#if check.status === 'failed' && check.detail}
+								<span class="text-[10px] text-red-400/70">{check.detail}</span>
 							{/if}
 						</div>
 					</div>
@@ -73,12 +85,15 @@
 			</div>
 
 			<!-- Progress bar -->
-			<div class="w-48 h-0.5 bg-surface-800 rounded-full overflow-hidden">
+			<div class="w-56 h-0.5 bg-surface-800 rounded-full overflow-hidden">
 				<div
-					class="h-full bg-gradient-to-r from-amber-500 to-purple-500 rounded-full transition-all duration-500"
-					style="width: {($checks.filter(c => c.status === 'done').length / $checks.length) * 100}%"
+					class="h-full bg-gradient-to-r from-amber-500 to-purple-500 rounded-full transition-all duration-300"
+					style="width: {(doneCount / $checks.length) * 100}%"
 				></div>
 			</div>
+
+			<!-- Elapsed time -->
+			<span class="text-[10px] text-surface-600">{elapsed}s</span>
 		</div>
 	</div>
 {/if}

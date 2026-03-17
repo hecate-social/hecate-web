@@ -3,6 +3,14 @@
 
 // --- Health ---
 
+export interface BootStatus {
+	boot_phase: 'booting_stores' | 'starting_subscriptions' | 'replaying' | 'running' | 'initializing';
+	stores: Record<string, 'ready' | 'starting'>;
+	stores_ready: number;
+	stores_total: number;
+	elapsed_ms: number;
+}
+
 export interface DaemonHealth {
 	status: 'healthy' | 'starting' | 'unhealthy';
 	ready: boolean;
@@ -10,6 +18,7 @@ export interface DaemonHealth {
 	version: string;
 	uptime_seconds: number;
 	identity?: 'initialized' | 'not_initialized';
+	boot?: BootStatus;
 }
 
 // --- UI State ---

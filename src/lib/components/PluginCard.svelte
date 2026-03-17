@@ -2,24 +2,34 @@
 	import { goto } from '$app/navigation';
 	import { activeAppId } from '$lib/stores/sidebar.js';
 	import { showPluginUpdateModal } from '$lib/stores/pluginUpdater.js';
+	import { post } from '$lib/api';
 	import type { PluginCardData } from '$lib/plugins-registry';
 
 	let {
 		card,
 		online,
 		version = null,
-		updateVersion = null
+		updateVersion = null,
+		pluginId = null,
+		actions = []
 	}: {
 		card: PluginCardData;
 		online: boolean;
 		version?: string | null;
 		updateVersion?: string | null;
+		pluginId?: string | null;
+		actions?: string[];
 	} = $props();
 
 	let isCore = $derived(!card.isPlugin);
+	let canStart = $derived(actions.includes('start'));
 
 	function navigate() {
 		activeAppId.set(card.id);
+		// Auto-start non-running plugins when clicking the card
+		if (card.isPlugin && canStart && pluginId) {
+			post('/api/plugins/start', { plugin_id: pluginId }).catch(() => {});
+		}
 		goto(card.path);
 	}
 </script>

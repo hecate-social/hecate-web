@@ -1,14 +1,16 @@
 ///
 /// Daemon connection store — polling pattern.
 ///
-/// Polls /api/health every few seconds to track daemon state.
-/// Progression: connecting → starting → ready
+/// Polls /api/health to track daemon state.
+/// During boot: 500ms interval (matches daemon's boot tracker poll).
+/// Once ready: 5000ms interval.
 ///
 import { writable, derived } from 'svelte/store';
 import { get as apiGet } from '$lib/api';
 import type { DaemonHealth, ConnectionStatus } from '../types.js';
 
-const POLL_INTERVAL_MS = 5000;
+const POLL_INTERVAL_READY_MS = 5000;
+const POLL_INTERVAL_BOOT_MS = 500;
 
 // --- Raw state ---
 
@@ -32,7 +34,7 @@ export const showOverlay = derived(
 
 // --- Heartbeat handler ---
 
-let pollTimer: ReturnType<typeof setInterval> | null = null;
+let pollTimer: ReturnType<typeof setTimeout> | null = null;
 let onReconnectCallback: (() => void) | null = null;
 
 export function onReconnect(cb: () => void): void {
@@ -71,12 +73,21 @@ async function pollHealth(): Promise<void> {
 export async function startPolling(): Promise<void> {
 	stopPolling();
 	await pollHealth();
-	pollTimer = setInterval(pollHealth, POLL_INTERVAL_MS);
+	schedulePoll();
+}
+
+function schedulePoll(): void {
+	const h = getCurrentValue(health);
+	const interval = h?.ready ? POLL_INTERVAL_READY_MS : POLL_INTERVAL_BOOT_MS;
+	pollTimer = setTimeout(async () => {
+		await pollHealth();
+		schedulePoll();
+	}, interval);
 }
 
 export function stopPolling(): void {
 	if (pollTimer) {
-		clearInterval(pollTimer);
+		clearTimeout(pollTimer);
 		pollTimer = null;
 	}
 }

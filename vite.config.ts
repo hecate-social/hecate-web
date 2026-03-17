@@ -4,8 +4,9 @@ import { defineConfig } from 'vitest/config';
 import { Agent } from 'node:http';
 
 // Unix socket path for dev proxy (matches hecate_socket:get_socket_path/0)
+// Dev mode uses ~/.hecate-dev, production uses ~/.hecate
 const SOCKET_PATH = process.env.HECATE_SOCKET_PATH
-	?? `${process.env.HOME}/.hecate/hecate-daemon/sockets/api.sock`;
+	?? `${process.env.HOME}/.hecate-dev/hecate-daemon/sockets/api.sock`;
 
 const socketAgent = new Agent({ socketPath: SOCKET_PATH } as never);
 

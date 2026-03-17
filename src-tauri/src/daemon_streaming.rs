@@ -186,16 +186,25 @@ fn process_sse_line(
     }
 }
 
-/// Map SSE event type to Tauri event name and emit.
+/// Map SSE event type to Tauri event name.
+///
+/// Only shell-level events are forwarded via Tauri events.
+/// Plugin events (Martha ventures, agents, kanban, etc.) are consumed
+/// by the browser-side sseStore.ts via EventSource, not this bridge.
+fn tauri_event_name(event_type: &str) -> Option<&'static str> {
+    match event_type {
+        "settings_changed" => Some("daemon-settings-changed"),
+        "identity_changed" => Some("daemon-identity-changed"),
+        "realm_join_status" => Some("daemon-realm-join-status"),
+        _ => None,
+    }
+}
+
+/// Dispatch a parsed SSE event as a Tauri event.
 fn dispatch_event(app: &AppHandle, event_type: &str, data: &str) {
-    let tauri_event = match event_type {
-        "realm_join_status" => "daemon-realm-join-status",
-        "identity_changed" => "daemon-identity-changed",
-        "settings_changed" => "daemon-settings-changed",
-        other => {
-            eprintln!("[daemon_streaming] unknown event type: {}", other);
-            return;
-        }
+    let tauri_event = match tauri_event_name(event_type) {
+        Some(name) => name,
+        None => return, // Plugin event — handled by browser-side sseStore.ts
     };
 
     match serde_json::from_str::<serde_json::Value>(data) {

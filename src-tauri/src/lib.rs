@@ -1,4 +1,5 @@
 mod app_updater;
+mod audio;
 mod config_watcher;
 mod daemon_streaming;
 mod daemon_watcher;
@@ -64,6 +65,11 @@ pub fn run() {
             traffic::get_traffic_counters,
             webview_opener::open_webview,
             webview_opener::close_webview,
+            audio::list_audio_devices,
+            audio::select_audio_device,
+            audio::start_audio_recording,
+            audio::stop_audio_recording,
+            audio::get_audio_level,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

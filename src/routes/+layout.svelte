@@ -13,6 +13,7 @@
 	import { stopAppWatcher } from '$lib/stores/apps';
 	import { stopIdentityWatcher } from '$lib/stores/nodeIdentity';
 	import { stopTrafficWatcher } from '$lib/stores/traffic.js';
+	import { stopEventStream } from '$lib/stores/events.js';
 	import { toggleSidebar } from '$lib/stores/sidebar.js';
 	import { checkForUpdate } from '$lib/stores/updater.js';
 	import { checkPluginUpdates } from '$lib/stores/pluginUpdater.js';
@@ -40,6 +41,7 @@
 
 	onDestroy(() => {
 		stopPolling();
+		stopEventStream();
 		stopAppWatcher();
 		stopSettingsWatcher();
 		stopIdentityWatcher();

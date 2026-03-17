@@ -170,8 +170,15 @@ pub fn proxy_request(
     );
 
     if !body.is_empty() {
+        // Forward the original Content-Type (multipart, JSON, etc.)
+        let ct = request
+            .headers()
+            .get("content-type")
+            .and_then(|v| v.to_str().ok())
+            .unwrap_or("application/json");
         http_req += &format!(
-            "Content-Type: application/json\r\nContent-Length: {}\r\n",
+            "Content-Type: {}\r\nContent-Length: {}\r\n",
+            ct,
             body.len()
         );
     }
