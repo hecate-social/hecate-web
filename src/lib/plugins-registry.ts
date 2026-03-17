@@ -26,12 +26,16 @@ const CORE_TABS: PluginTab[] = [
 	{ id: 'settings', name: 'Settings', icon: '\u2699', path: '/settings', isPlugin: false },
 	{ id: 'llm', name: 'LLM', icon: '\uD83E\uDD16', path: '/llm', isPlugin: false },
 	{ id: 'appstore', name: 'Appstore', icon: '\uD83C\uDFEA', path: '/appstore', isPlugin: false },
+	{ id: 'observer', name: 'Observer', icon: '\uD83D\uDD2C', path: '/observer', isPlugin: false },
+	{ id: 'mesh', name: 'Mesh', icon: '\uD83C\uDF10', path: '/mesh', isPlugin: false },
 ];
 
 const CORE_CARDS: PluginCardData[] = [
 	{ id: 'settings', name: 'Settings', icon: '\u2699', path: '/settings', description: 'Node identity, realms, and preferences', ready: true, isPlugin: false },
 	{ id: 'llm', name: 'LLM', icon: '\uD83E\uDD16', path: '/llm', description: 'Chat with AI models across providers', ready: true, isPlugin: false },
 	{ id: 'appstore', name: 'Appstore', icon: '\uD83C\uDFEA', path: '/appstore', description: 'Browse and install plugins', ready: true, isPlugin: false },
+	{ id: 'observer', name: 'Observer', icon: '\uD83D\uDD2C', path: '/observer', description: 'BEAM debugger and diagnostics', ready: true, isPlugin: false },
+	{ id: 'mesh', name: 'Mesh', icon: '\uD83C\uDF10', path: '/mesh', description: 'Mesh network status and discovery', ready: true, isPlugin: false },
 ];
 
 const CORE_IDS = new Set(CORE_TABS.map((t) => t.id));
