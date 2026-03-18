@@ -227,13 +227,16 @@
 			<div class="flex items-center gap-2">
 				<div class="relative">
 					<button
-						onclick={() => (showNewMenu = !showNewMenu)}
+						onclick={(e) => { e.stopPropagation(); showNewMenu = !showNewMenu; }}
 						class="px-3 py-1.5 rounded-lg text-xs bg-accent-600 text-surface-50 hover:bg-accent-500 transition-colors cursor-pointer"
 					>
 						+ New {'\u25BE'}
 					</button>
 					{#if showNewMenu}
-						<div class="absolute top-full left-0 mt-1 w-48 bg-surface-700 border border-surface-500 rounded-lg shadow-xl py-1 z-50">
+						<!-- svelte-ignore a11y_click_events_have_key_events -->
+						<!-- svelte-ignore a11y_no_static_element_interactions -->
+						<div class="absolute top-full left-0 mt-1 w-48 bg-surface-700 border border-surface-500 rounded-lg shadow-xl py-1 z-50"
+							onclick={(e) => e.stopPropagation()}>
 							{#each $creatableFileTypes as ft (ft.type)}
 								<button
 									onclick={() => createNewFile(ft)}
@@ -409,7 +412,7 @@
 						>
 							<div class="relative">
 								<span class="text-2xl group-hover:scale-110 transition-transform inline-block">
-									{file.icon || fileIcon(file.file_type)}
+									{resolveEmoji(file.icon) || fileIcon(file.file_type)}
 								</span>
 								{#if file.starred}
 									<span class="absolute -top-1 -right-2 text-[10px]">{'\u2B50'}</span>
@@ -459,7 +462,7 @@
 							onclick={() => openFile(file)}
 							oncontextmenu={(e) => onContextMenu(e, 'file', file)}
 						>
-							<span class="text-sm shrink-0">{file.icon || fileIcon(file.file_type)}</span>
+							<span class="text-sm shrink-0">{resolveEmoji(file.icon) || fileIcon(file.file_type)}</span>
 
 							{#if renamingId === file.file_id}
 								<!-- svelte-ignore a11y_autofocus -->
