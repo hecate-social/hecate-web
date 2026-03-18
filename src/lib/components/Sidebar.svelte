@@ -229,12 +229,70 @@
 		if (contextMenu) closeContextMenu();
 		if (emojiPickerGroupId) closeEmojiPicker();
 	}
+
+	// --- Keyboard navigation ---
+	let focusedIndex = $state(-1);
+	let asideEl: HTMLElement | undefined = $state();
+
+	/** Flat list of visible items for keyboard nav — respects collapsed groups */
+	let visibleItems = $derived.by(() => {
+		const items: PluginTab[] = [];
+		for (const group of $sidebarGroups) {
+			if (!group.collapsed) {
+				for (const id of group.appIds) {
+					items.push(tabOrPlaceholder(id));
+				}
+			}
+		}
+		for (const tab of $ungroupedApps) {
+			items.push(tab);
+		}
+		return items;
+	});
+
+	function focusItem(idx: number) {
+		if (idx < 0 || idx >= visibleItems.length) return;
+		focusedIndex = idx;
+		if (asideEl) {
+			const buttons = asideEl.querySelectorAll<HTMLElement>('[data-sidebar-item]');
+			buttons[idx]?.focus();
+		}
+	}
+
+	function handleSidebarKeydown(e: KeyboardEvent) {
+		if (e.key === 'ArrowDown') {
+			e.preventDefault();
+			focusItem(focusedIndex < visibleItems.length - 1 ? focusedIndex + 1 : 0);
+		} else if (e.key === 'ArrowUp') {
+			e.preventDefault();
+			focusItem(focusedIndex > 0 ? focusedIndex - 1 : visibleItems.length - 1);
+		} else if (e.key === 'Home') {
+			e.preventDefault();
+			focusItem(0);
+		} else if (e.key === 'End') {
+			e.preventDefault();
+			focusItem(visibleItems.length - 1);
+		} else if (e.key === 'Enter' && focusedIndex >= 0 && focusedIndex < visibleItems.length) {
+			e.preventDefault();
+			navigateToApp(visibleItems[focusedIndex]);
+		} else if (e.key === 'Escape') {
+			focusedIndex = -1;
+			asideEl?.blur();
+		}
+	}
+
+	function visibleIndex(tabId: string): number {
+		return visibleItems.findIndex((t) => t.id === tabId);
+	}
 </script>
 
 <svelte:window onclick={onWindowClick} />
 
 <aside
-	class="flex flex-col bg-surface-800 border-r border-surface-600 shrink-0 overflow-y-auto overflow-x-hidden transition-[width] duration-200
+	bind:this={asideEl}
+	tabindex="0"
+	onkeydown={handleSidebarKeydown}
+	class="flex flex-col bg-surface-800 border-r border-surface-600 shrink-0 overflow-y-auto overflow-x-hidden transition-[width] duration-200 outline-none focus:ring-1 focus:ring-hecate-500/30
 		{$sidebarCollapsed ? 'w-12' : 'w-52'}"
 >
 	<!-- Groups -->
@@ -294,6 +352,8 @@
 				{#each apps as tab (tab.id)}
 					{@const indicator = tab.isPlugin ? pluginIndicator(tab.id) : 'online'}
 					<button
+						data-sidebar-item
+						tabindex={visibleIndex(tab.id) === focusedIndex ? 0 : -1}
 						draggable="true"
 						ondragstart={(e) => onDragStart(e, tab.id)}
 						ondragend={onDragEnd}
@@ -302,8 +362,10 @@
 							{isActive(tab.id)
 								? 'bg-surface-700 text-surface-50 border-l-2 border-hecate-500'
 								: 'text-surface-300 hover:text-surface-100 hover:bg-surface-700/50 border-l-2 border-transparent'}
-							{tab.isPlugin && indicator === 'offline' ? 'opacity-60' : ''}"
+							{tab.isPlugin && indicator === 'offline' ? 'opacity-60' : ''}
+							{visibleIndex(tab.id) === focusedIndex ? 'ring-1 ring-hecate-500/50' : ''}"
 						onclick={() => navigateToApp(tab)}
+						onfocus={() => (focusedIndex = visibleIndex(tab.id))}
 						oncontextmenu={(e) => onContextMenu(e, 'app', tab.id)}
 					>
 						<span class="text-sm shrink-0">{tab.icon}</span>
@@ -353,6 +415,8 @@
 			{#each ungrouped as tab (tab.id)}
 				{@const indicator = tab.isPlugin ? pluginIndicator(tab.id) : 'online'}
 				<button
+					data-sidebar-item
+					tabindex={visibleIndex(tab.id) === focusedIndex ? 0 : -1}
 					draggable="true"
 					ondragstart={(e) => onDragStart(e, tab.id)}
 					ondragend={onDragEnd}
@@ -361,8 +425,10 @@
 						{isActive(tab.id)
 							? 'bg-surface-700 text-surface-50 border-l-2 border-hecate-500'
 							: 'text-surface-300 hover:text-surface-100 hover:bg-surface-700/50 border-l-2 border-transparent'}
-						{tab.isPlugin && indicator === 'offline' ? 'opacity-60' : ''}"
+						{tab.isPlugin && indicator === 'offline' ? 'opacity-60' : ''}
+						{visibleIndex(tab.id) === focusedIndex ? 'ring-1 ring-hecate-500/50' : ''}"
 					onclick={() => navigateToApp(tab)}
+					onfocus={() => (focusedIndex = visibleIndex(tab.id))}
 					oncontextmenu={(e) => onContextMenu(e, 'app', tab.id)}
 				>
 					<span class="text-sm shrink-0">{tab.icon}</span>

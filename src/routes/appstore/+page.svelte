@@ -9,6 +9,8 @@
 	import type { OfferingItem, OfferingDetail } from '$lib/types/appstore';
 	import { getActionState, isPluginInstalled, statusBadgeClass, formatPrice, parseTags, extractPluginName } from '$lib/types/appstore';
 	import { resolveEmoji } from '$lib/emoji';
+	import { pushOverlay, popOverlay } from '$lib/stores/keyboard';
+	import FocusTrap from '$lib/components/FocusTrap.svelte';
 
 	// --- Data ---
 	let catalog: OfferingItem[] = $state([]);
@@ -310,6 +312,23 @@
 		installStep = 'confirm';
 		installTarget = null;
 	}
+
+	// --- Overlay stack registration ---
+	$effect(() => {
+		if (dangerTarget) {
+			pushOverlay('appstore-danger', cancelDanger);
+		} else {
+			popOverlay('appstore-danger');
+		}
+	});
+
+	$effect(() => {
+		if (installTarget) {
+			pushOverlay('appstore-install', cancelInstall);
+		} else {
+			popOverlay('appstore-install');
+		}
+	});
 
 	function handleAction(item: OfferingItem) {
 		const state = getActionState(item);
@@ -1021,6 +1040,7 @@
 		<div class="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-40
 			w-[400px] max-w-[90vw] bg-surface-800 rounded-2xl border border-surface-600
 			shadow-2xl overflow-hidden">
+			<FocusTrap>
 			<div class="p-6 space-y-5">
 				<div class="flex items-start gap-4">
 					<span class="text-3xl">{dangerAction === 'uninstall' ? '\u{1F5D1}' : '\u{26D4}'}</span>
@@ -1059,6 +1079,7 @@
 					</button>
 				</div>
 			</div>
+			</FocusTrap>
 		</div>
 	{/if}
 
@@ -1076,6 +1097,7 @@
 		<div class="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-40
 			w-[420px] max-w-[90vw] bg-surface-800 rounded-2xl border border-surface-600
 			shadow-2xl overflow-hidden">
+			<FocusTrap>
 
 			{#if installStep === 'confirm'}
 				<!-- Trust ceremony -->
@@ -1283,6 +1305,7 @@
 					</button>
 				</div>
 			{/if}
+			</FocusTrap>
 		</div>
 	{/if}
 </div>

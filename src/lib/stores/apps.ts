@@ -34,6 +34,14 @@ export interface PluginInfo {
 	description: string | null;
 }
 
+export interface PluginFileType {
+	type: string;
+	label: string;
+	icon: string;
+	can_create: boolean;
+	import_extensions?: string[];
+}
+
 export interface PluginManifest {
 	name: string;
 	display_name?: string;
@@ -41,6 +49,7 @@ export interface PluginManifest {
 	icon: string;
 	description: string;
 	tag: string;
+	file_types?: PluginFileType[];
 }
 
 export interface PluginApi {

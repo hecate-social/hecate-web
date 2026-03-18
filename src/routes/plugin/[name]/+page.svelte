@@ -127,6 +127,12 @@
 			const el = document.createElement(app.tag);
 			(el as any).api = app.api;
 			(el as any).name = techName;
+			// Pass query params as props (e.g., file_id from Briefcase)
+			const urlParams = page.url?.searchParams;
+			if (urlParams) {
+				const fileId = urlParams.get('file_id');
+				if (fileId) (el as any).fileId = fileId;
+			}
 			container.appendChild(el);
 			mountedElement = el;
 			mountedFor = pluginName;

@@ -1,7 +1,8 @@
 <script lang="ts">
 	import type { Model } from '$lib/types/llm';
 	import { SPECIALTIES, specialtyOf, costOf, filterModels } from './model-filters';
-	import { onMount } from 'svelte';
+	import { pushOverlay, popOverlay } from '$lib/stores/keyboard';
+	import { onMount, onDestroy } from 'svelte';
 
 	interface Props {
 		models: Model[];
@@ -30,18 +31,16 @@
 	onMount(() => {
 		searchInput?.focus();
 		positionPanel();
+		pushOverlay('model-picker', onClose);
+	});
+
+	onDestroy(() => {
+		popOverlay('model-picker');
 	});
 
 	function positionPanel() {
 		const spaceBelow = window.innerHeight - anchorRect.bottom;
 		flipAbove = spaceBelow < 380 && anchorRect.top > spaceBelow;
-	}
-
-	function handleKeydown(e: KeyboardEvent) {
-		if (e.key === 'Escape') {
-			e.stopPropagation();
-			onClose();
-		}
 	}
 
 	function selectModel(name: string) {
@@ -65,7 +64,7 @@
 </script>
 
 <!-- svelte-ignore a11y_no_static_element_interactions -->
-<div class="fixed inset-0 z-40" onkeydown={handleKeydown} onclick={onClose}></div>
+<div class="fixed inset-0 z-40" onclick={onClose}></div>
 
 <!-- svelte-ignore a11y_no_static_element_interactions -->
 <div
@@ -75,7 +74,6 @@
 	style="left: {anchorRect.left}px; {flipAbove
 		? `bottom: ${window.innerHeight - anchorRect.top + 4}px`
 		: `top: ${anchorRect.bottom + 4}px`};"
-	onkeydown={handleKeydown}
 	onclick={(e) => e.stopPropagation()}
 >
 	<!-- Search -->

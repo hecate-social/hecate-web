@@ -8,6 +8,9 @@
 	import UpdateModal from '$lib/components/UpdateModal.svelte';
 	import PluginUpdateModal from '$lib/components/PluginUpdateModal.svelte';
 	import ToastContainer from '$lib/components/ToastContainer.svelte';
+	import CommandPalette from '$lib/components/CommandPalette.svelte';
+	import PluginSwitcher from '$lib/components/PluginSwitcher.svelte';
+	import KeyboardShortcutsHelp from '$lib/components/KeyboardShortcutsHelp.svelte';
 	import { stopPolling } from '$lib/stores/daemon.js';
 	import { stopSettingsWatcher } from '$lib/stores/settings';
 	import { stopAppWatcher } from '$lib/stores/apps';
@@ -17,8 +20,9 @@
 	import { toggleSidebar } from '$lib/stores/sidebar.js';
 	import { checkForUpdate } from '$lib/stores/updater.js';
 	import { checkPluginUpdates } from '$lib/stores/pluginUpdater.js';
-	import { pluginPaths } from '$lib/plugins-registry';
+	import { pluginPaths, pluginTabs } from '$lib/plugins-registry';
 	import { runStartupChecklist } from '$lib/stores/startup';
+	import { dispatchKeydown, registerShortcut } from '$lib/stores/keyboard';
 	import '$lib/stores/theme.js';
 	import { onMount, onDestroy } from 'svelte';
 	import { goto } from '$app/navigation';
@@ -28,6 +32,67 @@
 	let { children } = $props();
 	let updateInterval: ReturnType<typeof setInterval>;
 	let showAlphaBanner = $state(typeof localStorage !== 'undefined' && localStorage.getItem('hecate-alpha-banner-dismissed') !== '1');
+
+	// --- Register shortcuts ---
+	const unregisterSidebar = registerShortcut({
+		key: 'b',
+		modifiers: ['ctrl'],
+		label: 'Toggle Sidebar',
+		category: 'General',
+		handler: toggleSidebar,
+	});
+
+	const unregisterTabForward = registerShortcut({
+		key: 'Tab',
+		modifiers: ['ctrl'],
+		label: 'Next Page',
+		category: 'Navigation',
+		handler: () => {
+			const paths = get(pluginPaths);
+			const current = page.url?.pathname ?? '/';
+			const idx = paths.findIndex((p) =>
+				p === '/' ? current === '/' : current.startsWith(p)
+			);
+			const currentIdx = idx >= 0 ? idx : 0;
+			const nextIdx = (currentIdx + 1) % paths.length;
+			goto(paths[nextIdx]);
+		},
+	});
+
+	const unregisterTabBackward = registerShortcut({
+		key: 'Tab',
+		modifiers: ['ctrl', 'shift'],
+		label: 'Previous Page',
+		category: 'Navigation',
+		handler: () => {
+			const paths = get(pluginPaths);
+			const current = page.url?.pathname ?? '/';
+			const idx = paths.findIndex((p) =>
+				p === '/' ? current === '/' : current.startsWith(p)
+			);
+			const currentIdx = idx >= 0 ? idx : 0;
+			const nextIdx = (currentIdx - 1 + paths.length) % paths.length;
+			goto(paths[nextIdx]);
+		},
+	});
+
+	// Alt+1-9: jump to nth visible sidebar item
+	const unregisterAltNums: (() => void)[] = [];
+	for (let n = 1; n <= 9; n++) {
+		unregisterAltNums.push(
+			registerShortcut({
+				key: String(n),
+				modifiers: ['alt'],
+				label: `Go to Page ${n}`,
+				category: 'Navigation',
+				handler: () => {
+					const tabs = get(pluginTabs);
+					const tab = tabs[n - 1];
+					if (tab) goto(tab.path);
+				},
+			})
+		);
+	}
 
 	onMount(() => {
 		// Single entry point — the checklist executor drives everything.
@@ -47,37 +112,22 @@
 		stopIdentityWatcher();
 		stopTrafficWatcher();
 		clearInterval(updateInterval);
+		unregisterSidebar();
+		unregisterTabForward();
+		unregisterTabBackward();
+		unregisterAltNums.forEach((fn) => fn());
 	});
-
-	function handleGlobalKeydown(e: KeyboardEvent) {
-		if (e.ctrlKey && e.key === 'b') {
-			e.preventDefault();
-			toggleSidebar();
-			return;
-		}
-
-		if (e.ctrlKey && e.key === 'Tab') {
-			e.preventDefault();
-			const paths = get(pluginPaths);
-			const current = page.url?.pathname ?? '/';
-			const idx = paths.findIndex((p) =>
-				p === '/' ? current === '/' : current.startsWith(p)
-			);
-			const currentIdx = idx >= 0 ? idx : 0;
-			const nextIdx = e.shiftKey
-				? (currentIdx - 1 + paths.length) % paths.length
-				: (currentIdx + 1) % paths.length;
-			goto(paths[nextIdx]);
-		}
-	}
 </script>
 
-<svelte:window onkeydown={handleGlobalKeydown} />
+<svelte:window onkeydown={dispatchKeydown} />
 
 <DaemonStartingOverlay />
 <OnboardingOverlay />
 <UpdateModal />
 <PluginUpdateModal />
+<CommandPalette />
+<PluginSwitcher />
+<KeyboardShortcutsHelp />
 
 <div class="flex flex-col h-screen w-screen overflow-hidden">
 	<TitleBar />

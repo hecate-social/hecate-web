@@ -2,7 +2,7 @@
 	import { openExternal } from '$lib/tauri';
 	import { health, connectionStatus, isReady } from '$lib/stores/daemon.js';
 	import { pluginCards, type PluginCardData } from '$lib/plugins-registry';
-	import { apps, refreshApps } from '$lib/stores/apps';
+	import { apps, appList, refreshApps } from '$lib/stores/apps';
 	import { post } from '$lib/api';
 	import {
 		sidebarGroups,
@@ -18,10 +18,15 @@
 	} from '$lib/stores/sidebar.js';
 	import { pluginUpdateVersion } from '$lib/stores/pluginUpdater.js';
 	import { toastSuccess, toastError } from '$lib/stores/toasts';
+	import { activities, type ActivityEntry } from '$lib/stores/activity';
+	import { fetchMeshStatus, type MeshStatus } from '$lib/stores/mesh';
+	import { pushOverlay, popOverlay } from '$lib/stores/keyboard';
+	import FocusTrap from '$lib/components/FocusTrap.svelte';
 	import PluginCard from '$lib/components/PluginCard.svelte';
 	import EmojiPicker from '$lib/components/EmojiPicker.svelte';
 	import { resolveEmoji } from '$lib/emoji';
 	import { slide } from 'svelte/transition';
+	import { onMount } from 'svelte';
 
 	const DONATE_URL = 'https://buymeacoffee.com/rlefever';
 
@@ -34,6 +39,53 @@
 	let hasContent = $derived(
 		$sidebarGroups.length > 0 || ungroupedCards.length > 0
 	);
+
+	// --- Status strip data ---
+	let meshStatus = $state<MeshStatus | null>(null);
+
+	let onlineApps = $derived($appList.filter((a) => a.online).length);
+	let totalApps = $derived($appList.length);
+
+	let uptime = $derived.by(() => {
+		const s = $health?.uptime_seconds;
+		if (!s) return null;
+		if (s < 60) return `${s}s`;
+		if (s < 3600) return `${Math.floor(s / 60)}m`;
+		const h = Math.floor(s / 3600);
+		const m = Math.floor((s % 3600) / 60);
+		return m > 0 ? `${h}h ${m}m` : `${h}h`;
+	});
+
+	let recentActivity = $derived($activities.slice(0, 3));
+
+	function activityColor(level: string): string {
+		switch (level) {
+			case 'success': return 'text-health-ok';
+			case 'warning': return 'text-amber-400';
+			case 'error': return 'text-danger-400';
+			default: return 'text-surface-400';
+		}
+	}
+
+	function timeAgo(ts: number): string {
+		const diff = Math.floor((Date.now() - ts) / 1000);
+		if (diff < 60) return 'just now';
+		if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
+		return `${Math.floor(diff / 3600)}h ago`;
+	}
+
+	onMount(async () => {
+		if ($isReady) {
+			try { meshStatus = await fetchMeshStatus(); } catch { /* daemon may not support mesh yet */ }
+		}
+	});
+
+	// Refresh mesh status when daemon becomes ready
+	$effect(() => {
+		if ($isReady && !meshStatus) {
+			fetchMeshStatus().then((s) => (meshStatus = s)).catch(() => {});
+		}
+	});
 
 	function cardFromId(id: string): PluginCardData {
 		return (
@@ -77,6 +129,14 @@
 	// --- Remove confirmation ---
 	let removeTarget = $state<{ appId: string; name: string } | null>(null);
 	let removeLoading = $state(false);
+
+	$effect(() => {
+		if (removeTarget) {
+			pushOverlay('home-remove', cancelRemove);
+		} else {
+			popOverlay('home-remove');
+		}
+	});
 
 	// --- Drag handlers ---
 
@@ -283,28 +343,89 @@
 		</p>
 	</div>
 
-	<!-- Status ribbon -->
-	<div
-		class="flex items-center gap-3 px-4 py-2 rounded-full bg-surface-800/60 border border-surface-600/50 text-xs"
-	>
-		{#if $isReady}
-			<span class="text-health-ok">{'\u{25CF}'}</span>
-			<span class="text-surface-200">Connected</span>
-			{#if $health}
-				<span class="text-surface-500">|</span>
-				<span class="text-surface-300">v{$health.version}</span>
+	<!-- Status strip -->
+	{#if $isReady}
+		<div class="grid grid-cols-2 lg:grid-cols-4 gap-3 max-w-3xl w-full">
+			<!-- Daemon -->
+			<div class="flex items-center gap-3 px-4 py-3 rounded-xl bg-surface-800/60 border border-surface-600/30">
+				<div class="flex items-center justify-center w-8 h-8 rounded-lg bg-health-ok/10">
+					<span class="text-health-ok text-sm">{'\u25CF'}</span>
+				</div>
+				<div class="flex flex-col min-w-0">
+					<span class="text-[10px] uppercase tracking-wider text-surface-500">Daemon</span>
+					<div class="flex items-center gap-1.5">
+						<span class="text-xs text-surface-200 font-medium">v{$health?.version ?? '...'}</span>
+						{#if uptime}
+							<span class="text-[10px] text-surface-500">{'\u00B7'} {uptime}</span>
+						{/if}
+					</div>
+				</div>
+			</div>
+
+			<!-- Apps -->
+			<div class="flex items-center gap-3 px-4 py-3 rounded-xl bg-surface-800/60 border border-surface-600/30">
+				<div class="flex items-center justify-center w-8 h-8 rounded-lg bg-accent-500/10">
+					<span class="text-accent-400 text-sm">{'\u{1F4E6}'}</span>
+				</div>
+				<div class="flex flex-col min-w-0">
+					<span class="text-[10px] uppercase tracking-wider text-surface-500">Apps</span>
+					<div class="flex items-center gap-1.5">
+						<span class="text-xs text-surface-200 font-medium">{onlineApps} online</span>
+						{#if totalApps > onlineApps}
+							<span class="text-[10px] text-surface-500">{'\u00B7'} {totalApps} total</span>
+						{/if}
+					</div>
+				</div>
+			</div>
+
+			<!-- Mesh -->
+			<div class="flex items-center gap-3 px-4 py-3 rounded-xl bg-surface-800/60 border border-surface-600/30">
+				<div class="flex items-center justify-center w-8 h-8 rounded-lg {meshStatus?.connected ? 'bg-hecate-500/10' : 'bg-surface-700/50'}">
+					<span class="{meshStatus?.connected ? 'text-hecate-400' : 'text-surface-500'} text-sm">{'\uD83C\uDF10'}</span>
+				</div>
+				<div class="flex flex-col min-w-0">
+					<span class="text-[10px] uppercase tracking-wider text-surface-500">Mesh</span>
+					{#if meshStatus?.connected}
+						<span class="text-xs text-surface-200 font-medium truncate">{meshStatus.realm}</span>
+					{:else}
+						<span class="text-xs text-surface-500">Disconnected</span>
+					{/if}
+				</div>
+			</div>
+
+			<!-- Activity -->
+			<div class="flex items-center gap-3 px-4 py-3 rounded-xl bg-surface-800/60 border border-surface-600/30">
+				<div class="flex items-center justify-center w-8 h-8 rounded-lg bg-surface-700/50">
+					<span class="text-surface-400 text-sm">{'\u{1F4AC}'}</span>
+				</div>
+				<div class="flex flex-col min-w-0 flex-1">
+					<span class="text-[10px] uppercase tracking-wider text-surface-500">Activity</span>
+					{#if recentActivity.length > 0}
+						{@const latest = recentActivity[0]}
+						<span class="text-xs {activityColor(latest.level)} truncate">{latest.message}</span>
+					{:else}
+						<span class="text-xs text-surface-500">No recent activity</span>
+					{/if}
+				</div>
+			</div>
+		</div>
+	{:else}
+		<!-- Pre-connection status ribbon -->
+		<div
+			class="flex items-center gap-3 px-4 py-2 rounded-full bg-surface-800/60 border border-surface-600/50 text-xs"
+		>
+			{#if $connectionStatus === 'connected'}
+				<span class="text-health-warn animate-pulse">{'\u{25CF}'}</span>
+				<span class="text-surface-300">Daemon starting...</span>
+			{:else if $connectionStatus === 'connecting'}
+				<span class="text-health-loading animate-pulse">{'\u{25CF}'}</span>
+				<span class="text-surface-300">Connecting to daemon...</span>
+			{:else}
+				<span class="text-health-err">{'\u{25CF}'}</span>
+				<span class="text-surface-400">Daemon not available</span>
 			{/if}
-		{:else if $connectionStatus === 'connected'}
-			<span class="text-health-warn animate-pulse">{'\u{25CF}'}</span>
-			<span class="text-surface-300">Daemon starting...</span>
-		{:else if $connectionStatus === 'connecting'}
-			<span class="text-health-loading animate-pulse">{'\u{25CF}'}</span>
-			<span class="text-surface-300">Connecting to daemon...</span>
-		{:else}
-			<span class="text-health-err">{'\u{25CF}'}</span>
-			<span class="text-surface-400">Daemon not available</span>
-		{/if}
-	</div>
+		</div>
+	{/if}
 
 	<!-- Plugin cards (interactive groups) -->
 	{#if hasContent}
@@ -580,30 +701,32 @@
 			class="bg-surface-800 border border-surface-600 rounded-xl shadow-2xl p-6 max-w-sm w-full mx-4 flex flex-col gap-4"
 			onclick={(e) => e.stopPropagation()}
 		>
-			<div class="flex flex-col items-center gap-2 text-center">
-				<span class="text-3xl">{'\uD83D\uDDD1'}</span>
-				<h3 class="text-lg font-semibold text-surface-100">
-					Remove {removeTarget.name}?
-				</h3>
-			</div>
-			<p class="text-sm text-surface-400 text-center">
-				This will uninstall the plugin and remove it from your launcher. Your license will be kept.
-			</p>
-			<div class="flex gap-3 justify-end">
-				<button
-					class="px-4 py-2 text-sm rounded-lg bg-surface-700 text-surface-300 hover:bg-surface-600 transition-colors cursor-pointer"
-					onclick={cancelRemove}
-				>
-					Cancel
-				</button>
-				<button
-					class="px-4 py-2 text-sm rounded-lg bg-danger-600 text-white hover:bg-danger-500 transition-colors cursor-pointer disabled:opacity-50"
-					disabled={removeLoading}
-					onclick={confirmRemove}
-				>
-					{removeLoading ? 'Removing...' : 'Remove'}
-				</button>
-			</div>
+			<FocusTrap>
+				<div class="flex flex-col items-center gap-2 text-center">
+					<span class="text-3xl">{'\uD83D\uDDD1'}</span>
+					<h3 class="text-lg font-semibold text-surface-100">
+						Remove {removeTarget.name}?
+					</h3>
+				</div>
+				<p class="text-sm text-surface-400 text-center">
+					This will uninstall the plugin and remove it from your launcher. Your license will be kept.
+				</p>
+				<div class="flex gap-3 justify-end">
+					<button
+						class="px-4 py-2 text-sm rounded-lg bg-surface-700 text-surface-300 hover:bg-surface-600 transition-colors cursor-pointer"
+						onclick={cancelRemove}
+					>
+						Cancel
+					</button>
+					<button
+						class="px-4 py-2 text-sm rounded-lg bg-danger-600 text-white hover:bg-danger-500 transition-colors cursor-pointer disabled:opacity-50"
+						disabled={removeLoading}
+						onclick={confirmRemove}
+					>
+						{removeLoading ? 'Removing...' : 'Remove'}
+					</button>
+				</div>
+			</FocusTrap>
 		</div>
 	</div>
 {/if}

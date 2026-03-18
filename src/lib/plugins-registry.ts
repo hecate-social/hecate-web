@@ -28,6 +28,7 @@ const CORE_TABS: PluginTab[] = [
 	{ id: 'appstore', name: 'Appstore', icon: '\uD83C\uDFEA', path: '/appstore', isPlugin: false },
 	{ id: 'observer', name: 'Observer', icon: '\uD83D\uDD2C', path: '/observer', isPlugin: false },
 	{ id: 'mesh', name: 'Mesh', icon: '\uD83C\uDF10', path: '/mesh', isPlugin: false },
+	{ id: 'briefcase', name: 'Briefcase', icon: '\uD83D\uDCBC', path: '/briefcase', isPlugin: false },
 ];
 
 const CORE_CARDS: PluginCardData[] = [
@@ -36,6 +37,7 @@ const CORE_CARDS: PluginCardData[] = [
 	{ id: 'appstore', name: 'Appstore', icon: '\uD83C\uDFEA', path: '/appstore', description: 'Browse and install plugins', ready: true, isPlugin: false },
 	{ id: 'observer', name: 'Observer', icon: '\uD83D\uDD2C', path: '/observer', description: 'BEAM debugger and diagnostics', ready: true, isPlugin: false },
 	{ id: 'mesh', name: 'Mesh', icon: '\uD83C\uDF10', path: '/mesh', description: 'Mesh network status and discovery', ready: true, isPlugin: false },
+	{ id: 'briefcase', name: 'Briefcase', icon: '\uD83D\uDCBC', path: '/briefcase', description: 'Documents, files, and folders', ready: true, isPlugin: false },
 ];
 
 const CORE_IDS = new Set(CORE_TABS.map((t) => t.id));

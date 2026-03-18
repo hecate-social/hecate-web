@@ -1,4 +1,7 @@
 <script lang="ts">
+	import { pushOverlay, popOverlay } from '$lib/stores/keyboard';
+	import { onMount, onDestroy } from 'svelte';
+
 	let { onSelect, onClose }: { onSelect: (emoji: string) => void; onClose: () => void } = $props();
 
 	const curated = [
@@ -24,15 +27,14 @@
 		}
 	}
 
-	function handleKeydown(e: KeyboardEvent) {
-		if (e.key === 'Escape') {
-			e.preventDefault();
-			onClose();
-		}
-	}
-</script>
+	onMount(() => {
+		pushOverlay('emoji-picker', onClose);
+	});
 
-<svelte:window onkeydown={handleKeydown} />
+	onDestroy(() => {
+		popOverlay('emoji-picker');
+	});
+</script>
 
 <!-- svelte-ignore a11y_no_static_element_interactions -->
 <div
