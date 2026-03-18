@@ -127,11 +127,11 @@
 			const el = document.createElement(app.tag);
 			(el as any).api = app.api;
 			(el as any).name = techName;
-			// Pass query params as props (e.g., file_id from Briefcase)
+			// Pass query params as props (e.g., item_id from Briefcase)
 			const urlParams = page.url?.searchParams;
 			if (urlParams) {
-				const fileId = urlParams.get('file_id');
-				if (fileId) (el as any).fileId = fileId;
+				const itemId = urlParams.get('item_id');
+				if (itemId) (el as any).itemId = itemId;
 			}
 			container.appendChild(el);
 			mountedElement = el;

@@ -1,55 +1,51 @@
-// Briefcase store — folders, files, file type registry, and state management
+// Briefcase store — unified item model (folders, blobs, symlinks)
 import { writable, derived } from 'svelte/store';
 import { get as apiGet, post, put, del } from '$lib/api';
 import { apps, type PluginFileType } from '$lib/stores/apps';
 
 // --- Types ---
 
-export interface Folder {
-	folder_id: string;
-	name: string;
-	parent_id: string | null;
-	icon: string;
-	status: number;
-	created_at: number;
-	updated_at: number;
-}
+export type ItemKind = 'folder' | 'blob' | 'symlink';
 
-export interface FileMeta {
-	file_id: string;
+export interface BriefcaseItem {
+	item_id: string;
 	name: string;
-	folder_id: string | null;
-	file_type: string;
+	kind: ItemKind;
+	parent_id: string | null;
 	plugin: string | null;
-	icon: string;
-	blob_id: string | null;
-	size: number;
+	file_type: string | null;
+	icon: string | null;
+	path: string | null;
 	mime_type: string | null;
+	size: number;
 	starred: boolean;
 	status: number;
 	created_at: number;
 	updated_at: number;
 }
 
-export interface FolderNode extends Folder {
+export interface FolderNode extends BriefcaseItem {
 	children: FolderNode[];
 }
 
 // --- Stores ---
 
-export const folders = writable<Folder[]>([]);
-export const files = writable<FileMeta[]>([]);
+export const items = writable<BriefcaseItem[]>([]);
 export const briefcaseLoading = writable(false);
 export const briefcaseError = writable<string | null>(null);
 export const selectedFolderId = writable<string | 'all' | 'starred'>('all');
 
 // --- Derived ---
 
-export const folderTree = derived(folders, ($folders) => buildTree($folders));
+export const folderItems = derived(items, ($items) =>
+	$items.filter((i) => i.kind === 'folder')
+);
 
-export const folderMap = derived(folders, ($folders) => {
-	const map = new Map<string, Folder>();
-	for (const f of $folders) map.set(f.folder_id, f);
+export const folderTree = derived(folderItems, ($folders) => buildTree($folders));
+
+export const folderMap = derived(folderItems, ($folders) => {
+	const map = new Map<string, BriefcaseItem>();
+	for (const f of $folders) map.set(f.item_id, f);
 	return map;
 });
 
@@ -84,16 +80,21 @@ export const creatableFileTypes = derived(fileTypeRegistry, ($types) =>
 
 export async function fetchFolders(): Promise<void> {
 	try {
-		const res = await apiGet<{ ok: boolean; folders: Folder[] }>('/api/briefcase/folders');
-		folders.set(res.folders ?? []);
+		const res = await apiGet<{ ok: boolean; folders: BriefcaseItem[] }>('/api/briefcase/folders');
+		const folderList = res.folders ?? [];
+		// Merge folders into the items store (replace folder-kind items, keep others)
+		items.update(($items) => {
+			const nonFolders = $items.filter((i) => i.kind !== 'folder');
+			return [...nonFolders, ...folderList];
+		});
 	} catch {
 		// daemon may not have briefcase yet
-		folders.set([]);
 	}
 }
 
-export async function fetchFiles(params?: {
-	folder_id?: string;
+export async function fetchItems(params?: {
+	parent_id?: string;
+	kind?: ItemKind;
 	starred?: boolean;
 	search?: string;
 	file_type?: string;
@@ -102,107 +103,82 @@ export async function fetchFiles(params?: {
 	briefcaseError.set(null);
 	try {
 		const query = new URLSearchParams();
-		if (params?.folder_id) query.set('folder_id', params.folder_id);
+		if (params?.parent_id) query.set('parent_id', params.parent_id);
+		if (params?.kind) query.set('kind', params.kind);
 		if (params?.starred) query.set('starred', 'true');
 		if (params?.search) query.set('search', params.search);
 		if (params?.file_type) query.set('file_type', params.file_type);
 		const qs = query.toString();
-		const path = qs ? `/api/briefcase/files?${qs}` : '/api/briefcase/files';
-		const res = await apiGet<{ ok: boolean; files: FileMeta[]; total: number }>(path);
-		files.set(res.files ?? []);
+		const path = qs ? `/api/briefcase/items?${qs}` : '/api/briefcase/items';
+		const res = await apiGet<{ ok: boolean; items: BriefcaseItem[]; total: number }>(path);
+		items.set(res.items ?? []);
 	} catch (e) {
-		briefcaseError.set(e instanceof Error ? e.message : 'Failed to load files');
-		files.set([]);
+		briefcaseError.set(e instanceof Error ? e.message : 'Failed to load items');
+		items.set([]);
 	} finally {
 		briefcaseLoading.set(false);
 	}
 }
 
-export async function createFolder(name: string, parentId?: string, icon?: string): Promise<string | null> {
-	try {
-		const body: Record<string, unknown> = { name };
-		if (parentId) body.parent_id = parentId;
-		if (icon) body.icon = icon;
-		const res = await post<{ ok: boolean; folder_id: string }>('/api/briefcase/folders', body);
-		await fetchFolders();
-		return res.folder_id;
-	} catch (e) {
-		briefcaseError.set(e instanceof Error ? e.message : 'Failed to create folder');
-		return null;
-	}
-}
-
-export async function renameFolder(folderId: string, name: string): Promise<void> {
-	await put(`/api/briefcase/folders/${encodeURIComponent(folderId)}`, { name });
-	await fetchFolders();
-}
-
-export async function moveFolder(folderId: string, parentId: string | null): Promise<void> {
-	await put(`/api/briefcase/folders/${encodeURIComponent(folderId)}`, { parent_id: parentId });
-	await fetchFolders();
-}
-
-export async function archiveFolder(folderId: string): Promise<void> {
-	await del(`/api/briefcase/folders/${encodeURIComponent(folderId)}`);
-	await fetchFolders();
-}
-
-export async function registerFile(params: {
+export async function createItem(params: {
 	name: string;
-	file_type: string;
+	kind: ItemKind;
+	parent_id?: string;
 	plugin?: string;
-	folder_id?: string;
+	file_type?: string;
 	icon?: string;
+	path?: string;
+	mime_type?: string;
+	size?: number;
 }): Promise<string | null> {
 	try {
-		const res = await post<{ ok: boolean; file_id: string }>('/api/briefcase/files', params);
-		return res.file_id;
+		const res = await post<{ ok: boolean; item_id: string }>('/api/briefcase/items', params);
+		return res.item_id;
 	} catch (e) {
-		briefcaseError.set(e instanceof Error ? e.message : 'Failed to register file');
+		briefcaseError.set(e instanceof Error ? e.message : 'Failed to create item');
 		return null;
 	}
 }
 
-export async function importFile(name: string, folderId: string | null, bytes: string): Promise<string | null> {
-	try {
-		const body: Record<string, unknown> = { name, bytes };
-		if (folderId) body.folder_id = folderId;
-		const res = await post<{ ok: boolean; file_id: string }>('/api/briefcase/files/import', body);
-		return res.file_id;
-	} catch (e) {
-		briefcaseError.set(e instanceof Error ? e.message : 'Failed to import file');
-		return null;
-	}
+export async function createFolder(name: string, parentId?: string, icon?: string): Promise<string | null> {
+	const id = await createItem({
+		name,
+		kind: 'folder',
+		parent_id: parentId,
+		icon: icon ?? undefined,
+	});
+	if (id) await fetchFolders();
+	return id;
 }
 
-export async function renameFile(fileId: string, name: string): Promise<void> {
-	await put(`/api/briefcase/files/${encodeURIComponent(fileId)}`, { name });
+export async function renameItem(itemId: string, name: string): Promise<void> {
+	await put(`/api/briefcase/items/${encodeURIComponent(itemId)}`, { name });
 }
 
-export async function moveFile(fileId: string, folderId: string | null): Promise<void> {
-	await put(`/api/briefcase/files/${encodeURIComponent(fileId)}`, { folder_id: folderId });
+export async function moveItem(itemId: string, parentId: string | null): Promise<void> {
+	await put(`/api/briefcase/items/${encodeURIComponent(itemId)}`, { parent_id: parentId });
 }
 
-export async function starFile(fileId: string): Promise<void> {
-	await put(`/api/briefcase/files/${encodeURIComponent(fileId)}`, { starred: true });
+export async function starItem(itemId: string): Promise<void> {
+	await put(`/api/briefcase/items/${encodeURIComponent(itemId)}`, { starred: true });
 }
 
-export async function unstarFile(fileId: string): Promise<void> {
-	await put(`/api/briefcase/files/${encodeURIComponent(fileId)}`, { starred: false });
+export async function unstarItem(itemId: string): Promise<void> {
+	await put(`/api/briefcase/items/${encodeURIComponent(itemId)}`, { starred: false });
 }
 
-export async function archiveFile(fileId: string): Promise<void> {
-	await del(`/api/briefcase/files/${encodeURIComponent(fileId)}`);
+export async function archiveItem(itemId: string): Promise<void> {
+	await del(`/api/briefcase/items/${encodeURIComponent(itemId)}`);
 }
 
 // --- Tree builder ---
 
-function buildTree(flat: Folder[]): FolderNode[] {
+function buildTree(flat: BriefcaseItem[]): FolderNode[] {
 	const map = new Map<string, FolderNode>();
 	const roots: FolderNode[] = [];
 
 	for (const f of flat) {
-		map.set(f.folder_id, { ...f, children: [] });
+		map.set(f.item_id, { ...f, children: [] });
 	}
 
 	for (const node of map.values()) {
@@ -213,7 +189,6 @@ function buildTree(flat: Folder[]): FolderNode[] {
 		}
 	}
 
-	// Sort children alphabetically
 	const sortChildren = (nodes: FolderNode[]) => {
 		nodes.sort((a, b) => a.name.localeCompare(b.name));
 		for (const n of nodes) sortChildren(n.children);
@@ -223,9 +198,10 @@ function buildTree(flat: Folder[]): FolderNode[] {
 	return roots;
 }
 
-// --- File type icons ---
+// --- Item icons ---
 
-const FILE_ICONS: Record<string, string> = {
+const TYPE_ICONS: Record<string, string> = {
+	folder: '\uD83D\uDCC1',
 	scribe: '\uD83D\uDCDD',
 	stage: '\uD83C\uDFAC',
 	ledger: '\uD83D\uDCCA',
@@ -242,8 +218,9 @@ const FILE_ICONS: Record<string, string> = {
 	file: '\uD83D\uDCCE',
 };
 
-export function fileIcon(fileType: string): string {
-	return FILE_ICONS[fileType] ?? FILE_ICONS.file;
+export function itemIcon(item: BriefcaseItem): string {
+	if (item.kind === 'folder') return TYPE_ICONS.folder;
+	return TYPE_ICONS[item.file_type ?? ''] ?? TYPE_ICONS.file;
 }
 
 export function formatFileSize(bytes: number): string {
