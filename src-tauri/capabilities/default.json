@@ -33,7 +33,9 @@
 		{
 			"identifier": "fs:scope",
 			"allow": [
+				{ "path": "$HOME/.hecate" },
 				{ "path": "$HOME/.hecate/**" },
+				{ "path": "$HOME/.hecate-dev" },
 				{ "path": "$HOME/.hecate-dev/**" }
 			]
 		}
