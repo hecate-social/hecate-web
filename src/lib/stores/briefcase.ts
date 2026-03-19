@@ -68,6 +68,8 @@ async function dialog(): Promise<any> {
 	return import(/* @vite-ignore */ pkg);
 }
 
+let unwatchFn: (() => void) | null = null;
+
 export async function initBriefcase(): Promise<void> {
 	const hecateHome = await getHecateHome();
 	const root = `${hecateHome}/briefcase`;
@@ -83,6 +85,31 @@ export async function initBriefcase(): Promise<void> {
 
 	await loadMeta(root);
 	await loadEntries(root);
+	await startWatching(root);
+}
+
+export async function stopBriefcase(): Promise<void> {
+	if (unwatchFn) {
+		unwatchFn();
+		unwatchFn = null;
+	}
+}
+
+async function startWatching(root: string): Promise<void> {
+	try {
+		const fsMod = await fs();
+		if (!fsMod.watch) return;
+
+		// Watch the entire briefcase directory recursively
+		unwatchFn = await fsMod.watch(root, (event: any) => {
+			// Reload current directory on any change
+			let current = '';
+			currentPath.subscribe((v) => (current = v))();
+			if (current) loadEntries(current);
+		}, { recursive: true });
+	} catch {
+		// watch not available (dev mode without Tauri)
+	}
 }
 
 async function getHecateHome(): Promise<string> {

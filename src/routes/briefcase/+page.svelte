@@ -1,10 +1,10 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
+	import { onMount, onDestroy } from 'svelte';
 	import { goto } from '$app/navigation';
 	import {
 		entries, currentPath, briefcaseRoot, meta, briefcaseLoading,
 		creatableFileTypes, fileTypeRegistry,
-		initBriefcase, navigateTo, navigateUp, loadEntries,
+		initBriefcase, stopBriefcase, navigateTo, navigateUp, loadEntries,
 		createFolder, createFile, renameEntry, deleteEntry,
 		toggleStar, isStarred, addRecent,
 		entryIcon, formatFileSize,
@@ -33,6 +33,10 @@
 	// --- Init ---
 	onMount(() => {
 		initBriefcase();
+	});
+
+	onDestroy(() => {
+		stopBriefcase();
 	});
 
 	// --- Actions ---
