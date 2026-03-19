@@ -33,6 +33,8 @@
 		"@hecate-social/sdk": "github:hecate-social/hecate-sdk-ts",
 		"@tauri-apps/api": "^2.0.0",
 		"@tauri-apps/cli": "^2.0.0",
+		"@tauri-apps/plugin-dialog": "^2.6.0",
+		"@tauri-apps/plugin-fs": "^2.4.5",
 		"@tauri-apps/plugin-process": "^2.0.0",
 		"@tauri-apps/plugin-shell": "^2.0.0",
 		"@tauri-apps/plugin-updater": "^2.0.0",

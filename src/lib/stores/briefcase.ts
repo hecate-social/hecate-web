@@ -113,15 +113,15 @@ async function startWatching(root: string): Promise<void> {
 }
 
 async function getHecateHome(): Promise<string> {
-	// Try HECATE_HOME env var first, fall back to ~/.hecate
+	const suffix = import.meta.env.DEV ? '.hecate-dev' : '.hecate';
 	try {
-		const envMod: any = await import(/* @vite-ignore */ '@tauri-apps/api/core');
-		// Tauri doesn't expose env directly — use home dir convention
 		const pathMod: any = await import(/* @vite-ignore */ '@tauri-apps/api/path');
 		const home = await pathMod.homeDir();
-		return `${home}.hecate`;
+		// homeDir() may include trailing slash
+		const base = home.endsWith('/') ? home.slice(0, -1) : home;
+		return `${base}/${suffix}`;
 	} catch {
-		return `${await homeDir()}/.hecate`;
+		return `${await homeDir()}/${suffix}`;
 	}
 }
 
