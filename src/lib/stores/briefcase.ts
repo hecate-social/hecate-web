@@ -1,55 +1,35 @@
-// Briefcase store — unified item model (folders, blobs, symlinks)
+// Briefcase store — filesystem-based, Tauri-native
+//
+// Briefcase IS a directory on disk: $HECATE_HOME/briefcase/
+// Folders = directories. Files = files. No event sourcing.
 import { writable, derived } from 'svelte/store';
-import { get as apiGet, post, put, del } from '$lib/api';
 import { apps, type PluginFileType } from '$lib/stores/apps';
 
 // --- Types ---
 
-export type ItemKind = 'folder' | 'blob' | 'symlink';
-
-export interface BriefcaseItem {
-	item_id: string;
+export interface BriefcaseEntry {
 	name: string;
-	kind: ItemKind;
-	parent_id: string | null;
-	plugin: string | null;
-	file_type: string | null;
-	icon: string | null;
-	path: string | null;
-	mime_type: string | null;
+	path: string;
+	isDir: boolean;
+	extension: string | null;
 	size: number;
-	starred: boolean;
-	status: number;
-	created_at: number;
-	updated_at: number;
+	modifiedAt: number | null;
 }
 
-export interface FolderNode extends BriefcaseItem {
-	children: FolderNode[];
+export interface BriefcaseMeta {
+	starred: string[];
+	recent: string[];
 }
 
 // --- Stores ---
 
-export const items = writable<BriefcaseItem[]>([]);
+export const entries = writable<BriefcaseEntry[]>([]);
+export const currentPath = writable<string>('');
+export const briefcaseRoot = writable<string>('');
+export const meta = writable<BriefcaseMeta>({ starred: [], recent: [] });
 export const briefcaseLoading = writable(false);
-export const briefcaseError = writable<string | null>(null);
-export const selectedFolderId = writable<string | 'all' | 'starred'>('all');
 
-// --- Derived ---
-
-export const folderItems = derived(items, ($items) =>
-	$items.filter((i) => i.kind === 'folder')
-);
-
-export const folderTree = derived(folderItems, ($folders) => buildTree($folders));
-
-export const folderMap = derived(folderItems, ($folders) => {
-	const map = new Map<string, BriefcaseItem>();
-	for (const f of $folders) map.set(f.item_id, f);
-	return map;
-});
-
-// --- File Type Registry (derived from installed plugins) ---
+// --- File Type Registry ---
 
 export interface RegisteredFileType extends PluginFileType {
 	plugin: string;
@@ -76,151 +56,231 @@ export const creatableFileTypes = derived(fileTypeRegistry, ($types) =>
 	$types.filter((t) => t.can_create)
 );
 
-// --- API ---
+// --- Filesystem Operations (Tauri-native) ---
 
-export async function fetchFolders(): Promise<void> {
+async function fs(): Promise<any> {
+	const pkg = '@tauri-apps/plugin-fs';
+	return import(/* @vite-ignore */ pkg);
+}
+
+async function dialog(): Promise<any> {
+	const pkg = '@tauri-apps/plugin-dialog';
+	return import(/* @vite-ignore */ pkg);
+}
+
+export async function initBriefcase(): Promise<void> {
+	const hecateHome = await getHecateHome();
+	const root = `${hecateHome}/briefcase`;
+	briefcaseRoot.set(root);
+	currentPath.set(root);
+
+	// Ensure directory exists
+	const fsMod = await fs();
+	try { await fsMod.mkdir(root, { recursive: true }); } catch { /* exists */ }
+
+	// Ensure .briefcase metadata dir
+	try { await fsMod.mkdir(`${root}/.briefcase`, { recursive: true }); } catch { /* exists */ }
+
+	await loadMeta(root);
+	await loadEntries(root);
+}
+
+async function getHecateHome(): Promise<string> {
+	// Try HECATE_HOME env var first, fall back to ~/.hecate
 	try {
-		const res = await apiGet<{ ok: boolean; folders: BriefcaseItem[] }>('/api/briefcase/folders');
-		const folderList = res.folders ?? [];
-		// Merge folders into the items store (replace folder-kind items, keep others)
-		items.update(($items) => {
-			const nonFolders = $items.filter((i) => i.kind !== 'folder');
-			return [...nonFolders, ...folderList];
-		});
+		const envMod: any = await import(/* @vite-ignore */ '@tauri-apps/api/core');
+		// Tauri doesn't expose env directly — use home dir convention
+		const pathMod: any = await import(/* @vite-ignore */ '@tauri-apps/api/path');
+		const home = await pathMod.homeDir();
+		return `${home}.hecate`;
 	} catch {
-		// daemon may not have briefcase yet
+		return `${await homeDir()}/.hecate`;
 	}
 }
 
-export async function fetchItems(params?: {
-	parent_id?: string;
-	kind?: ItemKind;
-	starred?: boolean;
-	search?: string;
-	file_type?: string;
-}): Promise<void> {
-	briefcaseLoading.set(true);
-	briefcaseError.set(null);
+async function homeDir(): Promise<string> {
 	try {
-		const query = new URLSearchParams();
-		if (params?.parent_id) query.set('parent_id', params.parent_id);
-		if (params?.kind) query.set('kind', params.kind);
-		if (params?.starred) query.set('starred', 'true');
-		if (params?.search) query.set('search', params.search);
-		if (params?.file_type) query.set('file_type', params.file_type);
-		const qs = query.toString();
-		const path = qs ? `/api/briefcase/items?${qs}` : '/api/briefcase/items';
-		const res = await apiGet<{ ok: boolean; items: BriefcaseItem[]; total: number }>(path);
-		items.set(res.items ?? []);
-	} catch (e) {
-		briefcaseError.set(e instanceof Error ? e.message : 'Failed to load items');
-		items.set([]);
+		const pathMod: any = await import(/* @vite-ignore */ '@tauri-apps/api/path');
+		return await pathMod.homeDir();
+	} catch {
+		return '/home/user'; // fallback
+	}
+}
+
+export async function loadEntries(dirPath: string): Promise<void> {
+	briefcaseLoading.set(true);
+	try {
+		const fsMod = await fs();
+		const items = await fsMod.readDir(dirPath);
+		const result: BriefcaseEntry[] = [];
+
+		for (const item of items) {
+			// Skip hidden files/dirs
+			if (item.name.startsWith('.')) continue;
+
+			const fullPath = `${dirPath}/${item.name}`;
+			const isDir = item.isDirectory ?? false;
+			const ext = isDir ? null : getExtension(item.name);
+
+			let size = 0;
+			let modifiedAt: number | null = null;
+			try {
+				const stat = await fsMod.stat(fullPath);
+				size = stat.size ?? 0;
+				modifiedAt = stat.mtime ? new Date(stat.mtime).getTime() : null;
+			} catch { /* stat may fail */ }
+
+			result.push({
+				name: item.name,
+				path: fullPath,
+				isDir,
+				extension: ext,
+				size,
+				modifiedAt,
+			});
+		}
+
+		// Sort: directories first, then by name
+		result.sort((a, b) => {
+			if (a.isDir && !b.isDir) return -1;
+			if (!a.isDir && b.isDir) return 1;
+			return a.name.localeCompare(b.name);
+		});
+
+		entries.set(result);
+		currentPath.set(dirPath);
+	} catch {
+		entries.set([]);
 	} finally {
 		briefcaseLoading.set(false);
 	}
 }
 
-export async function createItem(params: {
-	name: string;
-	kind: ItemKind;
-	parent_id?: string;
-	plugin?: string;
-	file_type?: string;
-	icon?: string;
-	path?: string;
-	mime_type?: string;
-	size?: number;
-}): Promise<string | null> {
+export async function navigateTo(dirPath: string): Promise<void> {
+	await loadEntries(dirPath);
+}
+
+export async function navigateUp(): Promise<void> {
+	let current = '';
+	currentPath.subscribe((v) => (current = v))();
+	let root = '';
+	briefcaseRoot.subscribe((v) => (root = v))();
+	if (current === root) return;
+	const parent = current.substring(0, current.lastIndexOf('/'));
+	if (parent.length >= root.length) {
+		await loadEntries(parent);
+	}
+}
+
+export async function createFolder(name: string): Promise<void> {
+	let current = '';
+	currentPath.subscribe((v) => (current = v))();
+	const fsMod = await fs();
+	await fsMod.mkdir(`${current}/${name}`, { recursive: true });
+	await loadEntries(current);
+}
+
+export async function createFile(name: string): Promise<string> {
+	let current = '';
+	currentPath.subscribe((v) => (current = v))();
+	const fullPath = `${current}/${name}`;
+	// Create empty file
+	const fsMod = await fs();
+	await fsMod.writeFile(fullPath, new Uint8Array(0));
+	await loadEntries(current);
+	return fullPath;
+}
+
+export async function renameEntry(oldPath: string, newName: string): Promise<void> {
+	const fsMod = await fs();
+	const dir = oldPath.substring(0, oldPath.lastIndexOf('/'));
+	await fsMod.rename(oldPath, `${dir}/${newName}`);
+	let current = '';
+	currentPath.subscribe((v) => (current = v))();
+	await loadEntries(current);
+}
+
+export async function deleteEntry(path: string): Promise<void> {
+	const fsMod = await fs();
 	try {
-		const res = await post<{ ok: boolean; item_id: string }>('/api/briefcase/items', params);
-		return res.item_id;
-	} catch (e) {
-		briefcaseError.set(e instanceof Error ? e.message : 'Failed to create item');
-		return null;
+		await fsMod.remove(path, { recursive: true });
+	} catch { /* may not exist */ }
+	let current = '';
+	currentPath.subscribe((v) => (current = v))();
+	await loadEntries(current);
+}
+
+// --- Metadata (starred, recent) ---
+
+async function loadMeta(root: string): Promise<void> {
+	try {
+		const fsMod = await fs();
+		const bytes = await fsMod.readFile(`${root}/.briefcase/meta.json`);
+		const text = new TextDecoder().decode(bytes);
+		meta.set(JSON.parse(text));
+	} catch {
+		meta.set({ starred: [], recent: [] });
 	}
 }
 
-export async function createFolder(name: string, parentId?: string, icon?: string): Promise<string | null> {
-	const id = await createItem({
-		name,
-		kind: 'folder',
-		parent_id: parentId,
-		icon: icon ?? undefined,
-	});
-	if (id) await fetchFolders();
-	return id;
+async function saveMeta(): Promise<void> {
+	let root = '';
+	briefcaseRoot.subscribe((v) => (root = v))();
+	let current: BriefcaseMeta = { starred: [], recent: [] };
+	meta.subscribe((v) => (current = v))();
+	const fsMod = await fs();
+	const bytes = new TextEncoder().encode(JSON.stringify(current, null, 2));
+	await fsMod.writeFile(`${root}/.briefcase/meta.json`, bytes);
 }
 
-export async function renameItem(itemId: string, name: string): Promise<void> {
-	await put(`/api/briefcase/items/${encodeURIComponent(itemId)}`, { name });
-}
-
-export async function moveItem(itemId: string, parentId: string | null): Promise<void> {
-	await put(`/api/briefcase/items/${encodeURIComponent(itemId)}`, { parent_id: parentId });
-}
-
-export async function starItem(itemId: string): Promise<void> {
-	await put(`/api/briefcase/items/${encodeURIComponent(itemId)}`, { starred: true });
-}
-
-export async function unstarItem(itemId: string): Promise<void> {
-	await put(`/api/briefcase/items/${encodeURIComponent(itemId)}`, { starred: false });
-}
-
-export async function archiveItem(itemId: string): Promise<void> {
-	await del(`/api/briefcase/items/${encodeURIComponent(itemId)}`);
-}
-
-// --- Tree builder ---
-
-function buildTree(flat: BriefcaseItem[]): FolderNode[] {
-	const map = new Map<string, FolderNode>();
-	const roots: FolderNode[] = [];
-
-	for (const f of flat) {
-		map.set(f.item_id, { ...f, children: [] });
-	}
-
-	for (const node of map.values()) {
-		if (node.parent_id && map.has(node.parent_id)) {
-			map.get(node.parent_id)!.children.push(node);
-		} else {
-			roots.push(node);
+export async function toggleStar(path: string): Promise<void> {
+	meta.update((m) => {
+		const idx = m.starred.indexOf(path);
+		if (idx >= 0) {
+			return { ...m, starred: m.starred.filter((p) => p !== path) };
 		}
-	}
-
-	const sortChildren = (nodes: FolderNode[]) => {
-		nodes.sort((a, b) => a.name.localeCompare(b.name));
-		for (const n of nodes) sortChildren(n.children);
-	};
-	sortChildren(roots);
-
-	return roots;
+		return { ...m, starred: [...m.starred, path] };
+	});
+	await saveMeta();
 }
 
-// --- Item icons ---
+export function isStarred(path: string, $meta: BriefcaseMeta): boolean {
+	return $meta.starred.includes(path);
+}
+
+export async function addRecent(path: string): Promise<void> {
+	meta.update((m) => {
+		const filtered = m.recent.filter((p) => p !== path);
+		return { ...m, recent: [path, ...filtered].slice(0, 20) };
+	});
+	await saveMeta();
+}
+
+// --- Helpers ---
+
+function getExtension(name: string): string | null {
+	const dot = name.lastIndexOf('.');
+	if (dot < 0) return null;
+	return name.substring(dot);
+}
 
 const TYPE_ICONS: Record<string, string> = {
-	folder: '\uD83D\uDCC1',
-	scribe: '\uD83D\uDCDD',
-	stage: '\uD83C\uDFAC',
-	ledger: '\uD83D\uDCCA',
-	pdf: '\uD83D\uDCC4',
-	image: '\uD83D\uDDBC\uFE0F',
-	markdown: '\uD83D\uDCCB',
-	text: '\uD83D\uDCC4',
-	csv: '\uD83D\uDCC8',
-	json: '\uD83D\uDCC4',
-	archive: '\uD83D\uDCE6',
-	audio: '\uD83C\uDFB5',
-	video: '\uD83C\uDFAC',
-	html: '\uD83C\uDF10',
-	file: '\uD83D\uDCCE',
+	'.scribe': '\uD83D\uDCC4',
+	'.stage': '\uD83C\uDFAC',
+	'.ledger': '\uD83D\uDCCA',
+	'.pdf': '\uD83D\uDCC4',
+	'.png': '\uD83D\uDDBC\uFE0F',
+	'.jpg': '\uD83D\uDDBC\uFE0F',
+	'.svg': '\uD83D\uDDBC\uFE0F',
+	'.md': '\uD83D\uDCCB',
+	'.txt': '\uD83D\uDCC4',
+	'.csv': '\uD83D\uDCC8',
+	'.zip': '\uD83D\uDCE6',
 };
 
-export function itemIcon(item: BriefcaseItem): string {
-	if (item.kind === 'folder') return TYPE_ICONS.folder;
-	return TYPE_ICONS[item.file_type ?? ''] ?? TYPE_ICONS.file;
+export function entryIcon(entry: BriefcaseEntry): string {
+	if (entry.isDir) return '\uD83D\uDCC1';
+	return TYPE_ICONS[entry.extension ?? ''] ?? '\uD83D\uDCCE';
 }
 
 export function formatFileSize(bytes: number): string {
