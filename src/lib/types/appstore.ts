@@ -75,6 +75,10 @@ export interface OfferingDetail extends OfferingItem {
 export type ActionState = 'get' | 'install' | 'installed' | 'update' | 'revoked' | 'loading';
 
 export function getActionState(item: OfferingItem): ActionState {
+	// Removed plugins should show as installable, regardless of stale available_actions
+	if (item.status_label === 'Removed') {
+		return item.license_id ? 'install' : 'get';
+	}
 	const actions = item.available_actions ?? [];
 	// Plugin is installed and operational (can be stopped/upgraded/removed)
 	if (actions.includes('stop') || actions.includes('remove')) {
@@ -94,6 +98,7 @@ export function getActionState(item: OfferingItem): ActionState {
 }
 
 export function isPluginInstalled(item: OfferingItem): boolean {
+	if (item.status_label === 'Removed') return false;
 	const actions = item.available_actions ?? [];
 	return actions.includes('stop') || actions.includes('start') || actions.includes('remove') || actions.includes('upgrade');
 }
