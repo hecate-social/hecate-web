@@ -8,20 +8,28 @@
 		fetchStoreStreams,
 		fetchStoreEvents,
 		fetchSubscriptions,
+		fetchStoreSnapshots,
+		fetchStoreSubscriptionDetails,
 		type StoreInfo,
 		type StreamInfo,
 		type EventRecord,
-		type SubscriptionGroup
+		type SubscriptionGroup,
+		type SnapshotInfo,
+		type StoreSubscriptionInfo
 	} from '$lib/stores/observer';
 
 	let storeInfo = $state<StoreInfo | null>(null);
 	let streams = $state<StreamInfo[]>([]);
 	let events = $state<EventRecord[]>([]);
 	let subscriptions = $state<SubscriptionGroup[]>([]);
+	let snapshots = $state<SnapshotInfo[]>([]);
+	let storeSubs = $state<StoreSubscriptionInfo[]>([]);
 	let loading = $state(true);
 	let eventsLoading = $state(false);
+	let snapshotsLoading = $state(false);
+	let storeSubsLoading = $state(false);
 	let error = $state<string | null>(null);
-	let activeTab = $state<'overview' | 'streams' | 'all'>('overview');
+	let activeTab = $state<'overview' | 'streams' | 'snapshots' | 'subscriptions' | 'all'>('overview');
 	let eventOffset = $state(0);
 	let eventLimit = 50;
 	let typeFilter = $state('');
@@ -69,9 +77,29 @@
 		}
 	}
 
-	function switchTab(tab: 'overview' | 'streams' | 'all') {
+	async function refreshSnapshots() {
+		snapshotsLoading = true;
+		try {
+			const data = await fetchStoreSnapshots(storeId);
+			snapshots = data.items;
+		} catch { /* ignore */ }
+		finally { snapshotsLoading = false; }
+	}
+
+	async function refreshStoreSubs() {
+		storeSubsLoading = true;
+		try {
+			const data = await fetchStoreSubscriptionDetails(storeId);
+			storeSubs = data.items;
+		} catch { /* ignore */ }
+		finally { storeSubsLoading = false; }
+	}
+
+	function switchTab(tab: typeof activeTab) {
 		activeTab = tab;
 		if (tab === 'all' && events.length === 0) refreshEvents();
+		if (tab === 'snapshots' && snapshots.length === 0) refreshSnapshots();
+		if (tab === 'subscriptions' && storeSubs.length === 0) refreshStoreSubs();
 	}
 
 	function formatBytes(bytes: number): string {
@@ -107,6 +135,16 @@
 			class="px-3 py-1.5 rounded-md text-xs font-medium cursor-pointer
 				{activeTab === 'streams' ? 'bg-accent-600/20 text-accent-400' : 'text-surface-400 hover:text-surface-200 hover:bg-surface-700/50'}"
 		>Streams ({totalStreams})</button>
+		<button
+			onclick={() => switchTab('snapshots')}
+			class="px-3 py-1.5 rounded-md text-xs font-medium cursor-pointer
+				{activeTab === 'snapshots' ? 'bg-accent-600/20 text-accent-400' : 'text-surface-400 hover:text-surface-200 hover:bg-surface-700/50'}"
+		>Snapshots</button>
+		<button
+			onclick={() => switchTab('subscriptions')}
+			class="px-3 py-1.5 rounded-md text-xs font-medium cursor-pointer
+				{activeTab === 'subscriptions' ? 'bg-accent-600/20 text-accent-400' : 'text-surface-400 hover:text-surface-200 hover:bg-surface-700/50'}"
+		>Subscriptions</button>
 		<button
 			onclick={() => switchTab('all')}
 			class="px-3 py-1.5 rounded-md text-xs font-medium cursor-pointer
@@ -254,6 +292,72 @@
 				<div class="text-center text-surface-500 py-8 text-xs">No streams in this store</div>
 			{/if}
 		</div>
+	{:else if activeTab === 'snapshots'}
+		<!-- Snapshots -->
+		{#if snapshotsLoading}
+			<div class="text-center text-surface-400 py-10 text-sm">Loading snapshots...</div>
+		{:else if snapshots.length === 0}
+			<div class="text-center text-surface-500 py-10 text-xs">No snapshots in this store</div>
+		{:else}
+			<div class="rounded-xl border border-surface-600 bg-surface-800/80 overflow-hidden">
+				<table class="w-full text-xs">
+					<thead>
+						<tr>
+							<th class="text-left px-4 py-2 border-b border-surface-600 text-surface-500">Stream ID</th>
+							<th class="text-right px-4 py-2 border-b border-surface-600 text-surface-500">Version</th>
+							<th class="text-right px-4 py-2 border-b border-surface-600 text-surface-500">Timestamp</th>
+						</tr>
+					</thead>
+					<tbody>
+						{#each snapshots as snap}
+							<tr class="hover:bg-surface-700/30 cursor-pointer"
+								onclick={() => goto(`/observer/stores/${storeId}/${encodeURIComponent(snap.stream_id)}`)}
+							>
+								<td class="px-4 py-2 font-mono text-accent-400 border-b border-surface-600/30">{snap.stream_id}</td>
+								<td class="px-4 py-2 text-right text-surface-200 border-b border-surface-600/30">{snap.version}</td>
+								<td class="px-4 py-2 text-right text-surface-400 border-b border-surface-600/30">
+									{snap.timestamp ? new Date(snap.timestamp).toLocaleString() : '—'}
+								</td>
+							</tr>
+						{/each}
+					</tbody>
+				</table>
+			</div>
+		{/if}
+	{:else if activeTab === 'subscriptions'}
+		<!-- Store Subscriptions -->
+		{#if storeSubsLoading}
+			<div class="text-center text-surface-400 py-10 text-sm">Loading subscriptions...</div>
+		{:else if storeSubs.length === 0}
+			<div class="text-center text-surface-500 py-10 text-xs">No subscriptions for this store</div>
+		{:else}
+			<div class="rounded-xl border border-surface-600 bg-surface-800/80 overflow-hidden">
+				<table class="w-full text-xs">
+					<thead>
+						<tr>
+							<th class="text-left px-4 py-2 border-b border-surface-600 text-surface-500">Name</th>
+							<th class="text-left px-4 py-2 border-b border-surface-600 text-surface-500">Type</th>
+							<th class="text-left px-4 py-2 border-b border-surface-600 text-surface-500">Selector</th>
+							<th class="text-right px-4 py-2 border-b border-surface-600 text-surface-500">Checkpoint</th>
+							<th class="text-right px-4 py-2 border-b border-surface-600 text-surface-500">Pool</th>
+							<th class="text-left px-4 py-2 border-b border-surface-600 text-surface-500">PID</th>
+						</tr>
+					</thead>
+					<tbody>
+						{#each storeSubs as sub}
+							<tr class="hover:bg-surface-700/30">
+								<td class="px-4 py-2 font-mono text-accent-400 border-b border-surface-600/30">{sub.subscription_name}</td>
+								<td class="px-4 py-2 text-surface-300 border-b border-surface-600/30">{sub.type}</td>
+								<td class="px-4 py-2 font-mono text-surface-400 border-b border-surface-600/30 truncate max-w-[200px]">{sub.selector}</td>
+								<td class="px-4 py-2 text-right text-surface-200 border-b border-surface-600/30">{sub.checkpoint ?? '—'}</td>
+								<td class="px-4 py-2 text-right text-surface-200 border-b border-surface-600/30">{sub.pool_size}</td>
+								<td class="px-4 py-2 font-mono text-surface-500 border-b border-surface-600/30">{sub.subscriber_pid}</td>
+							</tr>
+						{/each}
+					</tbody>
+				</table>
+			</div>
+		{/if}
 	{:else}
 		<!-- $all Event Log -->
 		<div class="flex items-center gap-2 mb-2">

@@ -204,6 +204,46 @@ export async function fetchSubscriptions() {
 	return get<{ items: SubscriptionGroup[]; total: number }>('/api/observer/subscriptions');
 }
 
+// --- Store Inspector ---
+
+export interface StoreStats {
+	store_id: string;
+	stream_count: number;
+	total_events: number;
+	snapshot_count: number;
+	subscription_count: number;
+	has_events: boolean;
+}
+
+export interface SnapshotInfo {
+	stream_id: string;
+	version: number;
+	timestamp: number | null;
+	metadata: Record<string, unknown>;
+}
+
+export interface StoreSubscriptionInfo {
+	subscription_name: string;
+	type: string;
+	selector: string;
+	checkpoint: number | null;
+	pool_size: number;
+	created_at: number | null;
+	subscriber_pid: string;
+}
+
+export async function fetchStoreStats(storeId: string) {
+	return get<StoreStats>(`/api/observer/stores/${storeId}/stats`);
+}
+
+export async function fetchStoreSnapshots(storeId: string) {
+	return get<{ items: SnapshotInfo[]; total: number }>(`/api/observer/stores/${storeId}/snapshots`);
+}
+
+export async function fetchStoreSubscriptionDetails(storeId: string) {
+	return get<{ items: StoreSubscriptionInfo[]; total: number }>(`/api/observer/stores/${storeId}/subscriptions`);
+}
+
 // --- SSE Metrics Stream ---
 
 let metricsSource: EventSource | null = null;
