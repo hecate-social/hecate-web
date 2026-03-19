@@ -4,28 +4,50 @@
 	import { goto } from '$app/navigation';
 	import EventViewer from '$lib/components/observer/EventViewer.svelte';
 	import {
+		fetchStores,
 		fetchStoreStreams,
 		fetchStoreEvents,
+		fetchSubscriptions,
+		type StoreInfo,
 		type StreamInfo,
-		type EventRecord
+		type EventRecord,
+		type SubscriptionGroup
 	} from '$lib/stores/observer';
 
+	let storeInfo = $state<StoreInfo | null>(null);
 	let streams = $state<StreamInfo[]>([]);
 	let events = $state<EventRecord[]>([]);
+	let subscriptions = $state<SubscriptionGroup[]>([]);
 	let loading = $state(true);
 	let eventsLoading = $state(false);
 	let error = $state<string | null>(null);
-	let activeTab = $state<'streams' | 'all'>('streams');
+	let activeTab = $state<'overview' | 'streams' | 'all'>('overview');
 	let eventOffset = $state(0);
 	let eventLimit = 50;
 	let typeFilter = $state('');
 
 	const storeId = $derived(($page.params as Record<string, string>).storeId);
 
-	async function refreshStreams() {
+	let storeSubscriptions = $derived(
+		subscriptions.filter((s) =>
+			s.group.includes(storeId) || s.group.includes(storeId.replace('_store', ''))
+		)
+	);
+
+	let totalEvents = $derived(streams.reduce((sum, s) => sum + s.event_count, 0));
+	let totalStreams = $derived(streams.length);
+
+	async function refreshAll() {
+		loading = true;
 		try {
-			const data = await fetchStoreStreams(storeId);
-			streams = data.items;
+			const [storesRes, streamsRes, subsRes] = await Promise.all([
+				fetchStores(),
+				fetchStoreStreams(storeId),
+				fetchSubscriptions()
+			]);
+			storeInfo = storesRes.items.find((s) => s.store_id === storeId) ?? null;
+			streams = streamsRes.items;
+			subscriptions = subsRes.items;
 			error = null;
 		} catch (e) {
 			error = e instanceof Error ? e.message : 'Failed to fetch';
@@ -47,27 +69,44 @@
 		}
 	}
 
-	function switchTab(tab: 'streams' | 'all') {
+	function switchTab(tab: 'overview' | 'streams' | 'all') {
 		activeTab = tab;
 		if (tab === 'all' && events.length === 0) refreshEvents();
 	}
 
-	onMount(refreshStreams);
+	function formatBytes(bytes: number): string {
+		if (bytes < 1024) return `${bytes} B`;
+		if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+		return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
+	}
+
+	onMount(refreshAll);
 </script>
 
 <div class="p-6 space-y-4">
 	<div class="flex items-center gap-3">
 		<a href="/observer/stores" class="text-xs text-accent-400 hover:text-accent-300">{'\u2190'} Stores</a>
 		<h2 class="text-sm font-semibold text-surface-100 font-mono">{storeId}</h2>
+		{#if storeInfo}
+			<span class="inline-flex items-center gap-1.5 text-[10px]">
+				<span class="size-1.5 rounded-full {storeInfo.running ? 'bg-health-ok' : 'bg-health-err'}"></span>
+				<span class="text-surface-500">{storeInfo.running ? 'Running' : 'Stopped'}</span>
+			</span>
+		{/if}
 	</div>
 
 	<!-- Tab switcher -->
 	<div class="flex gap-1">
 		<button
+			onclick={() => switchTab('overview')}
+			class="px-3 py-1.5 rounded-md text-xs font-medium cursor-pointer
+				{activeTab === 'overview' ? 'bg-accent-600/20 text-accent-400' : 'text-surface-400 hover:text-surface-200 hover:bg-surface-700/50'}"
+		>Overview</button>
+		<button
 			onclick={() => switchTab('streams')}
 			class="px-3 py-1.5 rounded-md text-xs font-medium cursor-pointer
 				{activeTab === 'streams' ? 'bg-accent-600/20 text-accent-400' : 'text-surface-400 hover:text-surface-200 hover:bg-surface-700/50'}"
-		>Streams ({streams.length})</button>
+		>Streams ({totalStreams})</button>
 		<button
 			onclick={() => switchTab('all')}
 			class="px-3 py-1.5 rounded-md text-xs font-medium cursor-pointer
@@ -79,6 +118,114 @@
 		<div class="text-center text-surface-400 py-10 text-sm">Loading...</div>
 	{:else if error}
 		<div class="text-center text-danger-400 py-10 text-sm">{error}</div>
+	{:else if activeTab === 'overview'}
+		<!-- Overview Tab -->
+		<div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+			<!-- Store Stats -->
+			<div class="rounded-xl border border-surface-600 bg-surface-800/80 p-5 space-y-3">
+				<h3 class="text-[10px] uppercase tracking-wider text-surface-500">Store</h3>
+				<div class="grid grid-cols-[auto_1fr] gap-x-6 gap-y-2 text-xs">
+					<span class="text-surface-500">Store ID</span>
+					<span class="text-surface-200 font-mono">{storeId}</span>
+					<span class="text-surface-500">Status</span>
+					<span class="text-surface-200 flex items-center gap-1.5">
+						<span class="size-1.5 rounded-full {storeInfo?.running ? 'bg-health-ok' : 'bg-health-err'}"></span>
+						{storeInfo?.running ? 'Running' : 'Stopped'}
+					</span>
+					<span class="text-surface-500">Streams</span>
+					<span class="text-surface-200">{totalStreams}</span>
+					<span class="text-surface-500">Total Events</span>
+					<span class="text-surface-200">{totalEvents}</span>
+				</div>
+			</div>
+
+			<!-- ETS Tables -->
+			<div class="rounded-xl border border-surface-600 bg-surface-800/80 p-5 space-y-3">
+				<h3 class="text-[10px] uppercase tracking-wider text-surface-500">ETS Projection Tables</h3>
+				{#if storeInfo?.ets_tables && storeInfo.ets_tables.length > 0}
+					<div class="space-y-2">
+						{#each storeInfo.ets_tables as table}
+							<div class="flex items-center justify-between px-3 py-2 rounded-lg bg-surface-900/50 border border-surface-700/50">
+								<span class="text-xs text-accent-400 font-mono">{table.name}</span>
+								<div class="flex items-center gap-3 text-[10px] text-surface-500">
+									<span>{table.size} rows</span>
+									<span>{formatBytes(table.memory_bytes)}</span>
+								</div>
+							</div>
+						{/each}
+					</div>
+				{:else}
+					<div class="text-xs text-surface-500">No ETS tables found</div>
+				{/if}
+			</div>
+
+			<!-- Subscriptions -->
+			<div class="rounded-xl border border-surface-600 bg-surface-800/80 p-5 space-y-3 lg:col-span-2">
+				<h3 class="text-[10px] uppercase tracking-wider text-surface-500">
+					Subscriptions ({storeSubscriptions.length})
+				</h3>
+				{#if storeSubscriptions.length > 0}
+					<div class="space-y-2">
+						{#each storeSubscriptions as sub}
+							<div class="px-3 py-2 rounded-lg bg-surface-900/50 border border-surface-700/50">
+								<div class="flex items-center justify-between">
+									<span class="text-xs text-surface-200 font-mono">{sub.group}</span>
+									<span class="text-[10px] text-surface-500">{sub.member_count} member{sub.member_count !== 1 ? 's' : ''}</span>
+								</div>
+								{#if sub.members.length > 0}
+									<div class="mt-1.5 space-y-0.5">
+										{#each sub.members as member}
+											<div class="flex items-center gap-2 text-[10px]">
+												<span class="size-1.5 rounded-full {member.alive ? 'bg-health-ok' : 'bg-health-err'}"></span>
+												<span class="text-surface-400 font-mono">{member.pid}</span>
+												{#if member.registered_name}
+													<span class="text-surface-300">{member.registered_name}</span>
+												{:else if member.initial_call}
+													<span class="text-surface-500">{member.initial_call}</span>
+												{/if}
+											</div>
+										{/each}
+									</div>
+								{/if}
+							</div>
+						{/each}
+					</div>
+				{:else}
+					<div class="text-xs text-surface-500">No subscriptions found for this store</div>
+				{/if}
+			</div>
+
+			<!-- Top Streams -->
+			{#if streams.length > 0}
+				<div class="rounded-xl border border-surface-600 bg-surface-800/80 p-5 space-y-3 lg:col-span-2">
+					<h3 class="text-[10px] uppercase tracking-wider text-surface-500">
+						Top Streams by Event Count
+					</h3>
+					<div class="space-y-1">
+						{#each [...streams].sort((a, b) => b.event_count - a.event_count).slice(0, 10) as stream}
+							<button
+								onclick={() => goto(`/observer/stores/${storeId}/${encodeURIComponent(stream.stream_id)}`)}
+								class="flex items-center justify-between w-full px-3 py-1.5 rounded-lg hover:bg-surface-700/50 cursor-pointer text-left transition-colors"
+							>
+								<span class="text-xs text-accent-400 font-mono truncate">{stream.stream_id}</span>
+								<div class="flex items-center gap-3 text-[10px] text-surface-500 shrink-0">
+									<span>v{stream.version}</span>
+									<span>{stream.event_count} events</span>
+								</div>
+							</button>
+						{/each}
+					</div>
+					{#if streams.length > 10}
+						<button
+							onclick={() => switchTab('streams')}
+							class="text-[10px] text-accent-400 hover:text-accent-300 cursor-pointer"
+						>
+							View all {streams.length} streams {'\u2192'}
+						</button>
+					{/if}
+				</div>
+			{/if}
+		</div>
 	{:else if activeTab === 'streams'}
 		<!-- Stream List -->
 		<div class="rounded-xl border border-surface-600 bg-surface-800/80 overflow-hidden">
