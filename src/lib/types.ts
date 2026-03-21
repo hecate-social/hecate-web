@@ -16,6 +16,7 @@ export interface DaemonHealth {
 	ready: boolean;
 	service: string;
 	version: string;
+	node_name: string;
 	uptime_seconds: number;
 	identity?: 'initialized' | 'not_initialized';
 	boot?: BootStatus;

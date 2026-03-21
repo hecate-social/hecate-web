@@ -6,7 +6,12 @@
 		site, siteLoading, siteError, fetchSite,
 		siteNodeCount, removeNode
 	} from '$lib/stores/site';
+	import {
+		lanNodes, lanLoading, fetchLanNodes, triggerScan,
+		hecateNodes, bareNodes
+	} from '$lib/stores/lan';
 	import { toastSuccess, toastError } from '$lib/stores/toasts';
+	import ProvisionOverlay from '$lib/components/ProvisionOverlay.svelte';
 
 	// =====================================================================
 	// STATE
@@ -19,6 +24,7 @@
 	let confirmPrompt = $state('');
 	let confirmAction: (() => Promise<void> | void) | null = $state(null);
 	let copyFeedback: string | null = $state(null);
+	let provisionTarget: typeof $lanNodes[0] | null = $state(null);
 
 	// =====================================================================
 	// DATA ROWS
@@ -64,6 +70,29 @@
 			r.push({ key: 'no-nodes', label: 'Nodes', value: 'waiting...', section: 'NODES' });
 		}
 
+		// LAN Discovery
+		if ($lanNodes.length > 0) {
+			for (const ln of $lanNodes) {
+				const isHecate = ln.hecate?.running;
+				const label = ln.hostname !== ln.ip ? ln.hostname : ln.ip;
+				const status = isHecate
+					? `hecate v${ln.hecate.version ?? '?'} · ${ln.hecate.status ?? 'unknown'}`
+					: ln.ssh ? 'SSH available · no hecate' : 'no hecate · no SSH';
+				r.push({
+					key: `lan-${ln.ip}`,
+					label: label,
+					value: `${ln.ip} · ${ln.mac} · ${status}`,
+					section: 'LAN',
+					copyable: true,
+					action: !isHecate && ln.ssh ? 'Enter:install' : undefined,
+				});
+			}
+		} else if ($lanLoading) {
+			r.push({ key: 'lan-scanning', label: 'LAN', value: 'scanning...', section: 'LAN' });
+		} else {
+			r.push({ key: 'lan-empty', label: 'LAN', value: 'no machines found · :scan to refresh', section: 'LAN' });
+		}
+
 		return r;
 	});
 
@@ -91,6 +120,14 @@
 
 	function shortName(nodeName: string): string {
 		return nodeName.split('@')[0] ?? nodeName;
+	}
+
+	function selfIp(): string {
+		// Use hostname from node_name (e.g., "hecate_dev@host00.lab" → "host00.lab")
+		// The target machine needs to reach us — hostname must resolve on LAN
+		const nodeName = $health?.node_name ?? '';
+		const host = nodeName.split('@')[1] ?? '';
+		return host || 'localhost';
 	}
 
 	function getFullCopyValue(row: SiteRow): string {
@@ -138,8 +175,20 @@
 					statusMsg = 'Usage: :remove <node-name>';
 				}
 			} },
-		{ name: 'refresh', aliases: ['r'], args: '', description: 'Refresh site info',
-			async exec() { statusMsg = 'Refreshing...'; await fetchSite(); statusMsg = 'Refreshed'; } },
+		{ name: 'install', aliases: ['provision'], args: '', description: 'Install hecate on selected machine',
+			exec() {
+				if (!selectedRow?.key.startsWith('lan-')) { statusMsg = 'Select a LAN machine first'; return; }
+				const ip = selectedRow.key.replace('lan-', '');
+				const machine = $lanNodes.find((n) => n.ip === ip);
+				if (!machine) { statusMsg = 'Machine not found'; return; }
+				if (machine.hecate?.running) { statusMsg = 'Already running hecate'; return; }
+				if (!machine.ssh) { statusMsg = 'No SSH access to this machine'; return; }
+				provisionTarget = machine;
+			} },
+		{ name: 'scan', aliases: ['discover'], args: '', description: 'Scan LAN for machines',
+			async exec() { statusMsg = 'Scanning LAN...'; await triggerScan(); statusMsg = 'Scan triggered'; } },
+		{ name: 'refresh', aliases: ['r'], args: '', description: 'Refresh site + LAN',
+			async exec() { statusMsg = 'Refreshing...'; await fetchSite(); await fetchLanNodes(); statusMsg = 'Refreshed'; } },
 		{ name: 'copy', aliases: ['y'], args: '', description: 'Copy selected value',
 			exec() {
 				if (selectedRow?.copyable) copyToClipboard(getFullCopyValue(selectedRow), selectedRow.label);
@@ -176,6 +225,9 @@
 		if (mode === 'confirm') { handleConfirmKeys(e); return; }
 		if (mode !== 'normal') return;
 
+		// Don't handle keys when provision overlay is open
+		if (provisionTarget) return;
+
 		switch (e.key) {
 			case 'j': case 'ArrowDown':
 				e.preventDefault();
@@ -198,6 +250,12 @@
 			case 'y':
 				e.preventDefault();
 				if (selectedRow?.copyable) copyToClipboard(getFullCopyValue(selectedRow), selectedRow.label);
+				break;
+			case 'Enter':
+				e.preventDefault();
+				if (selectedRow?.key.startsWith('lan-')) {
+					findCommand('install')?.exec('');
+				}
 				break;
 			case 'x':
 				e.preventDefault();
@@ -256,7 +314,7 @@
 
 	$effect(() => { if (cursorIndex >= rows.length) cursorIndex = Math.max(0, rows.length - 1); });
 
-	onMount(() => { fetchSite(); });
+	onMount(() => { fetchSite(); fetchLanNodes(); });
 </script>
 
 <svelte:window onkeydown={onKeyDown} />
@@ -303,8 +361,14 @@
 
 									<!-- Value -->
 									<span class="flex-1 truncate font-mono text-sm
-										{row.key === 'no-site' || row.key === 'no-nodes'
+										{row.key === 'no-site' || row.key === 'no-nodes' || row.key === 'lan-empty' || row.key === 'lan-scanning'
 											? 'text-surface-600 italic'
+											: row.key.startsWith('lan-') && row.value.includes('hecate v')
+											? (isCursor ? 'text-emerald-300' : 'text-emerald-400/80')
+											: row.key.startsWith('lan-') && row.value.includes('SSH available')
+											? (isCursor ? 'text-amber-300' : 'text-amber-400/70')
+											: row.key.startsWith('lan-')
+											? (isCursor ? 'text-surface-400' : 'text-surface-500')
 											: isCursor ? 'text-surface-100' : 'text-surface-300'}"
 									>{row.value}</span>
 
@@ -369,3 +433,10 @@
 		{/if}
 	</div>
 </div>
+
+{#if provisionTarget}
+	<ProvisionOverlay
+		machine={provisionTarget}
+		onClose={() => { provisionTarget = null; }}
+	/>
+{/if}
