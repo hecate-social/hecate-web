@@ -26,7 +26,6 @@
 				background: '#1a1a2e',
 				foreground: '#e0e0e0',
 				cursor: '#f59e0b',
-				selectionBackground: '#44406688',
 			},
 			fontSize: 13,
 			fontFamily: "'JetBrains Mono', 'Fira Code', monospace",
@@ -43,38 +42,46 @@
 		resizeObserver = new ResizeObserver(() => fitAddon?.fit());
 		resizeObserver.observe(terminalEl);
 
-		term.write(`\x1b[90m$ ${command} ${args.slice(-2).join(' ')}\x1b[0m\r\n`);
+		term.write('\x1b[90mConnecting...\x1b[0m\r\n');
 
-		spawnProcess();
+		await spawnProcess();
 	});
 
 	async function spawnProcess() {
 		if (!term) return;
 
-		const cmd = Command.create(command, args);
+		try {
+			const cmd = Command.create(command, args);
 
-		cmd.stdout.on('data', (data: string) => {
-			term?.write(data);
-		});
+			cmd.on('close', (data) => {
+				console.log('[terminal] close', data);
+				term?.write(`\r\n\x1b[90m[exited ${data.code}]\x1b[0m\r\n`);
+				onExit?.(data.code);
+			});
 
-		cmd.stderr.on('data', (data: string) => {
-			term?.write(data);
-		});
+			cmd.on('error', (error) => {
+				console.error('[terminal] error', error);
+				term?.write(`\r\n\x1b[31m${error}\x1b[0m\r\n`);
+			});
 
-		cmd.on('close', (data: { code: number; signal: string | null }) => {
-			term?.write(`\r\n\x1b[90m[exited ${data.code}]\x1b[0m\r\n`);
-			onExit?.(data.code);
-		});
+			cmd.stdout.on('data', (line) => {
+				console.log('[terminal] stdout:', line);
+				term?.write(line + '\r\n');
+			});
 
-		cmd.on('error', (error: string) => {
-			term?.write(`\r\n\x1b[31m${error}\x1b[0m\r\n`);
-		});
+			cmd.stderr.on('data', (line) => {
+				console.log('[terminal] stderr:', line);
+				term?.write(line + '\r\n');
+			});
 
-		childProcess = await cmd.spawn();
+			childProcess = await cmd.spawn();
+			console.log('[terminal] spawned pid:', childProcess.pid);
 
-		term!.onData((data: string) => {
-			childProcess?.write(data);
-		});
+		} catch (err) {
+			console.error('[terminal] spawn failed:', err);
+			term.write(`\x1b[31m${err}\x1b[0m\r\n`);
+			onExit?.(-1);
+		}
 	}
 
 	onDestroy(() => {
