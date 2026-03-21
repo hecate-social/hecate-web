@@ -9,6 +9,7 @@ export interface PluginTab {
 	icon: string;
 	path: string;
 	isPlugin: boolean;
+	group?: string;
 }
 
 export interface PluginCardData {
@@ -23,15 +24,24 @@ export interface PluginCardData {
 
 // Core pages — always available, use main daemon socket.
 const CORE_TABS: PluginTab[] = [
-	{ id: 'settings', name: 'Settings', icon: '\u2699', path: '/settings', isPlugin: false },
-	{ id: 'llm', name: 'LLM', icon: '\uD83E\uDD16', path: '/llm', isPlugin: false },
-	{ id: 'appstore', name: 'Appstore', icon: '\uD83C\uDFEA', path: '/appstore', isPlugin: false },
-	{ id: 'observer', name: 'Observer', icon: '\uD83D\uDD2C', path: '/observer', isPlugin: false },
-	{ id: 'mesh', name: 'Mesh', icon: '\uD83C\uDF10', path: '/mesh', isPlugin: false },
 	{ id: 'briefcase', name: 'Briefcase', icon: '\uD83D\uDCBC', path: '/briefcase', isPlugin: false },
+	{ id: 'llm', name: 'LLM', icon: '\uD83E\uDD16', path: '/llm', isPlugin: false },
+	{ id: 'mesh', name: 'Mesh', icon: '\uD83C\uDF10', path: '/mesh', isPlugin: false },
+	{ id: 'appstore', name: 'Appstore', icon: '\uD83C\uDFEA', path: '/appstore', isPlugin: false },
+	{ id: 'site', name: 'Site', icon: '\uD83C\uDFE0', path: '/site', isPlugin: false },
+	{ id: 'settings', name: 'Settings', icon: '\u2699', path: '/settings', isPlugin: false },
+	// Observer views — each a direct-jump entry grouped under "Observer"
+	{ id: 'obs-system', name: 'System', icon: '\uD83D\uDCCA', path: '/observer', isPlugin: false, group: 'Observer' },
+	{ id: 'obs-processes', name: 'Processes', icon: '\u2699', path: '/observer/processes', isPlugin: false, group: 'Observer' },
+	{ id: 'obs-ets', name: 'ETS Tables', icon: '\uD83D\uDCE6', path: '/observer/ets', isPlugin: false, group: 'Observer' },
+	{ id: 'obs-supervision', name: 'Supervision', icon: '\uD83C\uDF33', path: '/observer/supervision', isPlugin: false, group: 'Observer' },
+	{ id: 'obs-plugins', name: 'Plugins', icon: '\uD83D\uDD0C', path: '/observer/plugins', isPlugin: false, group: 'Observer' },
+	{ id: 'obs-stores', name: 'Event Stores', icon: '\uD83D\uDCC1', path: '/observer/stores', isPlugin: false, group: 'Observer' },
+	{ id: 'obs-pg', name: 'PG Groups', icon: '\uD83D\uDD17', path: '/observer/subscriptions', isPlugin: false, group: 'Observer' },
 ];
 
 const CORE_CARDS: PluginCardData[] = [
+	{ id: 'site', name: 'Site', icon: '\uD83C\uDFE0', path: '/site', description: 'Site identity, realm membership, and cluster nodes', ready: true, isPlugin: false },
 	{ id: 'settings', name: 'Settings', icon: '\u2699', path: '/settings', description: 'Node identity, realms, and preferences', ready: true, isPlugin: false },
 	{ id: 'llm', name: 'LLM', icon: '\uD83E\uDD16', path: '/llm', description: 'Chat with AI models across providers', ready: true, isPlugin: false },
 	{ id: 'appstore', name: 'Appstore', icon: '\uD83C\uDFEA', path: '/appstore', description: 'Browse and install plugins', ready: true, isPlugin: false },
