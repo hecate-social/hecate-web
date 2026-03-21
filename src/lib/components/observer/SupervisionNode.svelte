@@ -1,5 +1,5 @@
 <script lang="ts">
-	import type { SupervisionNode as SupNode } from '$lib/stores/observer';
+	import type { SupervisionNode as SupNode } from '$lib/stores/observer/supervision';
 	import SupervisionNode from './SupervisionNode.svelte';
 
 	let { node, depth = 0 }: {

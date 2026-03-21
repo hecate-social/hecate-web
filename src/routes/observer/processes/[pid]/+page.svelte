@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { onMount, onDestroy } from 'svelte';
 	import { page } from '$app/stores';
-	import { fetchProcessDetail, type ProcessDetail } from '$lib/stores/observer';
+	import { fetchProcessDetail, type ProcessDetail } from '$lib/stores/observer/processes';
 
 	let detail = $state<ProcessDetail | null>(null);
 	let loading = $state(true);

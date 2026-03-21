@@ -1,732 +1,157 @@
 <script lang="ts">
-	import { openExternal } from '$lib/tauri';
-	import { health, connectionStatus, isReady } from '$lib/stores/daemon.js';
-	import { pluginCards, type PluginCardData } from '$lib/plugins-registry';
-	import { apps, appList, refreshApps } from '$lib/stores/apps';
-	import { post } from '$lib/api';
-	import {
-		sidebarGroups,
-		ungroupedApps,
-		createGroup,
-		renameGroup,
-		deleteGroup,
-		toggleGroupCollapsed,
-		moveApp,
-		ungroupApp,
-		updateGroupIcon,
-		removePluginFromSidebar
-	} from '$lib/stores/sidebar.js';
-	import { pluginUpdateVersion } from '$lib/stores/pluginUpdater.js';
-	import { toastSuccess, toastError } from '$lib/stores/toasts';
-	import { activities, type ActivityEntry } from '$lib/stores/activity';
-	import { fetchMeshStatus, type MeshStatus } from '$lib/stores/mesh';
-	import { pushOverlay, popOverlay } from '$lib/stores/keyboard';
-	import FocusTrap from '$lib/components/FocusTrap.svelte';
-	import PluginCard from '$lib/components/PluginCard.svelte';
-	import EmojiPicker from '$lib/components/EmojiPicker.svelte';
-	import { resolveEmoji } from '$lib/emoji';
-	import { slide } from 'svelte/transition';
 	import { onMount } from 'svelte';
+	import { health } from '$lib/stores/daemon.js';
+	import { appList } from '$lib/stores/apps';
+	import { settings } from '$lib/stores/settings';
+	import { nodeIdentity } from '$lib/stores/nodeIdentity';
+	import { meta } from '$lib/stores/briefcase';
+	import { fetchMeshStatus, type MeshStatus } from '$lib/stores/mesh';
+	import { systemOverview, fetchSystemOverview } from '$lib/stores/observer/system';
+	import { goto } from '$app/navigation';
 
-	const DONATE_URL = 'https://buymeacoffee.com/rlefever';
-
-	let cardsMap = $derived(new Map($pluginCards.map((c) => [c.id, c])));
-
-	let ungroupedCards = $derived(
-		$ungroupedApps.map((tab) => cardFromId(tab.id))
-	);
-
-	let hasContent = $derived(
-		$sidebarGroups.length > 0 || ungroupedCards.length > 0
-	);
-
-	// --- Status strip data ---
 	let meshStatus = $state<MeshStatus | null>(null);
 
-	let onlineApps = $derived($appList.filter((a) => a.online).length);
-	let totalApps = $derived($appList.length);
+	let onlineApps = $derived($appList.filter(a => a.online).length);
 
 	let uptime = $derived.by(() => {
 		const s = $health?.uptime_seconds;
-		if (!s) return null;
-		if (s < 60) return `${s}s`;
-		if (s < 3600) return `${Math.floor(s / 60)}m`;
+		if (!s) return '';
 		const h = Math.floor(s / 3600);
 		const m = Math.floor((s % 3600) / 60);
-		return m > 0 ? `${h}h ${m}m` : `${h}h`;
+		return h > 0 ? `${h}h ${m}m` : `${m}m`;
 	});
 
-	let recentActivity = $derived($activities.slice(0, 3));
+	let realmId = $derived($settings?.realms?.[0]?.realm_id ?? null);
+	let realmAccount = $derived($settings?.realms?.[0]?.oauth_account ?? null);
 
-	function activityColor(level: string): string {
-		switch (level) {
-			case 'success': return 'text-health-ok';
-			case 'warning': return 'text-amber-400';
-			case 'error': return 'text-danger-400';
-			default: return 'text-surface-400';
-		}
+	function formatBytes(bytes: number): string {
+		if (bytes >= 1_073_741_824) return (bytes / 1_073_741_824).toFixed(1) + ' GB';
+		if (bytes >= 1_048_576) return (bytes / 1_048_576).toFixed(1) + ' MB';
+		if (bytes >= 1024) return (bytes / 1024).toFixed(1) + ' KB';
+		return bytes + ' B';
 	}
 
 	function timeAgo(ts: number): string {
 		const diff = Math.floor((Date.now() - ts) / 1000);
 		if (diff < 60) return 'just now';
 		if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
-		return `${Math.floor(diff / 3600)}h ago`;
+		if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
+		return `${Math.floor(diff / 86400)}d ago`;
 	}
+
+	function fileNameFromPath(p: string): string {
+		return p.substring(p.lastIndexOf('/') + 1);
+	}
+
+	// Recent files from briefcase meta
+	let recentFiles = $derived(($meta?.recent ?? []).slice(0, 8));
 
 	onMount(async () => {
-		if ($isReady) {
-			try { meshStatus = await fetchMeshStatus(); } catch { /* daemon may not support mesh yet */ }
-		}
+		try { meshStatus = await fetchMeshStatus(); } catch {}
+		try { await fetchSystemOverview(); } catch {}
 	});
-
-	// Refresh mesh status when daemon becomes ready
-	$effect(() => {
-		if ($isReady && !meshStatus) {
-			fetchMeshStatus().then((s) => (meshStatus = s)).catch(() => {});
-		}
-	});
-
-	function cardFromId(id: string): PluginCardData {
-		return (
-			cardsMap.get(id) ?? {
-				id,
-				name: id.charAt(0).toUpperCase() + id.slice(1),
-				icon: '\uD83D\uDD0C',
-				path: `/plugin/${id}`,
-				description: 'Loading...',
-				ready: false,
-				isPlugin: true
-			}
-		);
-	}
-
-	function findAppGroup(appId: string): string | null {
-		const group = $sidebarGroups.find((g) => g.appIds.includes(appId));
-		return group?.id ?? null;
-	}
-
-	// --- Drag state ---
-	let dragAppId = $state<string | null>(null);
-	let dragOverGroupId = $state<string | null>(null);
-	let dragOverUngrouped = $state(false);
-
-	// --- Context menu ---
-	let contextMenu = $state<{ x: number; y: number; type: 'group' | 'app'; id: string } | null>(null);
-
-	// --- Inline rename ---
-	let renamingGroupId = $state<string | null>(null);
-	let renameValue = $state('');
-
-	// --- New group ---
-	let showNewGroup = $state(false);
-	let newGroupName = $state('');
-
-	// --- Emoji picker ---
-	let emojiPickerGroupId = $state<string | null>(null);
-	let emojiPickerPos = $state<{ x: number; y: number }>({ x: 0, y: 0 });
-
-	// --- Remove confirmation ---
-	let removeTarget = $state<{ appId: string; name: string } | null>(null);
-	let removeLoading = $state(false);
-
-	$effect(() => {
-		if (removeTarget) {
-			pushOverlay('home-remove', cancelRemove);
-		} else {
-			popOverlay('home-remove');
-		}
-	});
-
-	// --- Drag handlers ---
-
-	function onDragStart(e: DragEvent, appId: string) {
-		dragAppId = appId;
-		if (e.dataTransfer) {
-			e.dataTransfer.effectAllowed = 'move';
-			e.dataTransfer.setData('text/plain', appId);
-		}
-	}
-
-	function onDragOverGroup(e: DragEvent, groupId: string) {
-		e.preventDefault();
-		dragOverGroupId = groupId;
-	}
-
-	function onDragOverUngrouped(e: DragEvent) {
-		e.preventDefault();
-		dragOverUngrouped = true;
-	}
-
-	function onDragLeave() {
-		dragOverGroupId = null;
-		dragOverUngrouped = false;
-	}
-
-	function onDropOnGroup(e: DragEvent, groupId: string) {
-		e.preventDefault();
-		if (dragAppId) moveApp(dragAppId, groupId);
-		resetDrag();
-	}
-
-	function onDropOnUngrouped(e: DragEvent) {
-		e.preventDefault();
-		if (dragAppId) ungroupApp(dragAppId);
-		resetDrag();
-	}
-
-	function onDragEnd() {
-		resetDrag();
-	}
-
-	function resetDrag() {
-		dragAppId = null;
-		dragOverGroupId = null;
-		dragOverUngrouped = false;
-	}
-
-	// --- Context menu ---
-
-	function onContextMenu(e: MouseEvent, type: 'group' | 'app', id: string) {
-		e.preventDefault();
-		contextMenu = { x: e.clientX, y: e.clientY, type, id };
-	}
-
-	function closeContextMenu() {
-		contextMenu = null;
-	}
-
-	function handleContextAction(action: string) {
-		if (!contextMenu) return;
-		const { type, id } = contextMenu;
-
-		if (type === 'group') {
-			if (action === 'rename') {
-				const group = $sidebarGroups.find((g) => g.id === id);
-				if (group) {
-					renamingGroupId = id;
-					renameValue = group.name;
-				}
-			} else if (action === 'delete') {
-				deleteGroup(id);
-			} else if (action === 'change-icon') {
-				openEmojiPicker(id, contextMenu.x, contextMenu.y);
-			}
-		}
-
-		closeContextMenu();
-	}
-
-	function moveAppToGroup(appId: string, groupId: string) {
-		moveApp(appId, groupId);
-		closeContextMenu();
-	}
-
-	function moveAppToUngrouped(appId: string) {
-		ungroupApp(appId);
-		closeContextMenu();
-	}
-
-	// --- Remove plugin ---
-
-	function requestRemove(appId: string) {
-		const card = cardsMap.get(appId);
-		removeTarget = { appId, name: card?.name ?? appId };
-		closeContextMenu();
-	}
-
-	function cancelRemove() {
-		removeTarget = null;
-	}
-
-	async function confirmRemove() {
-		if (!removeTarget || removeLoading) return;
-		const { appId } = removeTarget;
-		removeLoading = true;
-		try {
-			const appState = $apps.get(appId);
-			await post('/api/appstore/plugins/remove', {
-				plugin_id: appState?.info.plugin_id ?? appId,
-				license_id: appState?.info.license_id ?? ''
-			});
-			removePluginFromSidebar(appId);
-			toastSuccess(`${removeTarget.name} removed`);
-			removeTarget = null;
-			await refreshApps();
-		} catch (e) {
-			toastError(`Failed to remove: ${e instanceof Error ? e.message : 'Unknown error'}`);
-		} finally {
-			removeLoading = false;
-		}
-	}
-
-	// --- Emoji picker ---
-
-	function openEmojiPicker(groupId: string, x: number, y: number) {
-		emojiPickerGroupId = groupId;
-		emojiPickerPos = { x, y };
-	}
-
-	function onIconClick(e: MouseEvent, groupId: string) {
-		e.stopPropagation();
-		const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
-		openEmojiPicker(groupId, rect.left, rect.bottom + 4);
-	}
-
-	function handleEmojiSelect(emoji: string) {
-		if (emojiPickerGroupId) {
-			updateGroupIcon(emojiPickerGroupId, emoji);
-		}
-		closeEmojiPicker();
-	}
-
-	function closeEmojiPicker() {
-		emojiPickerGroupId = null;
-	}
-
-	// --- Inline rename ---
-
-	function commitRename() {
-		if (renamingGroupId && renameValue.trim()) {
-			renameGroup(renamingGroupId, renameValue.trim());
-		}
-		renamingGroupId = null;
-		renameValue = '';
-	}
-
-	function cancelRename() {
-		renamingGroupId = null;
-		renameValue = '';
-	}
-
-	// --- New group ---
-
-	function commitNewGroup() {
-		const name = newGroupName.trim();
-		if (name) createGroup(name);
-		showNewGroup = false;
-		newGroupName = '';
-	}
-
-	function cancelNewGroup() {
-		showNewGroup = false;
-		newGroupName = '';
-	}
-
-	// Close overlays on outside click
-	function onWindowClick() {
-		if (contextMenu) closeContextMenu();
-		if (emojiPickerGroupId) closeEmojiPicker();
-	}
 </script>
 
-<svelte:window onclick={onWindowClick} />
+<div class="flex flex-col h-full overflow-hidden bg-surface-900 text-surface-200 select-none">
+	<div class="flex-1 overflow-y-auto">
+		<div class="max-w-xl mx-auto px-6 py-8 space-y-6">
 
-<!-- Ambient glow background -->
-<div
-	class="absolute inset-0 pointer-events-none"
-	style="background: radial-gradient(ellipse at center top, rgba(139, 71, 255, 0.08) 0%, rgba(245, 158, 11, 0.04) 30%, rgba(15, 15, 20, 1) 70%);"
-></div>
-
-<div class="relative flex flex-col items-center h-full overflow-y-auto py-6 px-6 gap-6">
-	<!-- Brand -->
-	<div class="flex flex-col items-center gap-2">
-		<h1
-			class="text-3xl font-bold tracking-wide"
-			style="background: linear-gradient(135deg, #fbbf24, #f59e0b, #a875ff); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;"
-		>
-			Hecate
-		</h1>
-
-		<p class="text-surface-300 text-sm text-center max-w-md">
-			Sovereign computing. No cloud required.
-		</p>
-	</div>
-
-	<!-- Status strip -->
-	{#if $isReady}
-		<div class="grid grid-cols-2 lg:grid-cols-4 gap-3 max-w-3xl w-full">
-			<!-- Daemon -->
-			<div class="flex items-center gap-3 px-4 py-3 rounded-xl bg-surface-800/60 border border-surface-600/30">
-				<div class="flex items-center justify-center w-8 h-8 rounded-lg bg-health-ok/10">
-					<span class="text-health-ok text-sm">{'\u25CF'}</span>
-				</div>
-				<div class="flex flex-col min-w-0">
-					<span class="text-[10px] uppercase tracking-wider text-surface-500">Daemon</span>
-					<div class="flex items-center gap-1.5">
-						<span class="text-xs text-surface-200 font-medium">v{$health?.version ?? '...'}</span>
-						{#if uptime}
-							<span class="text-[10px] text-surface-500">{'\u00B7'} {uptime}</span>
-						{/if}
-					</div>
-				</div>
+			<!-- Header -->
+			<div class="text-center space-y-1">
+				<div class="text-2xl">{'\uD83D\uDD25\uD83D\uDDDD\uFE0F\uD83D\uDD25'}</div>
+				<div class="text-lg font-bold text-hecate-400">Hecate</div>
+				<div class="text-[11px] text-surface-500">Sovereign computing. No cloud required.</div>
 			</div>
 
-			<!-- Apps -->
-			<div class="flex items-center gap-3 px-4 py-3 rounded-xl bg-surface-800/60 border border-surface-600/30">
-				<div class="flex items-center justify-center w-8 h-8 rounded-lg bg-accent-500/10">
-					<span class="text-accent-400 text-sm">{'\u{1F4E6}'}</span>
-				</div>
-				<div class="flex flex-col min-w-0">
-					<span class="text-[10px] uppercase tracking-wider text-surface-500">Apps</span>
-					<div class="flex items-center gap-1.5">
-						<span class="text-xs text-surface-200 font-medium">{onlineApps} online</span>
-						{#if totalApps > onlineApps}
-							<span class="text-[10px] text-surface-500">{'\u00B7'} {totalApps} total</span>
-						{/if}
-					</div>
-				</div>
-			</div>
-
-			<!-- Mesh -->
-			<div class="flex items-center gap-3 px-4 py-3 rounded-xl bg-surface-800/60 border border-surface-600/30">
-				<div class="flex items-center justify-center w-8 h-8 rounded-lg {meshStatus?.connected ? 'bg-hecate-500/10' : 'bg-surface-700/50'}">
-					<span class="{meshStatus?.connected ? 'text-hecate-400' : 'text-surface-500'} text-sm">{'\uD83C\uDF10'}</span>
-				</div>
-				<div class="flex flex-col min-w-0">
-					<span class="text-[10px] uppercase tracking-wider text-surface-500">Mesh</span>
-					{#if meshStatus?.connected}
-						<span class="text-xs text-surface-200 font-medium truncate">{meshStatus.realm}</span>
-					{:else}
-						<span class="text-xs text-surface-500">Disconnected</span>
-					{/if}
-				</div>
-			</div>
-
-			<!-- Activity -->
-			<div class="flex items-center gap-3 px-4 py-3 rounded-xl bg-surface-800/60 border border-surface-600/30">
-				<div class="flex items-center justify-center w-8 h-8 rounded-lg bg-surface-700/50">
-					<span class="text-surface-400 text-sm">{'\u{1F4AC}'}</span>
-				</div>
-				<div class="flex flex-col min-w-0 flex-1">
-					<span class="text-[10px] uppercase tracking-wider text-surface-500">Activity</span>
-					{#if recentActivity.length > 0}
-						{@const latest = recentActivity[0]}
-						<span class="text-xs {activityColor(latest.level)} truncate">{latest.message}</span>
-					{:else}
-						<span class="text-xs text-surface-500">No recent activity</span>
-					{/if}
-				</div>
-			</div>
-		</div>
-	{:else}
-		<!-- Pre-connection status ribbon -->
-		<div
-			class="flex items-center gap-3 px-4 py-2 rounded-full bg-surface-800/60 border border-surface-600/50 text-xs"
-		>
-			{#if $connectionStatus === 'connected'}
-				<span class="text-health-warn animate-pulse">{'\u{25CF}'}</span>
-				<span class="text-surface-300">Daemon starting...</span>
-			{:else if $connectionStatus === 'connecting'}
-				<span class="text-health-loading animate-pulse">{'\u{25CF}'}</span>
-				<span class="text-surface-300">Connecting to daemon...</span>
-			{:else}
-				<span class="text-health-err">{'\u{25CF}'}</span>
-				<span class="text-surface-400">Daemon not available</span>
-			{/if}
-		</div>
-	{/if}
-
-	<!-- Plugin cards (interactive groups) -->
-	{#if hasContent}
-		<div class="flex flex-col gap-3 max-w-3xl w-full">
-			{#each $sidebarGroups as group (group.id)}
-				{@const cards = group.appIds.map((id) => cardFromId(id))}
-				<section
-					class="rounded-xl border transition-all duration-200
-						{dragOverGroupId === group.id
-							? 'border-hecate-500/50 ring-2 ring-hecate-500/30 bg-surface-800/90'
-							: 'border-surface-600/30 bg-surface-800/50'}"
-					ondragover={(e) => onDragOverGroup(e, group.id)}
-					ondragleave={onDragLeave}
-					ondrop={(e) => onDropOnGroup(e, group.id)}
-				>
-					<!-- Group header -->
-					<button
-						class="flex items-center gap-2 w-full px-4 py-2.5 cursor-pointer select-none group/hdr
-							text-surface-300 hover:text-surface-100 transition-colors"
-						onclick={() => toggleGroupCollapsed(group.id)}
-						oncontextmenu={(e) => onContextMenu(e, 'group', group.id)}
-					>
-						<span
-							class="text-[10px] transition-transform duration-200 text-surface-500
-								{group.collapsed ? '' : 'rotate-90'}"
-						>
-							{'\u25B6'}
+			<!-- Status rows -->
+			<div class="space-y-0.5 font-mono text-[11px]">
+				{#if $health}
+					<div class="flex gap-2">
+						<span class="w-16 text-right text-surface-500 shrink-0">daemon</span>
+						<span class="text-surface-300">
+							v{$health.version} ·
+							<span class="{$health.status === 'healthy' ? 'text-success-400' : 'text-warning-400'}">{$health.status}</span>
+							{#if uptime} · up {uptime}{/if}
 						</span>
-						<span
-							class="text-base cursor-pointer hover:scale-110 transition-transform leading-none"
-							role="button"
-							tabindex="-1"
-							onclick={(e) => onIconClick(e, group.id)}
-							title="Change icon"
-						>{resolveEmoji(group.icon, '\uD83D\uDCC1')}</span>
-						{#if renamingGroupId === group.id}
-							<!-- svelte-ignore a11y_autofocus -->
-							<input
-								type="text"
-								bind:value={renameValue}
-								onkeydown={(e) => {
-									if (e.key === 'Enter') commitRename();
-									if (e.key === 'Escape') cancelRename();
-								}}
-								onblur={commitRename}
-								autofocus
-								class="bg-surface-700 text-surface-100 text-sm px-2 py-0.5 rounded w-48 outline-none border border-hecate-500/50"
-								onclick={(e) => e.stopPropagation()}
-							/>
+					</div>
+				{/if}
+
+				<div class="flex gap-2">
+					<span class="w-16 text-right text-surface-500 shrink-0">mesh</span>
+					<span class="text-surface-300">
+						{#if meshStatus}
+							<span class="{meshStatus.connected ? 'text-success-400' : 'text-danger-400'}">{meshStatus.connected ? '\u25CF connected' : '\u25CB disconnected'}</span>
+							{#if meshStatus.subscriptions.length > 0} · {meshStatus.subscriptions.length} subscriptions{/if}
 						{:else}
-							<span class="text-sm font-medium truncate">{group.name}</span>
+							<span class="text-surface-600">loading...</span>
 						{/if}
-						<span class="text-xs text-surface-500 ml-auto">{cards.length}</span>
-					</button>
+					</span>
+				</div>
 
-					<!-- Group content -->
-					{#if !group.collapsed}
-						<div class="px-4 pb-4" transition:slide={{ duration: 200 }}>
-							{#if cards.length > 0}
-								<div class="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
-									{#each cards as card (card.id)}
-										<div
-											draggable="true"
-											ondragstart={(e) => onDragStart(e, card.id)}
-											ondragend={onDragEnd}
-											oncontextmenu={(e) => onContextMenu(e, 'app', card.id)}
-										>
-											<PluginCard
-												{card}
-												online={!card.isPlugin || ($apps.get(card.id)?.online ?? false)}
-												version={$apps.get(card.id)?.manifest?.version ?? $apps.get(card.id)?.info.installed_version ?? null}
-												updateVersion={card.isPlugin ? $pluginUpdateVersion(card.id) : null}
-												pluginId={$apps.get(card.id)?.info.plugin_id ?? null}
-												actions={$apps.get(card.id)?.info.available_actions ?? []}
-											/>
-										</div>
-									{/each}
-								</div>
-							{:else}
-								<p class="text-xs text-surface-500 text-center py-6 border border-dashed border-surface-600/50 rounded-lg">
-									Drag apps here
-								</p>
-							{/if}
-						</div>
-					{/if}
-				</section>
-			{/each}
+				{#if $nodeIdentity?.initialized}
+					<div class="flex gap-2">
+						<span class="w-16 text-right text-surface-500 shrink-0">node</span>
+						<span class="text-surface-300">{$settings?.identity?.hostname ?? ''}</span>
+					</div>
+				{/if}
 
-			<!-- Ungrouped section -->
-			{#if ungroupedCards.length > 0}
-				<section
-					class="rounded-xl border transition-all duration-200
-						{dragOverUngrouped
-							? 'border-hecate-500/50 ring-2 ring-hecate-500/30 bg-surface-800/90'
-							: 'border-surface-600/30 bg-surface-800/50'}"
-					ondragover={onDragOverUngrouped}
-					ondragleave={onDragLeave}
-					ondrop={onDropOnUngrouped}
-				>
-					<div class="flex items-center gap-2 px-4 py-2.5 text-surface-400">
-						<span class="text-base leading-none">{'\uD83D\uDCCB'}</span>
-						<span class="text-sm font-medium">Ungrouped</span>
-						<span class="text-xs text-surface-500 ml-auto">{ungroupedCards.length}</span>
+				{#if realmId}
+					<div class="flex gap-2">
+						<span class="w-16 text-right text-surface-500 shrink-0">realm</span>
+						<span class="text-surface-300">{realmId}{#if realmAccount} · {realmAccount}{/if}</span>
 					</div>
-					<div class="px-4 pb-4">
-						<div class="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
-							{#each ungroupedCards as card (card.id)}
-								<div
-									draggable="true"
-									ondragstart={(e) => onDragStart(e, card.id)}
-									ondragend={onDragEnd}
-									oncontextmenu={(e) => onContextMenu(e, 'app', card.id)}
-								>
-									<PluginCard
-										{card}
-										online={!card.isPlugin || ($apps.get(card.id)?.online ?? false)}
-										version={$apps.get(card.id)?.manifest?.version ?? $apps.get(card.id)?.info.installed_version ?? null}
-										updateVersion={card.isPlugin ? $pluginUpdateVersion(card.id) : null}
-										pluginId={$apps.get(card.id)?.info.plugin_id ?? null}
-										actions={$apps.get(card.id)?.info.available_actions ?? []}
-									/>
-								</div>
-							{/each}
-						</div>
-					</div>
-				</section>
-			{/if}
+				{/if}
 
-			<!-- New Group button -->
-			<div class="flex justify-center">
-				{#if showNewGroup}
-					<div class="flex items-center gap-2">
-						<!-- svelte-ignore a11y_autofocus -->
-						<input
-							type="text"
-							bind:value={newGroupName}
-							onkeydown={(e) => {
-								if (e.key === 'Enter') commitNewGroup();
-								if (e.key === 'Escape') cancelNewGroup();
-							}}
-							onblur={commitNewGroup}
-							autofocus
-							placeholder="Group name..."
-							class="bg-surface-700 text-surface-100 text-sm px-3 py-1.5 rounded-lg outline-none
-								border border-hecate-500/50 placeholder:text-surface-500 w-48"
-						/>
+				<div class="flex gap-2">
+					<span class="w-16 text-right text-surface-500 shrink-0">apps</span>
+					<span class="text-surface-300">
+						{onlineApps} online
+						{#each $appList.filter(a => a.online) as app}
+							<span class="text-surface-500">({app.info.display_name || app.info.name})</span>
+						{/each}
+					</span>
+				</div>
+
+				{#if $systemOverview}
+					<div class="flex gap-2">
+						<span class="w-16 text-right text-surface-500 shrink-0">system</span>
+						<span class="text-surface-300">
+							{formatBytes($systemOverview.memory.total)} ·
+							{$systemOverview.processes.count.toLocaleString()} procs ·
+							{$systemOverview.schedulers.online} schedulers
+						</span>
 					</div>
-				{:else}
-					<button
-						onclick={() => (showNewGroup = true)}
-						class="text-xs text-surface-500 hover:text-surface-300 px-4 py-1.5 rounded-lg
-							hover:bg-surface-800/50 border border-surface-600/30 hover:border-surface-500/50
-							transition-all duration-200 cursor-pointer"
-					>
-						+ New Group
-					</button>
 				{/if}
 			</div>
-		</div>
-	{:else if $isReady}
-		<div class="flex flex-col items-center gap-3 text-center max-w-md">
-			<span class="text-4xl">{'\u{2699}'}</span>
-			<p class="text-sm text-surface-400">
-				Head to the Appstore to get started, or explore Settings and LLM in the sidebar.
-			</p>
-		</div>
-	{/if}
 
-	<!-- Donate -->
-	<button
-		onclick={() => openExternal(DONATE_URL)}
-		class="flex items-center gap-2 px-4 py-2 rounded-full cursor-pointer
-			text-xs text-surface-400 hover:text-accent-400
-			bg-surface-800/40 border border-surface-700/50 hover:border-accent-500/30
-			transition-all duration-200"
-	>
-		<span>{'\u{2615}'}</span>
-		<span>Buy me a coffee</span>
-	</button>
+			<!-- Recent files -->
+			{#if recentFiles.length > 0}
+				<div class="space-y-0.5">
+					<div class="text-[9px] text-surface-500 uppercase tracking-wider mb-1">Recent</div>
+					{#each recentFiles as filePath}
+						<button
+							class="w-full text-left px-2 py-0.5 text-[11px] flex items-center gap-2 text-surface-400 hover:text-surface-200 hover:bg-surface-800 rounded transition-colors cursor-pointer font-mono"
+							onclick={() => goto('/briefcase/edit?path=' + encodeURIComponent(filePath))}
+						>
+							<span class="text-surface-600 shrink-0">{'\uD83D\uDCC4'}</span>
+							<span class="flex-1 truncate">{fileNameFromPath(filePath)}</span>
+						</button>
+					{/each}
+				</div>
+			{/if}
 
-	<!-- Footer tagline -->
-	<p class="text-[10px] text-surface-500 text-center pb-4">
-		Open source. Self-hosted. Autonomous.
-	</p>
+			<!-- Hint -->
+			<div class="text-center text-[10px] text-surface-600 space-y-0.5 pt-4">
+				<div><span class="text-surface-500">Ctrl+P</span> to launch · <span class="text-surface-500">Ctrl+Shift+\u00B1</span> to zoom</div>
+			</div>
+
+		</div>
+	</div>
+
+	<!-- Status bar (minimal) -->
+	<div class="border-t border-surface-700 bg-surface-800/80 px-3 py-1 shrink-0 flex items-center gap-2 text-[10px] min-h-[24px]">
+		<span class="text-surface-500">home</span>
+		<div class="flex-1"></div>
+		<span class="text-surface-600">Ctrl+P: launcher</span>
+	</div>
 </div>
-
-<!-- Context menu -->
-{#if contextMenu}
-	<menu
-		class="fixed z-50 bg-surface-700 border border-surface-500 rounded-lg shadow-xl py-1 min-w-[160px] list-none m-0 p-1"
-		style="left: {contextMenu.x}px; top: {contextMenu.y}px;"
-		onclick={(e) => e.stopPropagation()}
-	>
-		{#if contextMenu.type === 'group'}
-			<button
-				class="w-full text-left px-3 py-1.5 text-xs text-surface-200 hover:bg-surface-600 rounded cursor-pointer"
-				onclick={() => handleContextAction('rename')}
-			>
-				Rename
-			</button>
-			<button
-				class="w-full text-left px-3 py-1.5 text-xs text-surface-200 hover:bg-surface-600 rounded cursor-pointer"
-				onclick={() => handleContextAction('change-icon')}
-			>
-				Change Icon
-			</button>
-			<button
-				class="w-full text-left px-3 py-1.5 text-xs text-danger-400 hover:bg-surface-600 rounded cursor-pointer"
-				onclick={() => handleContextAction('delete')}
-			>
-				Delete Group
-			</button>
-		{:else if contextMenu.type === 'app'}
-			{@const appId = contextMenu.id}
-			{@const currentGroupId = findAppGroup(appId)}
-			{@const card = cardsMap.get(appId)}
-			{@const otherGroups = $sidebarGroups.filter((g) => g.id !== currentGroupId)}
-			{#if otherGroups.length > 0}
-				<div class="px-3 py-1 text-[10px] uppercase tracking-wider text-surface-500">Move to</div>
-				{#each otherGroups as g (g.id)}
-					<button
-						class="w-full text-left px-3 py-1.5 text-xs text-surface-200 hover:bg-surface-600 rounded cursor-pointer"
-						onclick={() => moveAppToGroup(appId, g.id)}
-					>
-						{resolveEmoji(g.icon)} {g.name}
-					</button>
-				{/each}
-			{/if}
-			{#if currentGroupId}
-				<button
-					class="w-full text-left px-3 py-1.5 text-xs text-surface-200 hover:bg-surface-600 rounded cursor-pointer"
-					onclick={() => moveAppToUngrouped(appId)}
-				>
-					Move to Ungrouped
-				</button>
-			{/if}
-			{#if card?.isPlugin}
-				<div class="border-t border-surface-600 my-1"></div>
-				<button
-					class="w-full text-left px-3 py-1.5 text-xs text-danger-400 hover:bg-surface-600 rounded cursor-pointer"
-					onclick={() => requestRemove(appId)}
-				>
-					Remove
-				</button>
-			{/if}
-		{/if}
-	</menu>
-{/if}
-
-<!-- Emoji picker -->
-{#if emojiPickerGroupId}
-	<div
-		class="fixed z-[60]"
-		style="left: {emojiPickerPos.x}px; top: {emojiPickerPos.y}px;"
-	>
-		<EmojiPicker
-			onSelect={handleEmojiSelect}
-			onClose={closeEmojiPicker}
-		/>
-	</div>
-{/if}
-
-<!-- Remove confirmation modal -->
-{#if removeTarget}
-	<div
-		class="fixed inset-0 z-[70] flex items-center justify-center bg-black/60 backdrop-blur-sm"
-		onclick={cancelRemove}
-		role="dialog"
-		aria-modal="true"
-		aria-label="Remove plugin confirmation"
-	>
-		<div
-			class="bg-surface-800 border border-surface-600 rounded-xl shadow-2xl p-6 max-w-sm w-full mx-4 flex flex-col gap-4"
-			onclick={(e) => e.stopPropagation()}
-		>
-			<FocusTrap>
-				<div class="flex flex-col items-center gap-2 text-center">
-					<span class="text-3xl">{'\uD83D\uDDD1'}</span>
-					<h3 class="text-lg font-semibold text-surface-100">
-						Remove {removeTarget.name}?
-					</h3>
-				</div>
-				<p class="text-sm text-surface-400 text-center">
-					This will uninstall the plugin and remove it from your launcher. Your license will be kept.
-				</p>
-				<div class="flex gap-3 justify-end">
-					<button
-						class="px-4 py-2 text-sm rounded-lg bg-surface-700 text-surface-300 hover:bg-surface-600 transition-colors cursor-pointer"
-						onclick={cancelRemove}
-					>
-						Cancel
-					</button>
-					<button
-						class="px-4 py-2 text-sm rounded-lg bg-danger-600 text-white hover:bg-danger-500 transition-colors cursor-pointer disabled:opacity-50"
-						disabled={removeLoading}
-						onclick={confirmRemove}
-					>
-						{removeLoading ? 'Removing...' : 'Remove'}
-					</button>
-				</div>
-			</FocusTrap>
-		</div>
-	</div>
-{/if}

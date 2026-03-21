@@ -2,7 +2,6 @@
 	import { connectionStatus, isReady } from '../stores/daemon.js';
 	import { hasUpdate, updateVersion, updateState, showUpdateModal } from '../stores/updater.js';
 	import { settings } from '../stores/settings';
-	import { toggleSidebar } from '../stores/sidebar.js';
 	import { txActive, rxActive } from '../stores/traffic.js';
 	import { isTauri } from '$lib/tauri';
 	import { get as apiGet } from '$lib/api';
@@ -53,20 +52,6 @@
 	class="flex items-center bg-surface-800 border-b border-surface-600 shrink-0 select-none h-10"
 	class:tauri-drag={showWindowControls}
 >
-	<!-- Sidebar toggle -->
-	<button
-		onclick={toggleSidebar}
-		class="w-10 h-10 flex items-center justify-center text-surface-400
-			hover:text-surface-100 hover:bg-surface-700 transition-colors"
-		aria-label="Toggle sidebar"
-	>
-		<svg width="14" height="10" viewBox="0 0 14 10" fill="currentColor">
-			<rect y="0" width="14" height="1.5" rx="0.5" />
-			<rect y="4" width="14" height="1.5" rx="0.5" />
-			<rect y="8" width="14" height="1.5" rx="0.5" />
-		</svg>
-	</button>
-
 	<!-- Sigil + Brand -->
 	<a
 		href="/"

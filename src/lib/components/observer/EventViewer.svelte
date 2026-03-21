@@ -1,5 +1,5 @@
 <script lang="ts">
-	import type { EventRecord } from '$lib/stores/observer';
+	import type { EventRecord } from '$lib/stores/observer/stores';
 
 	let { event }: { event: EventRecord } = $props();
 

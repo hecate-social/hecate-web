@@ -2,7 +2,7 @@
 	import { onMount } from 'svelte';
 	import { page } from '$app/stores';
 	import TermDisplay from '$lib/components/observer/TermDisplay.svelte';
-	import { fetchEtsTableContent, type EtsRow } from '$lib/stores/observer';
+	import { fetchEtsTableContent, type EtsRow } from '$lib/stores/observer/ets';
 
 	let rows = $state<EtsRow[]>([]);
 	let total = $state(0);

@@ -2,8 +2,10 @@
 //
 // Briefcase IS a directory on disk: $HECATE_HOME/briefcase/
 // Folders = directories. Files = files. No event sourcing.
-import { writable, derived } from 'svelte/store';
-import { apps, type PluginFileType } from '$lib/stores/apps';
+import { writable } from 'svelte/store';
+
+// File type registry re-exports (moved to file-types.ts)
+export { allHandlers as fileTypeRegistry, creatableTypes as creatableFileTypes, resolveFileType, type FileTypeHandler } from '$lib/stores/file-types';
 
 // --- Types ---
 
@@ -29,43 +31,16 @@ export const briefcaseRoot = writable<string>('');
 export const meta = writable<BriefcaseMeta>({ starred: [], recent: [] });
 export const briefcaseLoading = writable(false);
 
-// --- File Type Registry ---
-
-export interface RegisteredFileType extends PluginFileType {
-	plugin: string;
-	pluginDisplayName: string;
-}
-
-export const fileTypeRegistry = derived(apps, ($apps) => {
-	const types: RegisteredFileType[] = [];
-	for (const app of $apps.values()) {
-		const fileTypes = app.manifest?.file_types;
-		if (!fileTypes || !Array.isArray(fileTypes)) continue;
-		for (const ft of fileTypes) {
-			types.push({
-				...ft,
-				plugin: app.info.name,
-				pluginDisplayName: app.manifest?.display_name || app.info.display_name || app.info.name,
-			});
-		}
-	}
-	return types;
-});
-
-export const creatableFileTypes = derived(fileTypeRegistry, ($types) =>
-	$types.filter((t) => t.can_create)
-);
+// File type registry now lives in file-types.ts — re-exported above
 
 // --- Filesystem Operations (Tauri-native) ---
 
 async function fs(): Promise<any> {
-	const pkg = '@tauri-apps/plugin-fs';
-	return import(/* @vite-ignore */ pkg);
+	return import('@tauri-apps/plugin-fs');
 }
 
 async function dialog(): Promise<any> {
-	const pkg = '@tauri-apps/plugin-dialog';
-	return import(/* @vite-ignore */ pkg);
+	return import('@tauri-apps/plugin-dialog');
 }
 
 let unwatchFn: (() => void) | null = null;
@@ -115,7 +90,7 @@ async function startWatching(root: string): Promise<void> {
 async function getHecateHome(): Promise<string> {
 	const suffix = import.meta.env.DEV ? '.hecate-dev' : '.hecate';
 	try {
-		const pathMod: any = await import(/* @vite-ignore */ '@tauri-apps/api/path');
+		const pathMod: any = await import('@tauri-apps/api/path');
 		const home = await pathMod.homeDir();
 		// homeDir() may include trailing slash
 		const base = home.endsWith('/') ? home.slice(0, -1) : home;
@@ -127,7 +102,7 @@ async function getHecateHome(): Promise<string> {
 
 async function homeDir(): Promise<string> {
 	try {
-		const pathMod: any = await import(/* @vite-ignore */ '@tauri-apps/api/path');
+		const pathMod: any = await import('@tauri-apps/api/path');
 		return await pathMod.homeDir();
 	} catch {
 		return '/home/user'; // fallback
@@ -185,6 +160,54 @@ export async function loadEntries(dirPath: string): Promise<void> {
 
 export async function navigateTo(dirPath: string): Promise<void> {
 	await loadEntries(dirPath);
+}
+
+// Load entries for a directory without changing currentPath (used for parent pane)
+export async function loadEntriesRaw(dirPath: string): Promise<BriefcaseEntry[]> {
+	try {
+		const fsMod = await fs();
+		const items = await fsMod.readDir(dirPath);
+		const result: BriefcaseEntry[] = [];
+
+		for (const item of items) {
+			if (item.name.startsWith('.')) continue;
+			const fullPath = `${dirPath}/${item.name}`;
+			const isDir = item.isDirectory ?? false;
+			const ext = isDir ? null : getExtension(item.name);
+
+			let size = 0;
+			let modifiedAt: number | null = null;
+			try {
+				const stat = await fsMod.stat(fullPath);
+				size = stat.size ?? 0;
+				modifiedAt = stat.mtime ? new Date(stat.mtime).getTime() : null;
+			} catch { /* stat may fail */ }
+
+			result.push({ name: item.name, path: fullPath, isDir, extension: ext, size, modifiedAt });
+		}
+
+		result.sort((a, b) => {
+			if (a.isDir && !b.isDir) return -1;
+			if (!a.isDir && b.isDir) return 1;
+			return a.name.localeCompare(b.name);
+		});
+
+		return result;
+	} catch {
+		return [];
+	}
+}
+
+// Read first N bytes of a file for text preview
+export async function readFilePreview(filePath: string, maxBytes = 4096): Promise<string> {
+	try {
+		const fsMod = await fs();
+		const bytes: Uint8Array = await fsMod.readFile(filePath);
+		const slice = bytes.slice(0, maxBytes);
+		return new TextDecoder('utf-8', { fatal: false }).decode(slice);
+	} catch {
+		return '';
+	}
 }
 
 export async function navigateUp(): Promise<void> {
@@ -292,7 +315,7 @@ function getExtension(name: string): string | null {
 }
 
 const TYPE_ICONS: Record<string, string> = {
-	'.scribe': '\uD83D\uDCC4',
+	'.rs': '\uD83E\uDD80',
 	'.stage': '\uD83C\uDFAC',
 	'.ledger': '\uD83D\uDCCA',
 	'.pdf': '\uD83D\uDCC4',

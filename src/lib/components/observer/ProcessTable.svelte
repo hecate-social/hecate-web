@@ -1,5 +1,5 @@
 <script lang="ts">
-	import type { ProcessInfo } from '$lib/stores/observer';
+	import type { ProcessInfo } from '$lib/stores/observer/processes';
 
 	let { processes = [], sortField = 'memory', onSort, onSelect }: {
 		processes: ProcessInfo[];

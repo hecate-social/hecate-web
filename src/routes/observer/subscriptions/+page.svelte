@@ -1,65 +1,129 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { fetchSubscriptions, type SubscriptionGroup } from '$lib/stores/observer';
+	import { tick } from 'svelte';
+	import { fetchSubscriptions, type SubscriptionGroup } from '$lib/stores/observer/subscriptions';
 
 	let groups = $state<SubscriptionGroup[]>([]);
 	let loading = $state(true);
-	let error = $state<string | null>(null);
+	let cursorIndex = $state(0);
+	let mode: 'normal' | 'search' | 'command' = $state('normal');
+	let searchQuery = $state('');
+	let commandInput = $state('');
+	let statusMsg = $state('');
+
+	let filtered = $derived.by(() => {
+		if (!searchQuery) return groups;
+		const q = searchQuery.toLowerCase();
+		return groups.filter(g => g.group.toLowerCase().includes(q));
+	});
+
+	let selectedGroup = $derived<SubscriptionGroup | null>(filtered[cursorIndex] ?? null);
 
 	async function refresh() {
-		try {
-			const data = await fetchSubscriptions();
-			groups = data.items;
-			error = null;
-		} catch (e) {
-			error = e instanceof Error ? e.message : 'Failed to fetch';
-		} finally {
-			loading = false;
+		try { const d = await fetchSubscriptions(); groups = d.items; } catch {}
+		loading = false;
+	}
+
+	function onKeyDown(e: KeyboardEvent) {
+		if (e.key === 'Escape') { e.preventDefault(); if (mode === 'search') { mode = 'normal'; searchQuery = ''; } else if (mode === 'command') { mode = 'normal'; commandInput = ''; } return; }
+		if (mode === 'command') return;
+		if (mode === 'search') {
+			if (e.key === 'Enter') { e.preventDefault(); mode = 'normal'; cursorIndex = 0; return; }
+			if (e.key === 'Backspace') { searchQuery = searchQuery.slice(0, -1); if (!searchQuery) mode = 'normal'; cursorIndex = 0; return; }
+			if (e.key.length === 1 && !e.ctrlKey && !e.metaKey) { e.preventDefault(); searchQuery += e.key; cursorIndex = 0; }
+			return;
+		}
+		switch (e.key) {
+			case 'j': case 'ArrowDown': e.preventDefault(); cursorIndex = Math.min(cursorIndex + 1, filtered.length - 1); scrollIntoView(); break;
+			case 'k': case 'ArrowUp': e.preventDefault(); cursorIndex = Math.max(cursorIndex - 1, 0); scrollIntoView(); break;
+			case 'g': e.preventDefault(); cursorIndex = 0; scrollIntoView(); break;
+			case 'G': e.preventDefault(); cursorIndex = Math.max(0, filtered.length - 1); scrollIntoView(); break;
+			case '/': e.preventDefault(); mode = 'search'; searchQuery = ''; break;
+			case ':': e.preventDefault(); mode = 'command'; commandInput = ''; break;
+			case '?': e.preventDefault(); statusMsg = 'j/k:nav  /:search  ::cmd'; break;
 		}
 	}
+
+	async function onCommandSubmit() {
+		const raw = commandInput.trim(); mode = 'normal'; commandInput = '';
+		if (raw === 'q' || raw === 'back') { history.back(); return; }
+		if (raw === 'r' || raw === 'refresh') { await refresh(); statusMsg = 'Refreshed'; return; }
+		statusMsg = `Unknown: ${raw}`;
+	}
+
+	function scrollIntoView() { tick().then(() => document.querySelector('[data-cursor="true"]')?.scrollIntoView({ block: 'nearest' })); }
+	function focusOnMount(node: HTMLElement) { tick().then(() => node.focus()); }
+	$effect(() => { if (cursorIndex >= filtered.length) cursorIndex = Math.max(0, filtered.length - 1); });
+	let statusTimer: ReturnType<typeof setTimeout> | null = null;
+	$effect(() => { if (statusMsg) { if (statusTimer) clearTimeout(statusTimer); statusTimer = setTimeout(() => { statusMsg = ''; }, 5000); } });
 
 	onMount(refresh);
 </script>
 
-<div class="p-6 space-y-4">
-	<div class="flex items-center justify-between">
-		<div class="flex items-center gap-3">
-			<h2 class="text-sm font-semibold text-surface-100">Subscriptions & PG Groups</h2>
-			<span class="text-xs text-surface-500">{groups.length} groups</span>
-		</div>
-		<button onclick={refresh} class="px-3 py-1.5 rounded-lg bg-surface-700 border border-surface-600 text-xs text-surface-400 hover:text-surface-200 cursor-pointer">Refresh</button>
+<svelte:window onkeydown={onKeyDown} />
+
+<div class="flex flex-col h-full overflow-hidden bg-surface-900 text-surface-200 select-none">
+	<div class="flex items-center gap-2 px-3 py-1 border-b border-surface-700 bg-surface-800/80 text-[11px] shrink-0">
+		<span class="text-hecate-400 uppercase tracking-wider text-[10px]">PG Groups</span>
+		<span class="text-surface-600">({groups.length})</span>
 	</div>
 
-	{#if loading}
-		<div class="text-center text-surface-400 py-10 text-sm">Loading...</div>
-	{:else if error}
-		<div class="text-center text-danger-400 py-10 text-sm">{error}</div>
-	{:else if groups.length === 0}
-		<div class="text-center text-surface-500 py-10 text-sm">No active subscriptions</div>
-	{:else}
-		<div class="space-y-3">
-			{#each groups as group}
-				<div class="rounded-xl border border-surface-600 bg-surface-800/80 p-4">
-					<div class="flex items-center justify-between mb-3">
-						<span class="text-xs font-semibold font-mono text-accent-400">{group.group}</span>
-						<span class="text-[10px] text-surface-500">{group.member_count} members</span>
-					</div>
-					<div class="space-y-1">
-						{#each group.members as member}
-							<div class="flex items-center gap-3 text-xs">
-								<span class="inline-block w-1.5 h-1.5 rounded-full {member.alive ? 'bg-success-400' : 'bg-danger-400'}"></span>
-								<span class="font-mono text-surface-300">{member.pid}</span>
-								{#if member.registered_name}
-									<span class="text-surface-200">{member.registered_name}</span>
-								{/if}
-								{#if member.initial_call}
-									<span class="text-surface-500 font-mono">{member.initial_call}</span>
-								{/if}
-							</div>
-						{/each}
-					</div>
-				</div>
-			{/each}
+	<div class="flex flex-1 min-h-0 divide-x divide-surface-700/50">
+		<!-- List -->
+		<div class="flex-1 overflow-y-auto py-1">
+			{#if loading}
+				<div class="px-3 py-4 text-[11px] text-surface-500 animate-pulse">Loading...</div>
+			{:else}
+				{#each filtered as group, i}
+					<button data-cursor={i === cursorIndex ? 'true' : 'false'}
+						class="w-full text-left px-2 py-0.5 text-[10px] flex items-center gap-1.5 cursor-pointer transition-colors
+							{i === cursorIndex ? 'bg-hecate-600/30 text-surface-50 border-l-2 border-hecate-400' : 'text-surface-300 hover:bg-surface-800 border-l-2 border-transparent'}"
+						onclick={() => cursorIndex = i}>
+						<span class="flex-1 truncate font-mono text-hecate-300">{group.group}</span>
+						<span class="text-[9px] text-surface-500 shrink-0">{group.member_count} members</span>
+					</button>
+				{/each}
+				{#if filtered.length === 0}
+					<div class="px-3 py-4 text-[11px] text-surface-600">{searchQuery ? 'No matches' : 'No PG groups'}</div>
+				{/if}
+			{/if}
 		</div>
-	{/if}
+
+		<!-- Preview: members of selected group -->
+		<div class="w-1/3 overflow-y-auto py-1 shrink-0 bg-surface-900/50">
+			{#if selectedGroup}
+				<div class="px-3 py-2 space-y-1">
+					<div class="text-hecate-400 font-mono text-[10px] truncate">{selectedGroup.group}</div>
+					<div class="text-[10px] text-surface-500 mb-2">{selectedGroup.member_count} members</div>
+					{#each selectedGroup.members as member}
+						<div class="flex items-center gap-1.5 text-[9px]">
+							<span class="{member.alive ? 'text-success-400' : 'text-danger-400'}">{member.alive ? '\u25CF' : '\u25CB'}</span>
+							<span class="font-mono text-surface-400">{member.pid}</span>
+							{#if member.registered_name}
+								<span class="text-surface-300 truncate">{member.registered_name}</span>
+							{/if}
+						</div>
+					{/each}
+				</div>
+			{:else}
+				<div class="flex items-center justify-center h-full text-surface-600 text-[9px]">No selection</div>
+			{/if}
+		</div>
+	</div>
+
+	<div class="border-t border-surface-700 bg-surface-800/80 px-3 py-1 shrink-0 flex items-center gap-2 text-[10px] min-h-[24px]">
+		{#if mode === 'command'}
+			<span class="text-hecate-400">:</span>
+			<input type="text" bind:value={commandInput} use:focusOnMount
+				onkeydown={(e) => { if (e.key === 'Enter') { e.preventDefault(); e.stopPropagation(); onCommandSubmit(); } else if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); mode = 'normal'; commandInput = ''; } }}
+				class="flex-1 bg-transparent border-none outline-none text-[10px] text-surface-100" placeholder="Command..." />
+		{:else if mode === 'search'}
+			<span class="text-hecate-400">/{searchQuery}<span class="animate-pulse">_</span></span>
+			<span class="text-surface-600">{filtered.length} matches</span>
+		{:else}
+			{#if statusMsg}<span class="text-amber-400 truncate flex-1">{statusMsg}</span>
+			{:else}<span class="text-surface-500">pg groups</span><div class="flex-1"></div>{/if}
+			{#if !statusMsg}<span class="text-surface-600">{cursorIndex + 1}/{filtered.length}</span><span class="text-surface-700">|</span><span class="text-surface-600 hover:text-surface-400 cursor-pointer" onclick={() => statusMsg = 'j/k:nav  /:search  ::cmd'}>?</span>{/if}
+		{/if}
+	</div>
 </div>
