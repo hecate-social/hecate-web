@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { onDestroy, tick } from 'svelte';
 	import { toastSuccess } from '$lib/stores/toasts';
-	import { fetchLanNodes } from '$lib/stores/lan';
+	import { fetchLanNodes, triggerScan } from '$lib/stores/lan';
 	import { Terminal } from 'xterm';
 	import { FitAddon } from '@xterm/addon-fit';
 	import 'xterm/css/xterm.css';
@@ -110,7 +110,7 @@
 				if (data.code === 0) {
 					toastSuccess(`Hecate removed from ${machine.hostname}`);
 					// Site updates reactively via SSE (site_changed event).
-					setTimeout(() => { fetchLanNodes(); }, 3000);
+					setTimeout(() => { triggerScan().then(() => fetchLanNodes()); }, 5000);
 				}
 			});
 

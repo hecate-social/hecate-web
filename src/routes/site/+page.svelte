@@ -64,7 +64,7 @@
 				const isLocal = node.node_name === localNodeName();
 				r.push({
 					key: `node-${node.node_name}`,
-					label: isLocal ? `${shortName(node.node_name)} (this)` : shortName(node.node_name),
+					label: isLocal ? `${node.node_name} (this)` : node.node_name,
 					value: `joined ${formatDate(node.admitted_at)}`,
 					section: 'NODES',
 					copyable: true,
@@ -387,8 +387,9 @@
 									{/if}
 
 									<!-- Label -->
-									<span class="shrink-0 text-xs uppercase tracking-wider
-										{row.status ? 'w-28' : 'w-32'}
+									<span class="shrink-0 text-xs tracking-wider truncate
+										{row.status ? 'w-36' : 'w-40'}
+										{row.section === 'LAN' ? 'uppercase' : ''}
 										{isCursor ? 'text-hecate-300' : 'text-surface-500'}"
 									>{row.label}</span>
 

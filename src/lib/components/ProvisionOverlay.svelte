@@ -2,7 +2,7 @@
 	import { onDestroy, tick } from 'svelte';
 	import { post } from '$lib/api';
 	import { toastSuccess } from '$lib/stores/toasts';
-	import { fetchLanNodes } from '$lib/stores/lan';
+	import { fetchLanNodes, triggerScan } from '$lib/stores/lan';
 	import { Terminal } from 'xterm';
 	import { FitAddon } from '@xterm/addon-fit';
 	import 'xterm/css/xterm.css';
@@ -136,8 +136,8 @@
 				if (data.code === 0) {
 					toastSuccess(`Hecate installed on ${machine.hostname}`);
 					// Site updates reactively via SSE (site_changed event).
-					// LAN still needs a refresh since it's not event-driven yet.
-					setTimeout(() => { fetchLanNodes(); }, 3000);
+					// LAN needs a rescan to detect the newly running hecate.
+					setTimeout(() => { triggerScan().then(() => fetchLanNodes()); }, 5000);
 				}
 			});
 
