@@ -70,7 +70,7 @@
 					section: 'NODES',
 					copyable: !isPending,
 					action: isLocal || isPending ? undefined : 'x:remove',
-					status: isPending ? 'available' as RowStatus : undefined,
+					status: isPending ? 'available' as RowStatus : 'provisioned' as RowStatus,
 				});
 			}
 		} else {

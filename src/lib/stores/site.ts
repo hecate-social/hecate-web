@@ -65,6 +65,8 @@ export async function removeNode(nodeName: string): Promise<void> {
 
 // --- Optimistic updates ---
 
+const PENDING_TIMEOUT_MS = 120_000; // 2 minutes
+
 /** Add a node optimistically before the daemon confirms admission. */
 export function addPendingNode(nodeName: string): void {
 	site.update(($s) => {
@@ -77,6 +79,20 @@ export function addPendingNode(nodeName: string): void {
 			node_count: $s.node_count + 1,
 		};
 	});
+
+	// Remove pending entry if not confirmed within timeout
+	setTimeout(() => {
+		site.update(($s) => {
+			if (!$s) return $s;
+			const node = $s.nodes.find((n) => n.node_name === nodeName);
+			if (!node?.pending) return $s; // already confirmed or removed
+			return {
+				...$s,
+				nodes: $s.nodes.filter((n) => n.node_name !== nodeName),
+				node_count: $s.node_count - 1,
+			};
+		});
+	}, PENDING_TIMEOUT_MS);
 }
 
 // --- SSE: reactive updates from daemon ---
