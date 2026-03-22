@@ -1,9 +1,8 @@
 <script lang="ts">
-	import { onMount, onDestroy } from 'svelte';
+	import { onDestroy, tick } from 'svelte';
 	import { post } from '$lib/api';
 	import { toastSuccess } from '$lib/stores/toasts';
 	import { fetchLanNodes } from '$lib/stores/lan';
-	import { fetchSite } from '$lib/stores/site';
 	import { Terminal } from 'xterm';
 	import { FitAddon } from '@xterm/addon-fit';
 	import 'xterm/css/xterm.css';
@@ -22,56 +21,78 @@
 
 	let { machine, onClose }: Props = $props();
 
-	type Phase = 'generate' | 'ready' | 'running' | 'done' | 'error';
-	let phase: Phase = $state('generate');
-	let displayCode = $state('');
+	// ---------------------------------------------------------------------------
+	// State
+	// ---------------------------------------------------------------------------
+	type InstallType = 'hecate-node' | 'ollama-host';
+	type Phase = 'ready' | 'generate' | 'running' | 'error';
+
+	let installType: InstallType = $state('hecate-node');
+	let phase: Phase = $state('ready');
 	let joinToken = $state('');
-	let expiresIn = $state(0);
 	let sshUser = $state('');
 	let sshPassword = $state('');
+	let nodeName = $state(`hecate@${machine.hostname}`);
 	let errorMsg = $state('');
-	let copied = $state(false);
 	let exitCode = $state<number | null>(null);
 
 	let terminalEl: HTMLDivElement | undefined = $state();
 	let term: Terminal | undefined;
 	let fitAddon: FitAddon | undefined;
 	let childProcess: Awaited<ReturnType<typeof Command.prototype.spawn>> | undefined;
+	let sshUserInput: HTMLInputElement | undefined = $state();
 
+	// Focus SSH user input on mount
 	$effect(() => {
-		if (phase === 'generate') generateToken();
+		if (phase === 'ready' && sshUserInput) {
+			tick().then(() => sshUserInput?.focus());
+		}
 	});
 
-	async function generateToken() {
+	// ---------------------------------------------------------------------------
+	// Token generation + install
+	// ---------------------------------------------------------------------------
+	async function startInstall() {
+		if (!sshUser) { errorMsg = 'SSH user required'; return; }
+		errorMsg = '';
+		phase = 'generate';
+
 		try {
 			const data = await post<{
 				ok: boolean; display_code: string; token: string; expires_in: number;
 			}>('/api/site/join-code', {});
-			displayCode = data.display_code;
 			joinToken = data.token;
-			expiresIn = data.expires_in;
-			phase = 'ready';
 		} catch (e) {
 			errorMsg = e instanceof Error ? e.message : String(e);
 			phase = 'error';
+			return;
 		}
+
+		phase = 'running';
+		await launchTerminal();
 	}
 
-	let installCommand = $derived(
-		`curl -fsSL https://raw.githubusercontent.com/hecate-social/hecate-install/main/install.sh | bash -s -- --join-token ${joinToken}`
+	// ---------------------------------------------------------------------------
+	// Commands
+	// ---------------------------------------------------------------------------
+	let installScript = $derived(
+		installType === 'hecate-node'
+			? 'install-hecate-node.sh'
+			: 'install-hecate-node.sh' // future: separate ollama script
 	);
 
-	let fullSshCommand = $derived(
-		sshPassword
-			? `sshpass -p '${sshPassword}' ssh -o StrictHostKeyChecking=no -o LogLevel=ERROR ${sshUser}@${machine.ip} '${installCommand.replace(/'/g, "'\\''")}'`
-			: `ssh -o StrictHostKeyChecking=no ${sshUser}@${machine.ip} '${installCommand.replace(/'/g, "'\\''")}'`
-	);
+	function buildSshCommand(token: string): string {
+		const installCmd = `curl -fsSL https://raw.githubusercontent.com/hecate-social/hecate-install/main/${installScript} | bash -s -- --join-token ${token}`;
+		const escaped = installCmd.replace(/'/g, "'\\''");
+		return sshPassword
+			? `sshpass -p '${sshPassword}' ssh -tt -o StrictHostKeyChecking=no -o LogLevel=ERROR ${sshUser}@${machine.ip} '${escaped}'`
+			: `ssh -tt -o StrictHostKeyChecking=no ${sshUser}@${machine.ip} '${escaped}'`;
+	}
 
-	async function startInstall() {
-		if (!sshUser) { errorMsg = 'SSH user required'; return; }
-		phase = 'running';
-
-		// Wait for terminal element to mount and have dimensions
+	// ---------------------------------------------------------------------------
+	// Terminal
+	// ---------------------------------------------------------------------------
+	async function launchTerminal() {
 		await new Promise(r => setTimeout(r, 200));
 		if (!terminalEl) return;
 
@@ -81,6 +102,7 @@
 			fontFamily: "'JetBrains Mono', 'Fira Code', monospace",
 			cursorBlink: true,
 			convertEol: true,
+			scrollback: 5000,
 			rows: 25,
 			cols: 100,
 		});
@@ -89,60 +111,55 @@
 		term.loadAddon(fitAddon);
 		term.open(terminalEl);
 
-		// Fit after a brief delay to ensure container has layout
 		await new Promise(r => setTimeout(r, 50));
 		fitAddon.fit();
 
-		term.writeln('\x1b[90m$ ' + fullSshCommand.substring(0, 80) + '...\x1b[0m');
+		const resizeObserver = new ResizeObserver(() => fitAddon?.fit());
+		resizeObserver.observe(terminalEl);
 
-		// Spawn via Tauri — use 'bash' with -c
+		const fullCmd = buildSshCommand(joinToken);
+		term.writeln(`\x1b[90m$ ssh ${sshUser}@${machine.ip} ...\x1b[0m`);
+		term.writeln('');
+
 		try {
-			const cmd = Command.create('bash', ['-c', fullSshCommand]);
+			const cmd = Command.create('bash', ['-c', fullCmd]);
 
-			// Wire stdout → terminal
-			cmd.stdout.on('data', (line: string) => {
-				console.log('[provision] stdout:', line);
-				term?.writeln(line);
-			});
-
-			// Wire stderr → terminal
-			cmd.stderr.on('data', (line: string) => {
-				console.log('[provision] stderr:', line);
-				term?.writeln(line);
-			});
+			cmd.stdout.on('data', (line: string) => { term?.writeln(line); });
+			cmd.stderr.on('data', (line: string) => { term?.writeln(line); });
 
 			cmd.on('close', (data: { code: number }) => {
-				console.log('[provision] exit:', data.code);
 				exitCode = data.code;
 				term?.writeln('');
 				term?.writeln(data.code === 0
-					? '\x1b[32mInstallation complete!\x1b[0m'
+					? '\x1b[32m=== Installation complete ===\x1b[0m'
 					: `\x1b[31mExited with code ${data.code}\x1b[0m`);
 				if (data.code === 0) {
 					toastSuccess(`Hecate installed on ${machine.hostname}`);
-					setTimeout(() => { fetchLanNodes(); fetchSite(); }, 3000);
+					// Site updates reactively via SSE (site_changed event).
+					// LAN still needs a refresh since it's not event-driven yet.
+					setTimeout(() => { fetchLanNodes(); }, 3000);
 				}
 			});
 
 			cmd.on('error', (error: string) => {
-				console.error('[provision] error:', error);
 				term?.writeln(`\x1b[31mError: ${error}\x1b[0m`);
 			});
 
 			childProcess = await cmd.spawn();
-			console.log('[provision] spawned pid:', childProcess.pid);
+
+			term.onData((data: string) => {
+				childProcess?.write(data).catch(() => {});
+			});
 
 		} catch (err) {
-			console.error('[provision] spawn failed:', err);
 			term.writeln(`\x1b[31mFailed to spawn: ${err}\x1b[0m`);
 			errorMsg = String(err);
 		}
 	}
 
-	async function copyCommand() {
-		await navigator.clipboard.writeText(fullSshCommand);
-		copied = true;
-		setTimeout(() => { copied = false; }, 2000);
+	function selectType(type: InstallType) {
+		if (type === 'ollama-host') return;
+		installType = type;
 	}
 
 	onDestroy(() => {
@@ -173,42 +190,56 @@
 
 		<!-- Body -->
 		<div class="flex-1 overflow-hidden flex flex-col">
-			{#if phase === 'generate'}
-				<div class="p-6 text-center text-surface-400 text-sm animate-pulse">Generating join token...</div>
 
-			{:else if phase === 'ready'}
-				<div class="p-6 space-y-5 overflow-y-auto">
-					<div class="text-center space-y-2">
-						<div class="text-xs text-surface-500 uppercase tracking-wider">Verification Code</div>
-						<div class="text-3xl font-mono font-bold text-hecate-400 tracking-[0.3em]">{displayCode}</div>
-						<div class="text-xs text-surface-600">Expires in {expiresIn}s</div>
+			<!-- Phase: Ready -->
+			{#if phase === 'ready'}
+				<div class="p-6 space-y-5">
+					<!-- Install type toggle -->
+					<div class="flex gap-2">
+						<button
+							class="flex-1 py-2 px-3 rounded text-xs font-medium transition-all cursor-pointer
+								{installType === 'hecate-node'
+									? 'bg-hecate-600/20 text-hecate-300 ring-1 ring-hecate-500/40'
+									: 'bg-surface-800 text-surface-500 hover:text-surface-300'}"
+							onclick={() => selectType('hecate-node')}
+						>Hecate Node</button>
+						<button
+							class="flex-1 py-2 px-3 rounded text-xs font-medium transition-all cursor-not-allowed
+								bg-surface-800/50 text-surface-600 opacity-50"
+							disabled
+						>Ollama Host <span class="text-[10px] ml-1 opacity-70">soon</span></button>
 					</div>
 
+					<!-- Node name -->
+					<div class="space-y-1">
+						<label class="text-xs text-surface-500 uppercase tracking-wider" for="node-name">Node Name</label>
+						<input id="node-name" type="text" bind:value={nodeName}
+							class="w-full bg-surface-800 border border-surface-700 rounded px-3 py-2 text-sm text-surface-100 font-mono focus:outline-none focus:border-hecate-500"
+						/>
+					</div>
+
+					<!-- SSH credentials -->
 					<div class="grid grid-cols-2 gap-3">
 						<div class="space-y-1">
 							<label class="text-xs text-surface-500 uppercase tracking-wider" for="ssh-user">SSH User</label>
-							<input id="ssh-user" type="text" bind:value={sshUser}
+							<input id="ssh-user" type="text" bind:value={sshUser} bind:this={sshUserInput}
 								class="w-full bg-surface-800 border border-surface-700 rounded px-3 py-2 text-sm text-surface-100 font-mono focus:outline-none focus:border-hecate-500"
-								placeholder="username" />
+								placeholder="username"
+								onkeydown={(e) => { if (e.key === 'Enter') startInstall(); }}
+							/>
 						</div>
 						<div class="space-y-1">
-							<label class="text-xs text-surface-500 uppercase tracking-wider" for="ssh-pass">Password (optional)</label>
+							<label class="text-xs text-surface-500 uppercase tracking-wider" for="ssh-pass">Password <span class="normal-case text-surface-600">(optional)</span></label>
 							<input id="ssh-pass" type="password" bind:value={sshPassword}
 								class="w-full bg-surface-800 border border-surface-700 rounded px-3 py-2 text-sm text-surface-100 font-mono focus:outline-none focus:border-hecate-500"
-								placeholder="for key auth leave empty" />
+								placeholder="key auth"
+								onkeydown={(e) => { if (e.key === 'Enter') startInstall(); }}
+							/>
 						</div>
 					</div>
 
-					<div class="space-y-1">
-						<div class="flex items-center justify-between">
-							<span class="text-xs text-surface-500 uppercase tracking-wider">Command</span>
-							<button class="text-xs text-hecate-400 hover:text-hecate-300 cursor-pointer" onclick={copyCommand}>
-								{copied ? 'Copied!' : 'Copy'}
-							</button>
-						</div>
-						<div class="bg-surface-800 rounded p-3 text-xs font-mono text-surface-300 break-all select-all max-h-20 overflow-y-auto">
-							{fullSshCommand}
-						</div>
+					<div class="text-xs text-surface-600">
+						May prompt for <span class="text-amber-400/70">sudo</span> — type in the terminal when asked.
 					</div>
 
 					{#if errorMsg}
@@ -221,6 +252,11 @@
 					>Install</button>
 				</div>
 
+			<!-- Phase: Generating token -->
+			{:else if phase === 'generate'}
+				<div class="p-6 text-center text-surface-400 text-sm animate-pulse">Generating join token...</div>
+
+			<!-- Phase: Running -->
 			{:else if phase === 'running'}
 				<div bind:this={terminalEl} class="flex-1 min-h-[400px]" style="background: #1a1a2e;"></div>
 				{#if exitCode !== null}
@@ -235,12 +271,12 @@
 					</div>
 				{/if}
 
+			<!-- Phase: Error -->
 			{:else if phase === 'error'}
 				<div class="p-6 text-center space-y-4">
-					<div class="text-lg font-semibold text-red-400">Error</div>
-					<div class="text-sm text-surface-400">{errorMsg}</div>
+					<div class="text-sm text-red-400">{errorMsg}</div>
 					<button class="px-6 py-2 bg-surface-700 hover:bg-surface-600 text-surface-200 text-sm rounded transition-colors cursor-pointer"
-						onclick={() => { phase = 'generate'; errorMsg = ''; }}>Retry</button>
+						onclick={() => { phase = 'ready'; errorMsg = ''; }}>Back</button>
 				</div>
 			{/if}
 		</div>

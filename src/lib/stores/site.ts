@@ -6,6 +6,7 @@
 ///
 import { writable, derived } from 'svelte/store';
 import { get as apiGet, del } from '$lib/api';
+import { onDaemonEvent } from '$lib/stores/events';
 
 // --- Types ---
 
@@ -60,3 +61,12 @@ export async function removeNode(nodeName: string): Promise<void> {
 		await fetchSite();
 	}
 }
+
+// --- SSE: reactive updates from daemon ---
+
+onDaemonEvent('site_changed', (_data) => {
+	// Re-fetch full site state when the daemon broadcasts a change.
+	// The SSE payload contains the site, but re-fetching via API
+	// ensures we get the exact same shape the store expects.
+	fetchSite();
+});

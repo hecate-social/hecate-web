@@ -12,6 +12,7 @@
 	} from '$lib/stores/lan';
 	import { toastSuccess, toastError } from '$lib/stores/toasts';
 	import ProvisionOverlay from '$lib/components/ProvisionOverlay.svelte';
+	import UninstallOverlay from '$lib/components/UninstallOverlay.svelte';
 
 	// =====================================================================
 	// STATE
@@ -25,10 +26,13 @@
 	let confirmAction: (() => Promise<void> | void) | null = $state(null);
 	let copyFeedback: string | null = $state(null);
 	let provisionTarget: typeof $lanNodes[0] | null = $state(null);
+	let uninstallTarget: typeof $lanNodes[0] | null = $state(null);
 
 	// =====================================================================
 	// DATA ROWS
 	// =====================================================================
+	type RowStatus = 'provisioned' | 'available' | 'offline' | undefined;
+
 	interface SiteRow {
 		key: string;
 		label: string;
@@ -36,6 +40,7 @@
 		section: string;
 		copyable?: boolean;
 		action?: string;
+		status?: RowStatus;
 	}
 
 	let rows = $derived.by((): SiteRow[] => {
@@ -84,7 +89,8 @@
 					value: `${ln.ip} · ${ln.mac} · ${status}`,
 					section: 'LAN',
 					copyable: true,
-					action: !isHecate && ln.ssh ? 'Enter:install' : undefined,
+					action: !isHecate && ln.ssh ? 'Enter:install' : isHecate && ln.ssh ? 'u:uninstall' : undefined,
+					status: isHecate ? 'provisioned' : ln.ssh ? 'available' : 'offline',
 				});
 			}
 		} else if ($lanLoading) {
@@ -185,6 +191,16 @@
 				if (!machine.ssh) { statusMsg = 'No SSH access to this machine'; return; }
 				provisionTarget = machine;
 			} },
+		{ name: 'uninstall', aliases: ['nuke'], args: '', description: 'Uninstall hecate from selected machine',
+			exec() {
+				if (!selectedRow?.key.startsWith('lan-')) { statusMsg = 'Select a LAN machine first'; return; }
+				const ip = selectedRow.key.replace('lan-', '');
+				const machine = $lanNodes.find((n) => n.ip === ip);
+				if (!machine) { statusMsg = 'Machine not found'; return; }
+				if (!machine.hecate?.running) { statusMsg = 'No hecate running on this machine'; return; }
+				if (!machine.ssh) { statusMsg = 'No SSH access to this machine'; return; }
+				uninstallTarget = machine;
+			} },
 		{ name: 'scan', aliases: ['discover'], args: '', description: 'Scan LAN for machines',
 			async exec() { statusMsg = 'Scanning LAN...'; await triggerScan(); statusMsg = 'Scan triggered'; } },
 		{ name: 'refresh', aliases: ['r'], args: '', description: 'Refresh site + LAN',
@@ -225,8 +241,8 @@
 		if (mode === 'confirm') { handleConfirmKeys(e); return; }
 		if (mode !== 'normal') return;
 
-		// Don't handle keys when provision overlay is open
-		if (provisionTarget) return;
+		// Don't handle keys when overlays are open
+		if (provisionTarget || uninstallTarget) return;
 
 		switch (e.key) {
 			case 'j': case 'ArrowDown':
@@ -254,7 +270,17 @@
 			case 'Enter':
 				e.preventDefault();
 				if (selectedRow?.key.startsWith('lan-')) {
-					findCommand('install')?.exec('');
+					const ip = selectedRow.key.replace('lan-', '');
+					const machine = $lanNodes.find((n) => n.ip === ip);
+					if (machine && !machine.hecate?.running && machine.ssh) {
+						findCommand('install')?.exec('');
+					}
+				}
+				break;
+			case 'u':
+				e.preventDefault();
+				if (selectedRow?.key.startsWith('lan-')) {
+					findCommand('uninstall')?.exec('');
 				}
 				break;
 			case 'x':
@@ -268,7 +294,7 @@
 				break;
 			case '?':
 				e.preventDefault();
-				statusMsg = 'j/k:nav  y:copy  x:remove  ::cmd  ?:help';
+				statusMsg = 'j/k:nav  y:copy  x:remove  u:uninstall  ::cmd  ?:help';
 				break;
 		}
 	}
@@ -354,8 +380,15 @@
 											: 'hover:bg-surface-800/50'}"
 									onclick={() => { cursorIndex = idx; }}
 								>
+									<!-- Status dot (LAN nodes) -->
+									{#if row.status}
+										<span class="w-2 h-2 shrink-0 rounded-full
+											{row.status === 'provisioned' ? 'bg-emerald-400' : row.status === 'available' ? 'bg-amber-400' : 'bg-surface-600'}"></span>
+									{/if}
+
 									<!-- Label -->
-									<span class="w-32 shrink-0 text-xs uppercase tracking-wider
+									<span class="shrink-0 text-xs uppercase tracking-wider
+										{row.status ? 'w-28' : 'w-32'}
 										{isCursor ? 'text-hecate-300' : 'text-surface-500'}"
 									>{row.label}</span>
 
@@ -427,7 +460,7 @@
 				<span class="text-surface-600 font-mono">{cursorIndex + 1}/{rows.length}</span>
 				<button
 					class="text-surface-600 hover:text-surface-300 transition-colors cursor-pointer px-1"
-					onclick={() => statusMsg = 'j/k:nav  y:copy  x:remove  ::cmd'}
+					onclick={() => statusMsg = 'j/k:nav  y:copy  x:remove  u:uninstall  ::cmd'}
 				>?</button>
 			{/if}
 		{/if}
@@ -438,5 +471,12 @@
 	<ProvisionOverlay
 		machine={provisionTarget}
 		onClose={() => { provisionTarget = null; }}
+	/>
+{/if}
+
+{#if uninstallTarget}
+	<UninstallOverlay
+		machine={uninstallTarget}
+		onClose={() => { uninstallTarget = null; }}
 	/>
 {/if}
