@@ -13,6 +13,7 @@ import { onDaemonEvent } from '$lib/stores/events';
 export interface SiteNode {
 	node_name: string;
 	admitted_at: number;
+	pending?: boolean;
 }
 
 export interface SiteData {
@@ -60,6 +61,22 @@ export async function removeNode(nodeName: string): Promise<void> {
 	if (data.ok) {
 		await fetchSite();
 	}
+}
+
+// --- Optimistic updates ---
+
+/** Add a node optimistically before the daemon confirms admission. */
+export function addPendingNode(nodeName: string): void {
+	site.update(($s) => {
+		if (!$s) return $s;
+		// Don't add if already present
+		if ($s.nodes.some((n) => n.node_name === nodeName)) return $s;
+		return {
+			...$s,
+			nodes: [...$s.nodes, { node_name: nodeName, admitted_at: Date.now(), pending: true }],
+			node_count: $s.node_count + 1,
+		};
+	});
 }
 
 // --- SSE: reactive updates from daemon ---

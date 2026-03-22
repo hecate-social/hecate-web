@@ -62,13 +62,15 @@
 		if ($site?.nodes && $site.nodes.length > 0) {
 			for (const node of $site.nodes) {
 				const isLocal = node.node_name === localNodeName();
+				const isPending = 'pending' in node && node.pending === true;
 				r.push({
 					key: `node-${node.node_name}`,
 					label: isLocal ? `${node.node_name} (this)` : node.node_name,
-					value: `joined ${formatDate(node.admitted_at)}`,
+					value: isPending ? 'connecting...' : `joined ${formatDate(node.admitted_at)}`,
 					section: 'NODES',
-					copyable: true,
-					action: isLocal ? undefined : 'x:remove',
+					copyable: !isPending,
+					action: isLocal || isPending ? undefined : 'x:remove',
+					status: isPending ? 'available' as RowStatus : undefined,
 				});
 			}
 		} else {

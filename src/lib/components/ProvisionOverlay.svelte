@@ -3,6 +3,7 @@
 	import { post } from '$lib/api';
 	import { toastSuccess } from '$lib/stores/toasts';
 	import { fetchLanNodes, triggerScan } from '$lib/stores/lan';
+	import { addPendingNode } from '$lib/stores/site';
 	import { Terminal } from 'xterm';
 	import { FitAddon } from '@xterm/addon-fit';
 	import 'xterm/css/xterm.css';
@@ -135,9 +136,11 @@
 					: `\x1b[31mExited with code ${data.code}\x1b[0m`);
 				if (data.code === 0) {
 					toastSuccess(`Hecate installed on ${machine.hostname}`);
-					// Site updates reactively via SSE (site_changed event).
+					// Optimistic: show node immediately as pending
+					addPendingNode(nodeName);
 					// LAN needs a rescan to detect the newly running hecate.
 					setTimeout(() => { triggerScan().then(() => fetchLanNodes()); }, 5000);
+					// Site confirms via SSE (site_changed) — replaces pending with real entry.
 				}
 			});
 
