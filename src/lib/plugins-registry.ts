@@ -29,6 +29,7 @@ const CORE_TABS: PluginTab[] = [
 	{ id: 'mesh', name: 'Mesh', icon: '\uD83C\uDF10', path: '/mesh', isPlugin: false },
 	{ id: 'appstore', name: 'Appstore', icon: '\uD83C\uDFEA', path: '/appstore', isPlugin: false },
 	{ id: 'site', name: 'Site', icon: '\uD83C\uDFE0', path: '/site', isPlugin: false },
+	{ id: 'mpong', name: 'MPong', icon: '\uD83C\uDFD3', path: '/mpong', isPlugin: false },
 	{ id: 'settings', name: 'Settings', icon: '\u2699', path: '/settings', isPlugin: false },
 	// Observer views — each a direct-jump entry grouped under "Observer"
 	{ id: 'obs-system', name: 'System', icon: '\uD83D\uDCCA', path: '/observer', isPlugin: false, group: 'Observer' },
@@ -48,6 +49,7 @@ const CORE_CARDS: PluginCardData[] = [
 	{ id: 'observer', name: 'Observer', icon: '\uD83D\uDD2C', path: '/observer', description: 'BEAM debugger and diagnostics', ready: true, isPlugin: false },
 	{ id: 'mesh', name: 'Mesh', icon: '\uD83C\uDF10', path: '/mesh', description: 'Mesh network status and discovery', ready: true, isPlugin: false },
 	{ id: 'briefcase', name: 'Briefcase', icon: '\uD83D\uDCBC', path: '/briefcase', description: 'Documents, files, and folders', ready: true, isPlugin: false },
+	{ id: 'mpong', name: 'MPong', icon: '\uD83C\uDFD3', path: '/mpong', description: 'Mesh Pong — multiplayer game for testing DHT RPC and PubSub', ready: true, isPlugin: false },
 ];
 
 const CORE_IDS = new Set(CORE_TABS.map((t) => t.id));
