@@ -31,23 +31,14 @@
 		if (gameId) onSelectGame(gameId);
 	}
 
-	let hostingMode: 'lan' | 'mesh' | null = $state(null);
+	let hostingMode: 'lan' | 'mesh' | 'mixed' | null = $state(null);
 
-	async function handleHostLan() {
+	async function handleHost(mode: 'lan' | 'mesh' | 'mixed') {
 		openingLobby = true;
-		hostingMode = 'lan';
+		hostingMode = mode;
 		connectLobbyStream();
 		waitingForLobbyGame = true;
-		await openLobby(2, 'lan');
-		openingLobby = false;
-	}
-
-	async function handleHostMesh() {
-		openingLobby = true;
-		hostingMode = 'mesh';
-		connectLobbyStream();
-		waitingForLobbyGame = true;
-		await openLobby(2, 'mesh');
+		await openLobby(2, mode);
 		openingLobby = false;
 	}
 
@@ -118,18 +109,25 @@
 			{starting ? 'Starting...' : 'Quick Play'}
 		</button>
 		<button
-			onclick={handleHostLan}
+			onclick={() => handleHost('lan')}
 			disabled={openingLobby}
 			class="flex-1 px-3 py-2 bg-purple-600 hover:bg-purple-500 disabled:opacity-50 text-white text-xs rounded font-medium transition-colors"
 		>
-			{openingLobby && hostingMode === 'lan' ? 'Hosting...' : 'Host LAN Game'}
+			{openingLobby && hostingMode === 'lan' ? 'Hosting...' : 'LAN'}
 		</button>
 		<button
-			onclick={handleHostMesh}
+			onclick={() => handleHost('mesh')}
 			disabled={openingLobby}
 			class="flex-1 px-3 py-2 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white text-xs rounded font-medium transition-colors"
 		>
-			{openingLobby && hostingMode === 'mesh' ? 'Hosting...' : 'Host Mesh Game'}
+			{openingLobby && hostingMode === 'mesh' ? 'Hosting...' : 'Mesh'}
+		</button>
+		<button
+			onclick={() => handleHost('mixed')}
+			disabled={openingLobby}
+			class="flex-1 px-3 py-2 bg-amber-600 hover:bg-amber-500 disabled:opacity-50 text-white text-xs rounded font-medium transition-colors"
+		>
+			{openingLobby && hostingMode === 'mixed' ? 'Hosting...' : 'Mixed'}
 		</button>
 	</div>
 
@@ -139,7 +137,10 @@
 			<div class="flex items-center justify-between mb-2">
 				<div class="flex items-center gap-2">
 					<span class="text-xs font-medium text-purple-300">Lobby {$currentLobby.game_id.slice(0, 8)}</span>
-					<span class="text-[10px] px-1.5 py-0.5 rounded {$currentLobby.mode === 'mesh' ? 'bg-emerald-500/20 text-emerald-400' : 'bg-purple-500/20 text-purple-400'}">
+					<span class="text-[10px] px-1.5 py-0.5 rounded {
+						$currentLobby.mode === 'mesh' ? 'bg-emerald-500/20 text-emerald-400' :
+						$currentLobby.mode === 'mixed' ? 'bg-amber-500/20 text-amber-400' :
+						'bg-purple-500/20 text-purple-400'}">
 						{$currentLobby.mode ?? 'lan'}
 					</span>
 				</div>

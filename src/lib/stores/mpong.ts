@@ -47,7 +47,7 @@ export interface LobbyInfo {
 	host_node: string;
 	host_champion_name: string;
 	max_players: number;
-	mode: 'lan' | 'mesh';
+	mode: 'lan' | 'mesh' | 'mixed';
 	seats: LobbySeat[];
 	state: 'waiting' | 'countdown' | 'playing';
 	countdown: number;
@@ -145,7 +145,7 @@ export async function fetchLobbies(): Promise<void> {
 	} catch { /* */ }
 }
 
-export async function openLobby(maxPlayers: number = 2, mode: 'lan' | 'mesh' = 'lan'): Promise<string | null> {
+export async function openLobby(maxPlayers: number = 2, mode: 'lan' | 'mesh' | 'mixed' = 'lan'): Promise<string | null> {
 	try {
 		console.log('[mpong] openLobby: calling API...', { mode });
 		const res = await fetch(`${BASE}/api/mpong/lobby/open`, {
