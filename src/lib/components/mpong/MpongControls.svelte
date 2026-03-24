@@ -1,17 +1,29 @@
 <script lang="ts">
-	import { startGame, connected, type MpongGame } from '$lib/stores/mpong';
+	import { startGame, connected, openLobby, type MpongGame } from '$lib/stores/mpong';
 
 	interface Props {
 		game: MpongGame;
+		onBack: () => void;
+		onNewGame: (gameId: string) => void;
 	}
 
-	let { game }: Props = $props();
+	let { game, onBack, onNewGame }: Props = $props();
 	let starting = $state(false);
+	let newGame = $state(false);
 
 	async function handleStart() {
 		starting = true;
 		await startGame(game.game_id);
 		starting = false;
+	}
+
+	async function handleNewGame() {
+		newGame = true;
+		// Open a new lobby — other nodes will auto-join
+		await openLobby(2);
+		newGame = false;
+		// Go back to lobby view where the lobby UI shows countdown
+		onBack();
 	}
 </script>
 
@@ -51,9 +63,27 @@
 	{/if}
 
 	{#if game.winner_node_id}
-		<div class="mt-2 text-center">
-			<span class="text-xs text-gray-400">Winner: </span>
-			<span class="text-xs font-mono text-yellow-400">{game.winner_node_id.split('@')[0]}</span>
+		<div class="mt-2 py-2 text-center border-t border-gray-700">
+			<span class="text-xs text-gray-400">Winner</span>
+			<div class="text-sm font-bold text-yellow-400 mt-0.5">{game.winner_node_id.split('@')[0]}</div>
+		</div>
+	{/if}
+
+	{#if game.status === 'ended'}
+		<div class="flex gap-2 mt-2">
+			<button
+				onclick={handleNewGame}
+				disabled={newGame}
+				class="flex-1 px-3 py-1.5 bg-purple-600 hover:bg-purple-500 disabled:opacity-50 text-white text-xs rounded font-medium transition-colors"
+			>
+				{newGame ? 'Opening...' : 'New Game'}
+			</button>
+			<button
+				onclick={onBack}
+				class="flex-1 px-3 py-1.5 bg-gray-600 hover:bg-gray-500 text-white text-xs rounded font-medium transition-colors"
+			>
+				Lobby
+			</button>
 		</div>
 	{/if}
 </div>

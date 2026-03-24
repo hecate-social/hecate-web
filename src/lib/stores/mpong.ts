@@ -141,27 +141,31 @@ export async function fetchLobbies(): Promise<void> {
 
 export async function openLobby(maxPlayers: number = 2): Promise<string | null> {
 	try {
+		console.log('[mpong] openLobby: calling API...');
 		const res = await fetch(`${BASE}/api/mpong/lobby/open`, {
 			method: 'POST',
 			headers: { 'Content-Type': 'application/json' },
 			body: JSON.stringify({ max_players: maxPlayers })
 		});
 		const data = await res.json();
+		console.log('[mpong] openLobby: response', data);
 		if (data.ok) return data.game_id;
-	} catch { /* */ }
+	} catch (e) { console.error('[mpong] openLobby error:', e); }
 	return null;
 }
 
 export async function quickStart(botCount: number = 2): Promise<string | null> {
 	try {
+		console.log('[mpong] quickStart: calling API...');
 		const res = await fetch(`${BASE}/api/mpong/host`, {
 			method: 'POST',
 			headers: { 'Content-Type': 'application/json' },
 			body: JSON.stringify({ max_players: botCount, quick_start: true, bot_count: botCount })
 		});
 		const data = await res.json();
+		console.log('[mpong] quickStart: response', data);
 		if (data.ok) return data.game_id;
-	} catch { /* */ }
+	} catch (e) { console.error('[mpong] quickStart error:', e); }
 	return null;
 }
 

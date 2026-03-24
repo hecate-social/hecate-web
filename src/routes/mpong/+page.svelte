@@ -52,6 +52,31 @@
 		gameState.set(null);
 	}
 
+	// Build player list from game state when projection isn't available (observer)
+	function fakePlayers(gs: typeof $gameState): import('$lib/stores/mpong').MpongPlayer[] {
+		if (!gs) return [];
+		return Object.entries(gs.paddles).map(([wi, _]) => ({
+			node_id: `player_${wi}`,
+			wall_index: Number(wi),
+			alive: gs.alive?.[Number(wi)] ?? true,
+			joined_at: 0
+		}));
+	}
+
+	// Build minimal game object from state when projection isn't available
+	function fakeGame(gameId: string | null, gs: typeof $gameState): import('$lib/stores/mpong').MpongGame | null {
+		if (!gameId) return null;
+		const isOver = gs ? Object.values(gs.games_won).some((w) => (w as number) >= 2) : false;
+		return {
+			game_id: gameId,
+			host_node_id: '',
+			players: fakePlayers(gs),
+			max_players: 2,
+			status: isOver ? 'ended' : (gs ? 'playing' : 'waiting'),
+			hosted_at: 0
+		};
+	}
+
 	onDestroy(() => {
 		disconnectGameStream();
 		disconnectLobbyStream();
@@ -86,17 +111,20 @@
 				</button>
 			</div>
 		{:else}
+			{@const gs = $gameState}
+			{@const players = $currentGame?.players ?? fakePlayers(gs)}
+			{@const game = $currentGame ?? fakeGame(selectedGameId, gs)}
 			<div class="flex gap-4 justify-center">
 				<div class="flex-shrink-0">
-					<MpongArena gameState={$gameState} players={$currentGame?.players ?? []} />
+					<MpongArena gameState={gs} players={players} />
 				</div>
 				<div class="w-56 space-y-3 flex-shrink-0">
-					{#if $currentGame}
-						<MpongControls game={$currentGame} />
-						<MpongScoreboard players={$currentGame.players} gameState={$gameState} />
+					{#if game}
+						<MpongControls game={game} onBack={backToLobby} onNewGame={selectGame} />
+						<MpongScoreboard players={players} gameState={gs} />
 					{:else}
 						<div class="rounded-lg border border-gray-700 bg-gray-800/50 p-3 text-xs text-gray-500 animate-pulse">
-							Loading game info...
+							Connecting...
 						</div>
 					{/if}
 				</div>

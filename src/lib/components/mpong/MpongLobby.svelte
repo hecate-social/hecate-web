@@ -2,8 +2,7 @@
 	import {
 		games, lobbies, champion, currentLobby,
 		fetchGames, fetchLobbies, fetchChampion,
-		quickStart, openLobby, connectLobbyStream,
-		type LobbyInfo
+		quickStart, openLobby, connectLobbyStream
 	} from '$lib/stores/mpong';
 	import { onMount } from 'svelte';
 	import { PLAYER_COLORS } from './arena';
@@ -20,7 +19,7 @@
 		fetchChampion();
 		fetchGames();
 		fetchLobbies();
-		connectLobbyStream();
+		// Don't connect lobby stream until user opens a lobby
 		const interval = setInterval(() => { fetchGames(); fetchLobbies(); }, 3000);
 		return () => clearInterval(interval);
 	});
@@ -34,15 +33,21 @@
 
 	async function handleOpenLobby() {
 		openingLobby = true;
+		connectLobbyStream();
+		waitingForLobbyGame = true;
 		const gameId = await openLobby(2);
 		openingLobby = false;
-		// Lobby server started — UI will update via SSE events
 	}
 
 	// When lobby countdown hits 0 and game starts, navigate to game
+	// Only react if we explicitly opened/joined a lobby (not from stale SSE events)
+	let waitingForLobbyGame = $state(false);
+
 	$effect(() => {
+		if (!waitingForLobbyGame) return;
 		const lobby = $currentLobby;
-		if (lobby?.state === 'playing' || (lobby?.state === 'countdown' && lobby.countdown === 0)) {
+		if (lobby?.game_id && (lobby.state === 'playing' || (lobby.state === 'countdown' && lobby.countdown === 0))) {
+			waitingForLobbyGame = false;
 			onSelectGame(lobby.game_id);
 		}
 	});
@@ -98,19 +103,26 @@
 			disabled={starting}
 			class="flex-1 px-3 py-2 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white text-xs rounded font-medium transition-colors"
 		>
-			{starting ? 'Starting...' : 'Quick Play (2 local bots)'}
+			{starting ? 'Starting...' : 'Quick Play'}
 		</button>
 		<button
 			onclick={handleOpenLobby}
 			disabled={openingLobby}
 			class="flex-1 px-3 py-2 bg-purple-600 hover:bg-purple-500 disabled:opacity-50 text-white text-xs rounded font-medium transition-colors"
 		>
-			{openingLobby ? 'Opening...' : 'Open LAN Lobby'}
+			{openingLobby ? 'Hosting...' : 'Host LAN Game'}
+		</button>
+		<button
+			onclick={handleOpenLobby}
+			disabled={openingLobby}
+			class="flex-1 px-3 py-2 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white text-xs rounded font-medium transition-colors"
+		>
+			{openingLobby ? 'Hosting...' : 'Host Mesh Game'}
 		</button>
 	</div>
 
 	<!-- Current Lobby (if we opened or joined one) -->
-	{#if $currentLobby}
+	{#if $currentLobby?.game_id}
 		<div class="rounded-lg border border-purple-700/50 bg-purple-900/20 p-4">
 			<div class="flex items-center justify-between mb-2">
 				<span class="text-xs font-medium text-purple-300">Lobby {$currentLobby.game_id.slice(0, 8)}</span>
@@ -151,19 +163,19 @@
 	<!-- LAN Lobbies (from other nodes) -->
 	{#if $lobbies.length > 0}
 		<div>
-			<h3 class="text-sm font-medium text-gray-300 mb-2">LAN Games</h3>
+			<h3 class="text-sm font-medium text-gray-300 mb-2">Nearby Games</h3>
 			<div class="space-y-2">
-				{#each $lobbies as lobby}
+				{#each $lobbies.filter(l => l?.game_id) as lobby}
 					<div class="rounded-lg border border-gray-700 bg-gray-800/30 p-3">
 						<div class="flex items-center justify-between">
 							<div>
 								<span class="text-xs font-mono text-gray-300">{lobby.game_id.slice(0, 8)}</span>
-								<span class="ml-2 text-xs text-gray-500">hosted by {lobby.host_node.split('@')[0]}</span>
+								<span class="ml-2 text-xs text-gray-500">hosted by {lobby.host_node?.split('@')[0] ?? '?'}</span>
 							</div>
 							<span class="text-xs text-gray-400">{lobby.open_seats} open</span>
 						</div>
 						<div class="mt-1 text-xs text-gray-400">
-							Champion: {lobby.host_champion_name}
+							Champion: {lobby.host_champion_name ?? 'Unknown'}
 						</div>
 					</div>
 				{/each}
