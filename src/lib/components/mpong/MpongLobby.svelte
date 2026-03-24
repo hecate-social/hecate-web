@@ -31,11 +31,23 @@
 		if (gameId) onSelectGame(gameId);
 	}
 
-	async function handleOpenLobby() {
+	let hostingMode: 'lan' | 'mesh' | null = $state(null);
+
+	async function handleHostLan() {
 		openingLobby = true;
+		hostingMode = 'lan';
 		connectLobbyStream();
 		waitingForLobbyGame = true;
-		const gameId = await openLobby(2);
+		await openLobby(2, 'lan');
+		openingLobby = false;
+	}
+
+	async function handleHostMesh() {
+		openingLobby = true;
+		hostingMode = 'mesh';
+		connectLobbyStream();
+		waitingForLobbyGame = true;
+		await openLobby(2, 'mesh');
 		openingLobby = false;
 	}
 
@@ -106,18 +118,18 @@
 			{starting ? 'Starting...' : 'Quick Play'}
 		</button>
 		<button
-			onclick={handleOpenLobby}
+			onclick={handleHostLan}
 			disabled={openingLobby}
 			class="flex-1 px-3 py-2 bg-purple-600 hover:bg-purple-500 disabled:opacity-50 text-white text-xs rounded font-medium transition-colors"
 		>
-			{openingLobby ? 'Hosting...' : 'Host LAN Game'}
+			{openingLobby && hostingMode === 'lan' ? 'Hosting...' : 'Host LAN Game'}
 		</button>
 		<button
-			onclick={handleOpenLobby}
+			onclick={handleHostMesh}
 			disabled={openingLobby}
 			class="flex-1 px-3 py-2 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white text-xs rounded font-medium transition-colors"
 		>
-			{openingLobby ? 'Hosting...' : 'Host Mesh Game'}
+			{openingLobby && hostingMode === 'mesh' ? 'Hosting...' : 'Host Mesh Game'}
 		</button>
 	</div>
 
@@ -125,7 +137,12 @@
 	{#if $currentLobby?.game_id}
 		<div class="rounded-lg border border-purple-700/50 bg-purple-900/20 p-4">
 			<div class="flex items-center justify-between mb-2">
-				<span class="text-xs font-medium text-purple-300">Lobby {$currentLobby.game_id.slice(0, 8)}</span>
+				<div class="flex items-center gap-2">
+					<span class="text-xs font-medium text-purple-300">Lobby {$currentLobby.game_id.slice(0, 8)}</span>
+					<span class="text-[10px] px-1.5 py-0.5 rounded {$currentLobby.mode === 'mesh' ? 'bg-emerald-500/20 text-emerald-400' : 'bg-purple-500/20 text-purple-400'}">
+						{$currentLobby.mode ?? 'lan'}
+					</span>
+				</div>
 				<span class="text-xs px-1.5 py-0.5 rounded {statusBadge($currentLobby.state)}">
 					{$currentLobby.state}
 				</span>
@@ -134,19 +151,37 @@
 			<!-- Seats -->
 			<div class="space-y-1.5">
 				{#each $currentLobby.seats as seat}
-					<div class="flex items-center justify-between text-xs">
-						<div class="flex items-center gap-2">
-							<span class="w-2 h-2 rounded-full"
-								style="background-color: {seat.status === 'reserved' ? PLAYER_COLORS[seat.wall_index] ?? '#666' : '#374151'}">
-							</span>
-							{#if seat.status === 'reserved'}
-								<span class="text-gray-200">{seat.champion_name}</span>
-								<span class="text-gray-500">@{seat.node_id?.split('@')[0]?.slice(0, 12)}</span>
-							{:else}
-								<span class="text-gray-500 animate-pulse">Waiting for challenger...</span>
-							{/if}
+					<div class="space-y-0.5">
+						<div class="flex items-center justify-between text-xs">
+							<div class="flex items-center gap-2">
+								<span class="w-2 h-2 rounded-full"
+									style="background-color: {seat.status === 'reserved' ? PLAYER_COLORS[seat.wall_index] ?? '#666' : '#374151'}">
+								</span>
+								{#if seat.status === 'reserved'}
+									<span class="text-gray-200">{seat.champion_name}</span>
+									<span class="text-gray-500">@{seat.node_id?.split('@')[0]?.slice(0, 12)}</span>
+								{:else}
+									<span class="text-gray-500 animate-pulse">Waiting for challenger...</span>
+								{/if}
+							</div>
+							<span class="text-gray-600">wall {seat.wall_index}</span>
 						</div>
-						<span class="text-gray-600">wall {seat.wall_index}</span>
+						{#if seat.status === 'reserved' && seat.transport}
+							<div class="ml-4 flex items-center gap-1.5 text-[10px]">
+								<span class="px-1 rounded {seat.transport === 'mesh' ? 'bg-emerald-800/40 text-emerald-400' : 'bg-purple-800/40 text-purple-400'}">
+									{seat.transport}
+								</span>
+								{#if seat.country}
+									<span class="text-gray-500">{seat.city ? `${seat.city}, ${seat.country}` : seat.country}</span>
+								{/if}
+								{#if seat.rtt_ms != null}
+									<span class="text-gray-500">{seat.rtt_ms}ms</span>
+								{/if}
+								{#if seat.nat_type && seat.nat_type !== 'unknown'}
+									<span class="text-gray-600">NAT:{seat.nat_type}</span>
+								{/if}
+							</div>
+						{/if}
 					</div>
 				{/each}
 			</div>
