@@ -29,11 +29,17 @@
 
 	function transportBadge(player: MpongPlayer): { label: string; cls: string } | null {
 		const t = player.transport;
-		if (!t || t === 'undefined') return null;
+		if (!t || t === 'undefined' || t === 'local') return null;
 		if (t === 'mesh') return { label: 'MESH', cls: 'bg-emerald-800/40 text-emerald-400' };
 		if (t === 'lan') return { label: 'LAN', cls: 'bg-purple-800/40 text-purple-400' };
-		if (t === 'local') return { label: 'LOCAL', cls: 'bg-gray-700/40 text-gray-400' };
 		return { label: t.toUpperCase(), cls: 'bg-gray-700/40 text-gray-400' };
+	}
+
+	function cleanNodeName(raw: string): string {
+		// "hecate_dev@host00.lab" → "host00" or "hecate@beam01.lab" → "beam01"
+		const parts = raw.split('@');
+		const host = parts[parts.length - 1] ?? raw;
+		return host.replace('.lab', '');
 	}
 </script>
 
@@ -68,14 +74,14 @@
 				{#if badge}
 					<span class="px-1 rounded {badge.cls}">{badge.label}</span>
 				{/if}
-				{#if player.country}
-					<span class="text-gray-500">{player.city ? `${player.city}, ${player.country}` : player.country}</span>
+				{#if player.country && player.country !== 'undefined'}
+					<span class="text-gray-500">{player.city && player.city !== 'undefined' ? `${player.city}, ${player.country}` : player.country}</span>
 				{/if}
-				{#if player.rtt_ms != null && player.rtt_ms !== undefined}
+				{#if badge && player.rtt_ms != null && player.rtt_ms !== undefined}
 					<span class="text-gray-500">{player.rtt_ms}ms</span>
 				{/if}
 				{#if nodeName(player)}
-					<span class="text-gray-600">{nodeName(player)}</span>
+					<span class="text-gray-600">{cleanNodeName(nodeName(player))}</span>
 				{/if}
 			</div>
 		</div>

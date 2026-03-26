@@ -29,8 +29,12 @@
 	function nodeLabel(player: MpongPlayer): string {
 		const full = player.node_id ?? '';
 		const atIdx = full.indexOf('@');
-		if (atIdx > 0) return full.slice(atIdx + 1).split('@')[0] ?? '';
-		return '';
+		if (atIdx <= 0) return '';
+		const raw = full.slice(atIdx + 1).split('@')[0] ?? '';
+		// "hecate_dev@host00.lab" → "host00", strip .lab suffix
+		const parts = raw.split('@');
+		const host = parts[parts.length - 1] ?? raw;
+		return host.replace('.lab', '');
 	}
 
 	onMount(() => {
@@ -199,8 +203,8 @@
 			ctx.textAlign = align;
 			ctx.fillText(champName.slice(0, 14), x, CANVAS - 28);
 
-			// Transport badge
-			if (transport && transport !== 'undefined') {
+			// Transport badge (hide for local/host players)
+			if (transport && transport !== 'undefined' && transport !== 'local') {
 				const badgeColor = transport === 'mesh' ? '#10b981' : transport === 'lan' ? '#a855f7' : '#6b7280';
 				ctx.font = '8px monospace';
 				ctx.fillStyle = badgeColor;
