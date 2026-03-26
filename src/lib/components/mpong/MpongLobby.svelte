@@ -38,21 +38,52 @@
 		hostingMode = mode;
 		connectLobbyStream();
 		waitingForLobbyGame = true;
-		await openLobby(2, mode);
+		const gameId = await openLobby(2, mode);
 		openingLobby = false;
+		// Store the game_id so we can navigate when the game starts
+		if (gameId) hostedGameId = gameId;
 	}
 
-	// When lobby countdown hits 0 and game starts, navigate to game
-	// Only react if we explicitly opened/joined a lobby (not from stale SSE events)
+	// Track the game_id we're hosting, and whether we're waiting for it to start
 	let waitingForLobbyGame = $state(false);
+	let hostedGameId: string | null = $state(null);
 
+	// Navigate to game when lobby transitions to playing.
+	// Two triggers: SSE lobby event OR polling the lobby state.
 	$effect(() => {
 		if (!waitingForLobbyGame) return;
 		const lobby = $currentLobby;
 		if (lobby?.game_id && (lobby.state === 'playing' || (lobby.state === 'countdown' && lobby.countdown === 0))) {
 			waitingForLobbyGame = false;
+			hostedGameId = null;
 			onSelectGame(lobby.game_id);
 		}
+	});
+
+	// Fallback: if mesh challenger joins so fast that SSE events are missed,
+	// poll the lobby list and navigate when game started or lobby gone.
+	$effect(() => {
+		if (!hostedGameId || !waitingForLobbyGame) return;
+		const gid = hostedGameId;
+		const interval = setInterval(async () => {
+			await fetchLobbies();
+			const lobbyList = $lobbies;
+			const lobby = lobbyList.find((l) => l.game_id === gid);
+			if (lobby && (lobby.state === 'playing' || lobby.state === 'countdown')) {
+				clearInterval(interval);
+				waitingForLobbyGame = false;
+				hostedGameId = null;
+				onSelectGame(gid);
+			}
+			// Lobby gone = game already started past lobby phase
+			if (!lobby && lobbyList.length === 0) {
+				clearInterval(interval);
+				waitingForLobbyGame = false;
+				hostedGameId = null;
+				onSelectGame(gid);
+			}
+		}, 500);
+		return () => clearInterval(interval);
 	});
 
 	function statusBadge(status: string): string {
