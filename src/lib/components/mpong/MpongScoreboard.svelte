@@ -29,8 +29,9 @@
 
 	function transportBadge(player: MpongPlayer): { label: string; cls: string } | null {
 		const t = player.transport;
-		if (!t || t === 'undefined' || t === 'local') return null;
-		if (t === 'mesh') return { label: 'MESH', cls: 'bg-emerald-800/40 text-emerald-400' };
+		if (!t || t === 'undefined') return null;
+		if (t === 'local') return { label: 'HOST', cls: 'bg-blue-800/40 text-blue-400' };
+		if (t === 'mesh') return { label: 'RELAY', cls: 'bg-emerald-800/40 text-emerald-400' };
 		if (t === 'lan') return { label: 'LAN', cls: 'bg-purple-800/40 text-purple-400' };
 		return { label: t.toUpperCase(), cls: 'bg-gray-700/40 text-gray-400' };
 	}
@@ -77,7 +78,7 @@
 				{#if player.country && player.country !== 'undefined'}
 					<span class="text-gray-500">{player.city && player.city !== 'undefined' ? `${player.city}, ${player.country}` : player.country}</span>
 				{/if}
-				{#if badge && player.rtt_ms != null && player.rtt_ms !== undefined}
+				{#if badge && player.rtt_ms != null && player.rtt_ms !== undefined && String(player.rtt_ms) !== 'undefined' && player.transport !== 'local'}
 					<span class="text-gray-500">{player.rtt_ms}ms</span>
 				{/if}
 				{#if nodeName(player)}

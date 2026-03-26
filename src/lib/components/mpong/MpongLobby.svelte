@@ -200,8 +200,8 @@
 						</div>
 						{#if seat.status === 'reserved' && seat.transport}
 							<div class="ml-4 flex items-center gap-1.5 text-[10px]">
-								<span class="px-1 rounded {seat.transport === 'mesh' ? 'bg-emerald-800/40 text-emerald-400' : 'bg-purple-800/40 text-purple-400'}">
-									{seat.transport}
+								<span class="px-1 rounded {seat.transport === 'mesh' ? 'bg-emerald-800/40 text-emerald-400' : seat.transport === 'local' ? 'bg-blue-800/40 text-blue-400' : 'bg-purple-800/40 text-purple-400'}">
+									{seat.transport === 'mesh' ? 'relay' : seat.transport === 'local' ? 'host' : seat.transport}
 								</span>
 								{#if seat.country}
 									<span class="text-gray-500">{seat.city ? `${seat.city}, ${seat.country}` : seat.country}</span>

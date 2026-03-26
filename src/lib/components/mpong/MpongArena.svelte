@@ -203,13 +203,14 @@
 			ctx.textAlign = align;
 			ctx.fillText(champName.slice(0, 14), x, CANVAS - 28);
 
-			// Transport badge (hide for local/host players)
-			if (transport && transport !== 'undefined' && transport !== 'local') {
-				const badgeColor = transport === 'mesh' ? '#10b981' : transport === 'lan' ? '#a855f7' : '#6b7280';
+			// Transport badge
+			if (transport && transport !== 'undefined') {
+				const badgeColor = transport === 'local' ? '#3b82f6' : transport === 'mesh' ? '#10b981' : transport === 'lan' ? '#a855f7' : '#6b7280';
+				const badgeText = transport === 'local' ? 'HOST' : transport === 'mesh' ? 'RELAY' : transport.toUpperCase();
 				ctx.font = '8px monospace';
 				ctx.fillStyle = badgeColor;
 				const tagX = i === 0 ? x : x;
-				ctx.fillText(transport.toUpperCase(), tagX, CANVAS - 16);
+				ctx.fillText(badgeText, tagX, CANVAS - 16);
 			}
 
 			if (nodePart) {
