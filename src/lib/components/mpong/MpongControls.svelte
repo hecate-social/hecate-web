@@ -63,9 +63,13 @@
 	{/if}
 
 	{#if game.winner_node_id}
+		{@const winnerPlayer = game.players.find(p => p.node_id === game.winner_node_id)}
+		{@const winnerName = winnerPlayer?.champion_name && winnerPlayer.champion_name !== 'undefined'
+			? winnerPlayer.champion_name
+			: game.winner_node_id.split('@')[0]}
 		<div class="mt-2 py-2 text-center border-t border-gray-700">
 			<span class="text-xs text-gray-400">Winner</span>
-			<div class="text-sm font-bold text-yellow-400 mt-0.5">{game.winner_node_id.split('@')[0]}</div>
+			<div class="text-sm font-bold text-yellow-400 mt-0.5">{winnerName}</div>
 		</div>
 	{/if}
 

@@ -12,6 +12,12 @@ export interface MpongPlayer {
 	wall_index: number;
 	alive: boolean;
 	joined_at: number;
+	champion_name?: string | null;
+	transport?: string | null;
+	country?: string | null;
+	city?: string | null;
+	rtt_ms?: number | null;
+	nat_type?: string | null;
 }
 
 export interface MpongGame {

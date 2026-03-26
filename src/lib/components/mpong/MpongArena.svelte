@@ -18,6 +18,21 @@
 	const PADDLE_HALF_H = 55;
 	const PADDLE_WIDTH_PX = 8;
 
+	function playerLabel(player: MpongPlayer, fallbackIdx: number): string {
+		if (player.champion_name && player.champion_name !== 'undefined') return player.champion_name;
+		const full = player.node_id ?? '';
+		const atIdx = full.indexOf('@');
+		if (atIdx > 0) return full.slice(0, atIdx);
+		return `P${fallbackIdx}`;
+	}
+
+	function nodeLabel(player: MpongPlayer): string {
+		const full = player.node_id ?? '';
+		const atIdx = full.indexOf('@');
+		if (atIdx > 0) return full.slice(atIdx + 1).split('@')[0] ?? '';
+		return '';
+	}
+
 	onMount(() => {
 		const ctx = canvas.getContext('2d')!;
 		const draw = () => { render(ctx); animFrame = requestAnimationFrame(draw); };
@@ -166,16 +181,15 @@
 			ctx.fillText('●', CANVAS / 2, CANVAS / 2);
 		}
 
-		// Player labels (champion name + node)
+		// Player labels (champion name + transport badge + node)
 		for (let i = 0; i < 2; i++) {
 			const alive = gs.alive?.[i] ?? true;
 			const player = players.find((p) => p.wall_index === i);
 			if (!player) continue;
 
-			const full = player.node_id ?? '';
-			const atIdx = full.indexOf('@');
-			const champName = atIdx > 0 ? full.slice(0, atIdx) : `P${i}`;
-			const nodePart = atIdx > 0 ? full.slice(atIdx + 1).split('@')[0] : '';
+			const champName = playerLabel(player, i);
+			const transport = player.transport;
+			const nodePart = nodeLabel(player);
 
 			const x = i === 0 ? 20 : CANVAS - 20;
 			const align: CanvasTextAlign = i === 0 ? 'left' : 'right';
@@ -183,7 +197,16 @@
 			ctx.fillStyle = alive ? (PLAYER_COLORS[i] ?? '#666') : DEAD_COLOR;
 			ctx.font = 'bold 11px monospace';
 			ctx.textAlign = align;
-			ctx.fillText(champName.slice(0, 12), x, CANVAS - 18);
+			ctx.fillText(champName.slice(0, 14), x, CANVAS - 28);
+
+			// Transport badge
+			if (transport && transport !== 'undefined') {
+				const badgeColor = transport === 'mesh' ? '#10b981' : transport === 'lan' ? '#a855f7' : '#6b7280';
+				ctx.font = '8px monospace';
+				ctx.fillStyle = badgeColor;
+				const tagX = i === 0 ? x : x;
+				ctx.fillText(transport.toUpperCase(), tagX, CANVAS - 16);
+			}
 
 			if (nodePart) {
 				ctx.font = '9px monospace';

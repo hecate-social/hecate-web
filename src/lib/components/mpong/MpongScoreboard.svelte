@@ -10,7 +10,7 @@
 	let { players, gameState }: Props = $props();
 
 	function playerName(player: MpongPlayer): string {
-		// node_id format: "ChampionName@node_name" or "bot_N@node_name"
+		if (player.champion_name && player.champion_name !== 'undefined') return player.champion_name;
 		const full = player.node_id ?? '';
 		const atIdx = full.indexOf('@');
 		if (atIdx > 0) return full.slice(0, atIdx);
@@ -22,9 +22,18 @@
 		const atIdx = full.indexOf('@');
 		if (atIdx > 0) {
 			const node = full.slice(atIdx + 1);
-			return node.split('@')[0] ?? node;  // handle double-@ from bot names
+			return node.split('@')[0] ?? node;
 		}
 		return '';
+	}
+
+	function transportBadge(player: MpongPlayer): { label: string; cls: string } | null {
+		const t = player.transport;
+		if (!t || t === 'undefined') return null;
+		if (t === 'mesh') return { label: 'MESH', cls: 'bg-emerald-800/40 text-emerald-400' };
+		if (t === 'lan') return { label: 'LAN', cls: 'bg-purple-800/40 text-purple-400' };
+		if (t === 'local') return { label: 'LOCAL', cls: 'bg-gray-700/40 text-gray-400' };
+		return { label: t.toUpperCase(), cls: 'bg-gray-700/40 text-gray-400' };
 	}
 </script>
 
@@ -37,6 +46,7 @@
 		{@const gw = gameState?.games_won?.[wi] ?? 0}
 		{@const isServing = gameState?.serving === wi}
 		{@const color = PLAYER_COLORS[wi] ?? '#666'}
+		{@const badge = transportBadge(player)}
 
 		<div class="space-y-0.5">
 			<div class="flex items-center justify-between">
@@ -48,16 +58,26 @@
 					{/if}
 				</div>
 				<div class="flex items-center gap-2 font-mono text-xs">
-					<!-- Game wins as dots -->
 					{#each Array(gw) as _}
 						<span class="w-1.5 h-1.5 rounded-full" style="background-color: {color}"></span>
 					{/each}
 					<span class="font-bold" style="color: {color}">{pts}</span>
 				</div>
 			</div>
-			{#if nodeName(player)}
-				<div class="text-[10px] text-gray-600 ml-4">{nodeName(player)}</div>
-			{/if}
+			<div class="flex items-center gap-1.5 ml-4 text-[10px]">
+				{#if badge}
+					<span class="px-1 rounded {badge.cls}">{badge.label}</span>
+				{/if}
+				{#if player.country}
+					<span class="text-gray-500">{player.city ? `${player.city}, ${player.country}` : player.country}</span>
+				{/if}
+				{#if player.rtt_ms != null && player.rtt_ms !== undefined}
+					<span class="text-gray-500">{player.rtt_ms}ms</span>
+				{/if}
+				{#if nodeName(player)}
+					<span class="text-gray-600">{nodeName(player)}</span>
+				{/if}
+			</div>
 		</div>
 	{/each}
 </div>
