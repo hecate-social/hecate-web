@@ -21,24 +21,13 @@
 		selectedGameId = gameId;
 		loadError = null;
 
-		// Connect SSE first
+		// Connect SSE — game state arrives in real-time, no projection needed
 		connectGameStream(gameId);
 		disconnectLobbyStream();
 
-		// Fetch game data (retries for projection lag)
-		let game = null;
-		for (let attempt = 0; attempt < 10; attempt++) {
-			game = await fetchGame(gameId);
-			if (game) break;
-			await new Promise((r) => setTimeout(r, 300));
-		}
-
-		if (!game) {
-			loadError = 'Game not found';
-			return;
-		}
-
-		// Poll game state for lifecycle updates
+		// Fetch projection in background (for metadata like player names)
+		// Never block the game view on this
+		fetchGame(gameId);
 		pollInterval = setInterval(() => fetchGame(gameId), 2000);
 	}
 
