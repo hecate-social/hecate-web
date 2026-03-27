@@ -73,13 +73,10 @@
 	}
 
 	// =====================================================================
-	// TOPOLOGY LAYOUT
+	// TOPOLOGY LAYOUT (Canvas-based, GPU-accelerated)
 	// =====================================================================
-	const VIZ_W = 400;
-	const VIZ_H = 240;
-	const CX = VIZ_W / 2;
-	const CY = VIZ_H / 2;
-	const ORBIT_R = 85;
+	let vizCanvas: HTMLCanvasElement | null = null;
+	let vizCtx: CanvasRenderingContext2D | null = null;
 
 	interface PeerNode {
 		id: string;
@@ -98,18 +95,184 @@
 			return {
 				id: p.node_id,
 				label: truncateId(p.node_id, 10),
-				x: CX + Math.cos(a) * ORBIT_R,
-				y: CY + Math.sin(a) * ORBIT_R,
+				x: 0.5 + Math.cos(a) * 0.35,  // normalized [0,1]
+				y: 0.5 + Math.sin(a) * 0.42,
 				angle: a,
 			};
 		});
 	});
+
+	function resizeCanvas() {
+		if (!vizCanvas) return;
+		const rect = vizCanvas.parentElement?.getBoundingClientRect();
+		if (!rect) return;
+		const dpr = window.devicePixelRatio || 1;
+		vizCanvas.width = rect.width * dpr;
+		vizCanvas.height = rect.height * dpr;
+		vizCanvas.style.width = rect.width + 'px';
+		vizCanvas.style.height = rect.height + 'px';
+		vizCtx = vizCanvas.getContext('2d');
+		if (vizCtx) vizCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
+	}
+
+	function drawViz(now: number) {
+		if (!vizCtx || !vizCanvas) return;
+		const w = vizCanvas.clientWidth;
+		const h = vizCanvas.clientHeight;
+		if (!w || !h) return;
+		const ctx = vizCtx;
+		const cx = w / 2;
+		const cy = h / 2;
+
+		// Clear
+		ctx.clearRect(0, 0, w, h);
+
+		// Grid circles
+		ctx.strokeStyle = 'rgba(var(--color-hecate-400-rgb, 139,192,128), 0.06)';
+		ctx.lineWidth = 0.5;
+		for (const r of [30, 60, 90, 120]) {
+			const sr = r * (h / 240);
+			ctx.beginPath();
+			ctx.arc(cx, cy, sr, 0, Math.PI * 2);
+			ctx.stroke();
+		}
+		// Crosshairs
+		ctx.beginPath();
+		ctx.moveTo(cx, 0); ctx.lineTo(cx, h);
+		ctx.moveTo(0, cy); ctx.lineTo(w, cy);
+		ctx.lineWidth = 0.3;
+		ctx.stroke();
+
+		// Sweep line
+		const sweepEndX = cx + Math.cos(sweepAngle) * Math.min(w, h) * 0.55;
+		const sweepEndY = cy + Math.sin(sweepAngle) * Math.min(w, h) * 0.55;
+		ctx.beginPath();
+		ctx.moveTo(cx, cy);
+		ctx.lineTo(sweepEndX, sweepEndY);
+		ctx.strokeStyle = 'rgba(var(--color-hecate-400-rgb, 139,192,128), 0.15)';
+		ctx.lineWidth = 1;
+		ctx.stroke();
+
+		// Connection lines to peers
+		const hecateColor = getComputedStyle(vizCanvas).getPropertyValue('--color-hecate-400').trim() || '#8bc080';
+		const successColor = getComputedStyle(vizCanvas).getPropertyValue('--color-success-400').trim() || '#4ade80';
+
+		for (const node of peerNodes) {
+			const nx = node.x * w;
+			const ny = node.y * h;
+			const isSelected = node.id === selectedPeerId || node.id === vizHoveredPeer;
+
+			ctx.beginPath();
+			ctx.moveTo(cx, cy);
+			ctx.lineTo(nx, ny);
+			ctx.strokeStyle = isSelected ? hecateColor + 'a0' : hecateColor + '33';
+			ctx.lineWidth = isSelected ? 1.2 : 0.6;
+			if (!isSelected) {
+				ctx.setLineDash([3, 4]);
+				ctx.lineDashOffset = -(now / 100) % 14;
+			}
+			ctx.stroke();
+			ctx.setLineDash([]);
+
+			// Data flow particles for selected
+			if (isSelected) {
+				const t = ((now / 1500) % 1);
+				const px = cx + (nx - cx) * t;
+				const py = cy + (ny - cy) * t;
+				ctx.beginPath();
+				ctx.arc(px, py, 1.5, 0, Math.PI * 2);
+				ctx.fillStyle = hecateColor;
+				ctx.fill();
+				const t2 = ((now / 1500 + 0.5) % 1);
+				const px2 = nx + (cx - nx) * t2;
+				const py2 = ny + (cy - ny) * t2;
+				ctx.beginPath();
+				ctx.arc(px2, py2, 1.5, 0, Math.PI * 2);
+				ctx.fill();
+			}
+		}
+
+		// Departing peers (ripple)
+		for (const dp of departingPeers) {
+			const elapsed = now - (dp.removeAt - 1500);
+			const progress = Math.min(elapsed / 1500, 1);
+			ctx.beginPath();
+			ctx.arc(dp.x * w, dp.y * h, (6 + progress * 30) * (h / 240), 0, Math.PI * 2);
+			ctx.strokeStyle = `rgba(248,113,113,${0.5 * (1 - progress)})`;
+			ctx.lineWidth = 1 - progress;
+			ctx.stroke();
+		}
+
+		// Center node glow
+		const grad = ctx.createRadialGradient(cx, cy, 0, cx, cy, 28 * (h / 240));
+		grad.addColorStop(0, hecateColor + '99');
+		grad.addColorStop(0.5, hecateColor + '26');
+		grad.addColorStop(1, hecateColor + '00');
+		ctx.fillStyle = grad;
+		ctx.fillRect(cx - 30, cy - 30, 60, 60);
+
+		// Center dot
+		const pulse = 5.5 + Math.sin(now / 500) * 0.5;
+		ctx.beginPath();
+		ctx.arc(cx, cy, pulse, 0, Math.PI * 2);
+		ctx.fillStyle = hecateColor + '80';
+		ctx.fill();
+		ctx.strokeStyle = hecateColor;
+		ctx.lineWidth = 1.5;
+		ctx.stroke();
+
+		// "self" label
+		ctx.fillStyle = hecateColor + 'b3';
+		ctx.font = '7px monospace';
+		ctx.textAlign = 'center';
+		ctx.fillText('self', cx, cy + 16);
+
+		// Peer nodes
+		for (let i = 0; i < peerNodes.length; i++) {
+			const node = peerNodes[i];
+			const nx = node.x * w;
+			const ny = node.y * h;
+			const isSelected = node.id === selectedPeerId || node.id === vizHoveredPeer;
+			const r = isSelected ? 5 : 4;
+
+			// Selection ring
+			if (isSelected) {
+				const rr = 10 + Math.sin(now / 300) * 2;
+				ctx.beginPath();
+				ctx.arc(nx, ny, rr, 0, Math.PI * 2);
+				ctx.strokeStyle = hecateColor + '80';
+				ctx.lineWidth = 0.5;
+				ctx.stroke();
+			}
+
+			// Dot
+			ctx.beginPath();
+			ctx.arc(nx, ny, r, 0, Math.PI * 2);
+			ctx.fillStyle = isSelected ? hecateColor : successColor;
+			ctx.fill();
+
+			// Label
+			ctx.fillStyle = isSelected ? hecateColor + 'e6' : 'rgba(160,170,180,0.5)';
+			ctx.font = '6px monospace';
+			ctx.textAlign = 'center';
+			ctx.fillText(node.label, nx, ny < cy ? ny - 9 : ny + 13);
+		}
+
+		// Empty state
+		if (peers.length === 0) {
+			ctx.fillStyle = 'rgba(160,170,180,0.4)';
+			ctx.font = '8px monospace';
+			ctx.textAlign = 'center';
+			ctx.fillText(meshConnected ? 'scanning for peers...' : 'mesh offline', cx, cy + 40);
+		}
+	}
 
 	// =====================================================================
 	// ANIMATION LOOP
 	// =====================================================================
 	function startVizLoop() {
 		let last = performance.now();
+		resizeCanvas();
 		function frame(now: number) {
 			const dt = (now - last) / 1000;
 			last = now;
@@ -119,6 +282,7 @@
 			// Clean up departed peers
 			departingPeers = departingPeers.filter(d => d.removeAt > now);
 
+			drawViz(now);
 			vizFrame = requestAnimationFrame(frame);
 		}
 		vizFrame = requestAnimationFrame(frame);
@@ -156,12 +320,12 @@
 				}
 				case 'peer_disconnected': {
 					const peer = data as MeshPeer;
-					// Capture position for fade-out animation
+					// Capture normalized position for fade-out animation
 					const existing = peerNodes.find(n => n.id === peer.node_id);
 					if (existing) {
 						departingPeers = [...departingPeers, {
 							node_id: peer.node_id,
-							x: existing.x,
+							x: existing.x,   // normalized [0,1]
 							y: existing.y,
 							removeAt: performance.now() + 1500
 						}];
@@ -429,14 +593,21 @@
 	// =====================================================================
 	// LIFECYCLE
 	// =====================================================================
+	let resizeObs: ResizeObserver | null = null;
+
 	onMount(() => {
 		startSSE();
 		startVizLoop();
+		if (vizCanvas?.parentElement) {
+			resizeObs = new ResizeObserver(() => resizeCanvas());
+			resizeObs.observe(vizCanvas.parentElement);
+		}
 	});
 
 	onDestroy(() => {
 		if (closeSSE) closeSSE();
 		if (vizFrame) cancelAnimationFrame(vizFrame);
+		if (resizeObs) resizeObs.disconnect();
 	});
 </script>
 
@@ -479,244 +650,10 @@
 	<!-- ================================================================= -->
 	{#if currentView === 'peers'}
 		<div class="shrink-0 border-b border-surface-800 overflow-hidden relative mesh-viz-container">
-			<svg
-				viewBox="0 0 {VIZ_W} {VIZ_H}"
+			<canvas
+				bind:this={vizCanvas}
 				class="w-full h-full"
-				xmlns="http://www.w3.org/2000/svg"
-			>
-				<defs>
-					<!-- Radial glow for center node -->
-					<radialGradient id="core-glow" cx="50%" cy="50%" r="50%">
-						<stop offset="0%" stop-color="var(--color-hecate-400)" stop-opacity="0.6" />
-						<stop offset="50%" stop-color="var(--color-hecate-600)" stop-opacity="0.15" />
-						<stop offset="100%" stop-color="var(--color-hecate-600)" stop-opacity="0" />
-					</radialGradient>
-
-					<!-- Connection line gradient -->
-					<linearGradient id="conn-grad" x1="0%" y1="0%" x2="100%" y2="0%">
-						<stop offset="0%" stop-color="var(--color-hecate-400)" stop-opacity="0.5" />
-						<stop offset="100%" stop-color="var(--color-hecate-400)" stop-opacity="0.15" />
-					</linearGradient>
-
-					<!-- Sweep gradient (radar line) -->
-					<linearGradient id="sweep-fade" x1="0%" y1="0%" x2="100%" y2="0%" gradientUnits="userSpaceOnUse">
-						<stop offset="0%" stop-color="var(--color-hecate-400)" stop-opacity="0" />
-						<stop offset="70%" stop-color="var(--color-hecate-400)" stop-opacity="0.06" />
-						<stop offset="100%" stop-color="var(--color-hecate-400)" stop-opacity="0.2" />
-					</linearGradient>
-
-					<!-- Bloom filter for new peers -->
-					<filter id="bloom" x="-50%" y="-50%" width="200%" height="200%">
-						<feGaussianBlur in="SourceGraphic" stdDeviation="3" result="blur" />
-						<feMerge>
-							<feMergeNode in="blur" />
-							<feMergeNode in="SourceGraphic" />
-						</feMerge>
-					</filter>
-
-					<!-- Subtle glow for peer nodes -->
-					<filter id="peer-glow" x="-100%" y="-100%" width="300%" height="300%">
-						<feGaussianBlur in="SourceGraphic" stdDeviation="2" result="blur" />
-						<feMerge>
-							<feMergeNode in="blur" />
-							<feMergeNode in="SourceGraphic" />
-						</feMerge>
-					</filter>
-
-					<!-- Ripple for disconnected peers -->
-					<filter id="ripple-blur" x="-200%" y="-200%" width="500%" height="500%">
-						<feGaussianBlur in="SourceGraphic" stdDeviation="4" />
-					</filter>
-				</defs>
-
-				<!-- Background grid (subtle) -->
-				<g opacity="0.06">
-					{#each [30, 60, 90, 120] as r}
-						<circle cx={CX} cy={CY} {r} fill="none" stroke="var(--color-hecate-400)" stroke-width="0.5" />
-					{/each}
-					<!-- Cross hairs -->
-					<line x1={CX} y1={CY - 125} x2={CX} y2={CY + 125} stroke="var(--color-hecate-400)" stroke-width="0.3" />
-					<line x1={CX - 160} y1={CY} x2={CX + 160} y2={CY} stroke="var(--color-hecate-400)" stroke-width="0.3" />
-				</g>
-
-				<!-- Sweep line (radar) -->
-				<line
-					x1={CX}
-					y1={CY}
-					x2={CX + Math.cos(sweepAngle) * 140}
-					y2={CY + Math.sin(sweepAngle) * 140}
-					stroke="var(--color-hecate-400)"
-					stroke-width="1"
-					opacity="0.15"
-				/>
-				<!-- Sweep arc trail -->
-				<path
-					d="M {CX},{CY} L {CX + Math.cos(sweepAngle) * 140},{CY + Math.sin(sweepAngle) * 140} A 140,140 0 0,0 {CX + Math.cos(sweepAngle - 0.5) * 140},{CY + Math.sin(sweepAngle - 0.5) * 140} Z"
-					fill="var(--color-hecate-400)"
-					opacity="0.04"
-				/>
-
-				<!-- Connection lines from center to each peer -->
-				{#each peerNodes as node}
-					{@const isSelected = node.id === selectedPeerId || node.id === vizHoveredPeer}
-					<line
-						x1={CX}
-						y1={CY}
-						x2={node.x}
-						y2={node.y}
-						stroke="var(--color-hecate-400)"
-						stroke-width={isSelected ? 1.2 : 0.6}
-						opacity={isSelected ? 0.6 : 0.2}
-						stroke-dasharray={isSelected ? 'none' : '3,4'}
-					>
-						{#if !isSelected}
-							<animate attributeName="stroke-dashoffset" from="0" to="-14" dur="2s" repeatCount="indefinite" />
-						{/if}
-					</line>
-					<!-- Data flow particles along connection -->
-					{#if isSelected}
-						<circle r="1.5" fill="var(--color-hecate-400)" opacity="0.8">
-							<animateMotion dur="1.5s" repeatCount="indefinite"
-								path="M {CX},{CY} L {node.x},{node.y}" />
-						</circle>
-						<circle r="1.5" fill="var(--color-hecate-400)" opacity="0.8">
-							<animateMotion dur="1.5s" repeatCount="indefinite" begin="0.75s"
-								path="M {node.x},{node.y} L {CX},{CY}" />
-						</circle>
-					{/if}
-				{/each}
-
-				<!-- Departing peers (ripple fade-out) -->
-				{#each departingPeers as dp}
-					{@const elapsed = vizTime - (dp.removeAt - 1500)}
-					{@const progress = Math.min(elapsed / 1500, 1)}
-					<circle
-						cx={dp.x}
-						cy={dp.y}
-						r={6 + progress * 30}
-						fill="none"
-						stroke="var(--color-danger-400)"
-						stroke-width={1 - progress}
-						opacity={0.5 * (1 - progress)}
-					/>
-					<circle
-						cx={dp.x}
-						cy={dp.y}
-						r="4"
-						fill="var(--color-danger-400)"
-						opacity={0.6 * (1 - progress)}
-						filter="url(#ripple-blur)"
-					/>
-				{/each}
-
-				<!-- Core glow (self) -->
-				<circle cx={CX} cy={CY} r="28" fill="url(#core-glow)" />
-
-				<!-- Center node (self) -->
-				<circle
-					cx={CX} cy={CY} r="6"
-					fill="var(--color-hecate-600)"
-					stroke="var(--color-hecate-400)"
-					stroke-width="1.5"
-					filter="url(#bloom)"
-				>
-					<animate attributeName="r" values="5.5;6.5;5.5" dur="3s" repeatCount="indefinite" />
-				</circle>
-				<text
-					x={CX}
-					y={CY + 16}
-					text-anchor="middle"
-					fill="var(--color-hecate-400)"
-					font-size="7"
-					font-family="monospace"
-					opacity="0.7"
-				>self</text>
-
-				<!-- Peer nodes -->
-				{#each peerNodes as node, i}
-					{@const isSelected = node.id === selectedPeerId || node.id === vizHoveredPeer}
-					{@const isNew = (peers[i]?.connected_at ?? 0) > Date.now() - 5000}
-					<!-- svelte-ignore a11y_click_events_have_key_events -->
-					<!-- svelte-ignore a11y_no_static_element_interactions -->
-					<g
-						class="cursor-pointer"
-						onclick={() => selectPeerInList(node.id)}
-						onmouseenter={() => { vizHoveredPeer = node.id; }}
-						onmouseleave={() => { vizHoveredPeer = null; }}
-					>
-						<!-- Outer ring for selected/new -->
-						{#if isSelected}
-							<circle
-								cx={node.x}
-								cy={node.y}
-								r="12"
-								fill="none"
-								stroke="var(--color-hecate-400)"
-								stroke-width="0.5"
-								opacity="0.5"
-							>
-								<animate attributeName="r" values="10;14;10" dur="2s" repeatCount="indefinite" />
-								<animate attributeName="opacity" values="0.5;0.2;0.5" dur="2s" repeatCount="indefinite" />
-							</circle>
-						{/if}
-						{#if isNew}
-							<circle
-								cx={node.x}
-								cy={node.y}
-								r="10"
-								fill="var(--color-success-400)"
-								opacity="0.15"
-								filter="url(#bloom)"
-							>
-								<animate attributeName="r" values="8;18;8" dur="2s" repeatCount="1" fill="freeze" />
-								<animate attributeName="opacity" values="0.3;0;0" dur="2s" repeatCount="1" fill="freeze" />
-							</circle>
-						{/if}
-						<!-- Peer dot -->
-						<circle
-							cx={node.x}
-							cy={node.y}
-							r={isSelected ? 5 : 4}
-							fill={isSelected ? 'var(--color-hecate-400)' : 'var(--color-success-400)'}
-							stroke={isSelected ? 'var(--color-hecate-300)' : 'var(--color-success-400)'}
-							stroke-width={isSelected ? 1.5 : 0.5}
-							opacity={isSelected ? 1 : 0.8}
-							filter="url(#peer-glow)"
-						/>
-						<!-- Label -->
-						<text
-							x={node.x}
-							y={node.y + (node.y < CY ? -9 : 13)}
-							text-anchor="middle"
-							fill={isSelected ? 'var(--color-hecate-300)' : 'var(--color-surface-400)'}
-							font-size="6"
-							font-family="monospace"
-							opacity={isSelected ? 0.9 : 0.5}
-						>{node.label}</text>
-					</g>
-				{/each}
-
-				<!-- Empty state -->
-				{#if peers.length === 0 && meshConnected}
-					<text
-						x={CX}
-						y={CY + 40}
-						text-anchor="middle"
-						fill="var(--color-surface-500)"
-						font-size="8"
-						font-family="monospace"
-					>scanning for peers...</text>
-				{:else if !meshConnected}
-					<text
-						x={CX}
-						y={CY + 40}
-						text-anchor="middle"
-						fill="var(--color-surface-600)"
-						font-size="8"
-						font-family="monospace"
-					>mesh offline</text>
-				{/if}
-			</svg>
+			></canvas>
 
 			<!-- Corner stats overlay -->
 			<div class="absolute top-2 left-3 text-[9px] font-mono text-surface-600 leading-tight pointer-events-none">
