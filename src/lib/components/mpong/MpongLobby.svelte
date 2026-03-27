@@ -40,8 +40,32 @@
 		waitingForLobbyGame = true;
 		const gameId = await openLobby(2, mode);
 		openingLobby = false;
-		// Store the game_id so we can navigate when the game starts
-		if (gameId) hostedGameId = gameId;
+		if (!gameId) return;
+		hostedGameId = gameId;
+
+		// For mesh mode, challengers join within milliseconds.
+		// Poll aggressively to catch the fast transition.
+		if (mode === 'mesh' || mode === 'mixed') {
+			const fastPoll = setInterval(async () => {
+				await fetchLobbies();
+				const lobby = $lobbies.find((l) => l.game_id === gameId);
+				if (lobby && (lobby.state === 'playing' || lobby.state === 'countdown')) {
+					clearInterval(fastPoll);
+					waitingForLobbyGame = false;
+					hostedGameId = null;
+					onSelectGame(gameId);
+				}
+				if (!lobby) {
+					// Lobby gone — game already started
+					clearInterval(fastPoll);
+					waitingForLobbyGame = false;
+					hostedGameId = null;
+					onSelectGame(gameId);
+				}
+			}, 300);
+			// Clean up after 30s
+			setTimeout(() => clearInterval(fastPoll), 30000);
+		}
 	}
 
 	// Track the game_id we're hosting, and whether we're waiting for it to start
