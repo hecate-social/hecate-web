@@ -33,10 +33,10 @@ pub fn run() {
             #[cfg(desktop)]
             app.handle()
                 .plugin(tauri_plugin_updater::Builder::new().build())?;
-            let window = app.get_webview_window("main").unwrap();
+            let _window = app.get_webview_window("main").unwrap();
             #[cfg(target_os = "linux")]
             {
-                window.with_webview(|webview| {
+                _window.with_webview(|webview| {
                     use webkit2gtk::WebViewExt;
                     use webkit2gtk::SettingsExt;
                     if let Some(settings) = webview.inner().settings() {
@@ -44,9 +44,7 @@ pub fn run() {
                     }
                 }).ok();
             }
-            // Open devtools in debug builds
-            #[cfg(debug_assertions)]
-            window.open_devtools();
+            // Devtools available in all builds via F12 / Ctrl+Shift+I
 
             daemon_watcher::start(app.handle().clone());
             daemon_streaming::start(app.handle().clone());
