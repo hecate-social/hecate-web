@@ -146,9 +146,13 @@ pub fn proxy_request(
     request: &Request<Vec<u8>>,
 ) -> Result<Response<Vec<u8>>, Box<dyn std::error::Error>> {
     let uri = request.uri();
-    let path = uri.path();
+    let raw_path = uri.path();
+    // Tauri custom protocols may include "localhost" in the path: /localhost/health → /health
+    let path = raw_path.strip_prefix("/localhost").unwrap_or(raw_path);
     let query = uri.query().unwrap_or("");
     let method = request.method().as_str();
+
+    eprintln!("[proxy] {} {} (raw: {}, socket_query: {})", method, path, raw_path, query);
 
     let (socket_path, rewritten_path) = resolve_socket_for_path(path);
     let mut stream = UnixStream::connect(&socket_path)?;
