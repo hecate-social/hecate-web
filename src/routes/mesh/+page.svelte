@@ -210,10 +210,10 @@
 		for (const server of relays) {
 			r.push({ key: `relay-${server}`, label: 'Relay', value: server, section: 'RELAYS', copyable: true });
 		}
-		for (const topic of meshStatus.subscriptions) {
+		for (const topic of meshStatus?.subscriptions ?? []) {
 			r.push({ key: `sub-${topic}`, label: 'Topic', value: topic, section: 'SUBSCRIPTIONS', copyable: true });
 		}
-		if (meshStatus.subscriptions.length === 0) {
+		if ((meshStatus?.subscriptions?.length ?? 0) === 0) {
 			r.push({ key: 'no-subs', label: '', value: 'none', section: 'SUBSCRIPTIONS', highlight: 'dim' });
 		}
 		return r;
