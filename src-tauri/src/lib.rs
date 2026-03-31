@@ -14,11 +14,11 @@ use tauri::http::Response;
 use tauri::Manager;
 
 #[tauri::command]
-fn toggle_devtools(window: tauri::Window) {
-    if window.is_devtools_open() {
-        window.close_devtools();
+fn toggle_devtools(webview: tauri::WebviewWindow) {
+    if webview.is_devtools_open() {
+        webview.close_devtools();
     } else {
-        window.open_devtools();
+        webview.open_devtools();
     }
 }
 
