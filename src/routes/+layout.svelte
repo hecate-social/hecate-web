@@ -83,6 +83,28 @@
 		);
 	}
 
+	// F12 or Ctrl+Shift+I: toggle devtools
+	const unregisterDevtools = registerShortcut({
+		key: 'F12',
+		modifiers: [],
+		label: 'Toggle DevTools',
+		category: 'Developer',
+		handler: async () => {
+			const { invoke } = await import('@tauri-apps/api/core');
+			invoke('toggle_devtools').catch(() => {});
+		},
+	});
+	const unregisterDevtools2 = registerShortcut({
+		key: 'i',
+		modifiers: ['ctrl', 'shift'],
+		label: 'Toggle DevTools',
+		category: 'Developer',
+		handler: async () => {
+			const { invoke } = await import('@tauri-apps/api/core');
+			invoke('toggle_devtools').catch(() => {});
+		},
+	});
+
 	onMount(() => {
 		runStartupChecklist();
 		updateInterval = setInterval(() => {
@@ -102,6 +124,8 @@
 		unregisterTabForward();
 		unregisterTabBackward();
 		unregisterAltNums.forEach((fn) => fn());
+		unregisterDevtools();
+		unregisterDevtools2();
 	});
 </script>
 

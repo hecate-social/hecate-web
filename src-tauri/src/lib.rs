@@ -13,6 +13,15 @@ mod webview_opener;
 use tauri::http::Response;
 use tauri::Manager;
 
+#[tauri::command]
+fn toggle_devtools(window: tauri::Window) {
+    if window.is_devtools_open() {
+        window.close_devtools();
+    } else {
+        window.open_devtools();
+    }
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -35,6 +44,10 @@ pub fn run() {
                     }
                 }).ok();
             }
+            // Open devtools in debug builds
+            #[cfg(debug_assertions)]
+            window.open_devtools();
+
             daemon_watcher::start(app.handle().clone());
             daemon_streaming::start(app.handle().clone());
             plugin_watcher::start(app.handle().clone());
@@ -59,6 +72,7 @@ pub fn run() {
             });
         })
         .invoke_handler(tauri::generate_handler![
+            toggle_devtools,
             app_updater::check_app_update,
             app_updater::install_app_update,
             plugin_updater::check_plugin_updates,
