@@ -16,20 +16,31 @@
 		return $isReady ? 'text-health-ok' : 'text-health-warn animate-pulse';
 	}
 
-	function relayLabel(): string {
-		if ($connectionStatus !== 'connected' || !$isReady) return '';
+	function meshLed(): string {
 		const r = $currentRelay;
-		if (!r) return '';
-		const city = r.city ?? r.hostname?.split('.')[0] ?? '';
-		const rtt = r.rtt_ms != null ? ` \u00B7 ${r.rtt_ms}ms` : '';
-		return `${city}${rtt}`;
+		if (r?.hostname) return 'text-health-ok';              // connected to relay
+		if ($totalOnline > 0) return 'text-amber-400 animate-pulse';  // connecting
+		return 'text-surface-400';                              // local mode (neutral)
+	}
+
+	function meshIcon(): string {
+		const r = $currentRelay;
+		if (r?.hostname) return '\u{25CF}';   // filled circle — connected
+		if ($totalOnline > 0) return '\u{25C7}'; // diamond outline — connecting
+		return '\u{25C6}';                       // filled diamond — local
 	}
 
 	function connectionLabel(): string {
-		if ($connectionStatus === 'error') return 'Offline';
-		if ($connectionStatus !== 'connected') return 'Connecting...';
+		if ($connectionStatus === 'error') return 'Daemon offline';
+		if ($connectionStatus !== 'connected') return 'Starting...';
 		if (!$isReady) return 'Starting...';
-		return relayLabel() || 'Connected';
+		const r = $currentRelay;
+		if (r?.hostname) {
+			const city = r.city ?? r.hostname?.split('.')[0] ?? '';
+			const rtt = r.rtt_ms != null ? ` \u00B7 ${r.rtt_ms}ms` : '';
+			return `${city}${rtt}`;
+		}
+		return 'Local';
 	}
 
 	async function minimize() {
@@ -92,7 +103,7 @@
 			text-[10px] text-surface-400 hover:text-surface-200 transition-colors"
 		title={$currentRelay?.hostname ?? 'Mesh connection'}
 	>
-		<span class={daemonLed()}>{'\u{25CF}'}</span>
+		<span class={meshLed()}>{meshIcon()}</span>
 		<span class="font-medium">{connectionLabel()}</span>
 		{#if $totalOnline > 0}
 			<span class="text-surface-500">{'\u{00B7}'} {$totalOnline} relays</span>
