@@ -20,6 +20,7 @@ export interface DaemonHealth {
 	uptime_seconds: number;
 	identity?: 'initialized' | 'not_initialized';
 	boot?: BootStatus;
+	viewstate?: import('$lib/viewstate').Viewstate;
 }
 
 // --- UI State ---

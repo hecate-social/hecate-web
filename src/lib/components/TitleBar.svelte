@@ -1,47 +1,15 @@
 <script lang="ts">
-	import { connectionStatus, isReady } from '../stores/daemon.js';
+	import { viewstate } from '../stores/daemon';
 	import { hasUpdate, updateVersion, updateState, showUpdateModal } from '../stores/updater.js';
-	import { settings } from '../stores/settings';
 	import { txActive, rxActive } from '../stores/traffic.js';
-	import { currentRelay, totalOnline } from '../stores/relay';
+	import { variantClass, iconChar } from '$lib/viewstate';
 	import { isTauri } from '$lib/tauri';
 	import { get as apiGet } from '$lib/api';
 
-	let realmId = $derived($settings?.realms?.[0]?.realm_id ?? null);
 	let showWindowControls = $state(false);
 	let appVersion = $state('...');
 
-	function daemonLed(): string {
-		if ($connectionStatus !== 'connected') return 'text-health-err';
-		return $isReady ? 'text-health-ok' : 'text-health-warn animate-pulse';
-	}
-
-	function meshLed(): string {
-		const r = $currentRelay;
-		if (r?.hostname) return 'text-health-ok';              // connected to relay
-		if ($totalOnline > 0) return 'text-amber-400 animate-pulse';  // connecting
-		return 'text-surface-400';                              // local mode (neutral)
-	}
-
-	function meshIcon(): string {
-		const r = $currentRelay;
-		if (r?.hostname) return '\u{25CF}';   // filled circle — connected
-		if ($totalOnline > 0) return '\u{25C7}'; // diamond outline — connecting
-		return '\u{25C6}';                       // filled diamond — local
-	}
-
-	function connectionLabel(): string {
-		if ($connectionStatus === 'error') return 'Daemon offline';
-		if ($connectionStatus !== 'connected') return 'Starting...';
-		if (!$isReady) return 'Starting...';
-		const r = $currentRelay;
-		if (r?.hostname) {
-			const city = r.city ?? r.hostname?.split('.')[0] ?? '';
-			const rtt = r.rtt_ms != null ? ` \u00B7 ${r.rtt_ms}ms` : '';
-			return `${city}${rtt}`;
-		}
-		return 'Local';
-	}
+	let hdr = $derived($viewstate.header);
 
 	async function minimize() {
 		if (!isTauri()) return;
@@ -88,7 +56,7 @@
 		<span class="text-base">{'\u{1F525}\u{1F5DD}\u{FE0F}\u{1F525}'}</span>
 		<span class="text-sm font-bold text-hecate-400">Hecate</span>
 		<span class="text-[10px] text-surface-400 font-mono">v{appVersion}</span>
-		<span class={daemonLed()}>{'\u{25CF}'}</span>
+		<span class={variantClass[hdr.daemon.variant]}>{iconChar[hdr.daemon.icon]}</span>
 		<span class="flex items-center gap-0.5 ml-1.5 text-xs font-mono leading-none select-none">
 			<span class={$txActive ? 'text-amber-400' : 'text-surface-600'}>{'\u{25B2}'}</span>
 			<span class={$rxActive ? 'text-emerald-400' : 'text-surface-600'}>{'\u{25BC}'}</span>
@@ -101,17 +69,17 @@
 		class="flex items-center gap-1 ml-2 px-2 py-0.5 rounded-full
 			bg-surface-700/60 border border-surface-600 hover:border-surface-500
 			text-[10px] text-surface-400 hover:text-surface-200 transition-colors"
-		title={$currentRelay?.hostname ?? 'Mesh connection'}
+		title="Mesh connection"
 	>
-		<span class={meshLed()}>{meshIcon()}</span>
-		<span class="font-medium">{connectionLabel()}</span>
-		{#if $totalOnline > 0}
-			<span class="text-surface-500">{'\u{00B7}'} {$totalOnline} relays</span>
+		<span class={variantClass[hdr.mesh.variant]}>{iconChar[hdr.mesh.icon]}</span>
+		<span class="font-medium">{hdr.mesh.label ?? 'Local'}</span>
+		{#if hdr.mesh.sublabel}
+			<span class="text-surface-500">{'\u{00B7}'} {hdr.mesh.sublabel}</span>
 		{/if}
 	</a>
 
 	<!-- Realm badge -->
-	{#if realmId}
+	{#if hdr.realm.visible}
 		<a
 			href="/settings"
 			class="flex items-center gap-1 ml-1.5 px-2 py-0.5 rounded-full
@@ -121,7 +89,7 @@
 			<svg class="size-3 text-amber-400" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
 				<path stroke-linecap="round" stroke-linejoin="round" d="M12 21a9.004 9.004 0 0 0 8.716-6.747M12 21a9.004 9.004 0 0 1-8.716-6.747M12 21c2.485 0 4.5-4.03 4.5-9S14.485 3 12 3m0 18c-2.485 0-4.5-4.03-4.5-9S9.515 3 12 3m0 0a8.997 8.997 0 0 1 7.843 4.582M12 3a8.997 8.997 0 0 0-7.843 4.582m15.686 0A11.953 11.953 0 0 1 12 10.5c-2.998 0-5.74-1.1-7.843-2.918m15.686 0A8.959 8.959 0 0 1 21 12c0 .778-.099 1.533-.284 2.253m0 0A17.919 17.919 0 0 1 12 16.5c-3.162 0-6.133-.815-8.716-2.247m0 0A9.015 9.015 0 0 1 3 12c0-1.605.42-3.113 1.157-4.418" />
 			</svg>
-			<span class="font-medium">{realmId}</span>
+			<span class="font-medium">{hdr.realm.label}</span>
 		</a>
 	{/if}
 

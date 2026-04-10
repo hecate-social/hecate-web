@@ -1,38 +1,14 @@
 <script lang="ts">
-	import type { CheckStatus } from '$lib/stores/startup';
-	import { checks, startupDone, elapsedMs } from '$lib/stores/startup';
+	import { viewstate } from '$lib/stores/daemon';
+	import { startupDone, elapsedMs } from '$lib/stores/startup';
+	import { variantClass, iconChar } from '$lib/viewstate';
 	import { fade } from 'svelte/transition';
 
 	let visible = $derived(!$startupDone);
 	let elapsed = $derived(($elapsedMs / 1000).toFixed(1));
-	let doneCount = $derived($checks.filter(c => c.status === 'done').length);
 
-	function icon(status: CheckStatus): string {
-		switch (status) {
-			case 'done':    return '\u{2713}';
-			case 'active':  return '\u{25CF}';
-			case 'failed':  return '\u{2717}';
-			default:        return '\u{25CB}';
-		}
-	}
-
-	function iconColor(status: CheckStatus): string {
-		switch (status) {
-			case 'done':    return 'text-emerald-400';
-			case 'active':  return 'text-amber-400 animate-pulse';
-			case 'failed':  return 'text-red-400';
-			default:        return 'text-surface-600';
-		}
-	}
-
-	function labelColor(status: CheckStatus): string {
-		switch (status) {
-			case 'done':    return 'text-surface-300';
-			case 'active':  return 'text-surface-100';
-			case 'failed':  return 'text-red-400';
-			default:        return 'text-surface-600';
-		}
-	}
+	let steps = $derived($viewstate.startup.steps);
+	let doneCount = $derived(steps.filter(s => s.variant === 'ok').length);
 </script>
 
 {#if visible}
@@ -55,29 +31,21 @@
 				HECATE
 			</h1>
 
-			<!-- Checklist -->
+			<!-- Checklist (pure render from daemon viewstate) -->
 			<div class="flex flex-col gap-2.5 min-w-[260px]">
-				{#each $checks as check (check.id)}
+				{#each steps as step (step.id)}
 					<div class="flex items-start gap-3">
-						<span class={`text-sm w-4 text-center mt-0.5 ${iconColor(check.status)}`}>
-							{icon(check.status)}
+						<span class={`text-sm w-4 text-center mt-0.5 ${variantClass[step.variant]}`}>
+							{iconChar[step.icon]}
 						</span>
 						<div class="flex flex-col gap-0.5">
-							<span class={`text-xs font-medium ${labelColor(check.status)}`}>
-								{check.label}
+							<span class={`text-xs font-medium ${step.variant === 'ok' ? 'text-surface-300' : step.variant === 'warn' ? 'text-surface-100' : step.variant === 'err' ? 'text-red-400' : 'text-surface-600'}`}>
+								{step.label}
 							</span>
-							{#if check.detail && (check.status === 'active' || check.status === 'done')}
-								<span class="text-[10px] leading-tight {check.status === 'active' ? 'text-amber-400/70' : 'text-surface-500'}">
-									{check.detail.split('\n')[0]}
+							{#if step.detail}
+								<span class="text-[10px] leading-tight {step.variant === 'warn' ? 'text-amber-400/70' : 'text-surface-500'}">
+									{step.detail}
 								</span>
-								{#if check.detail.includes('\n')}
-									<span class="text-[9px] leading-tight text-surface-600 font-mono">
-										{check.detail.split('\n')[1]}
-									</span>
-								{/if}
-							{/if}
-							{#if check.status === 'failed' && check.detail}
-								<span class="text-[10px] text-red-400/70">{check.detail}</span>
 							{/if}
 						</div>
 					</div>
@@ -88,7 +56,7 @@
 			<div class="w-56 h-0.5 bg-surface-800 rounded-full overflow-hidden">
 				<div
 					class="h-full bg-gradient-to-r from-amber-500 to-purple-500 rounded-full transition-all duration-300"
-					style="width: {(doneCount / $checks.length) * 100}%"
+					style="width: {(doneCount / steps.length) * 100}%"
 				></div>
 			</div>
 
