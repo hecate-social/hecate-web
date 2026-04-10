@@ -3,6 +3,7 @@
 	import { hasUpdate, updateVersion, updateState, showUpdateModal } from '../stores/updater.js';
 	import { settings } from '../stores/settings';
 	import { txActive, rxActive } from '../stores/traffic.js';
+	import { currentRelay, totalOnline } from '../stores/relay';
 	import { isTauri } from '$lib/tauri';
 	import { get as apiGet } from '$lib/api';
 
@@ -13,6 +14,22 @@
 	function daemonLed(): string {
 		if ($connectionStatus !== 'connected') return 'text-health-err';
 		return $isReady ? 'text-health-ok' : 'text-health-warn animate-pulse';
+	}
+
+	function relayLabel(): string {
+		if ($connectionStatus !== 'connected' || !$isReady) return '';
+		const r = $currentRelay;
+		if (!r) return '';
+		const city = r.city ?? r.hostname?.split('.')[0] ?? '';
+		const rtt = r.rtt_ms != null ? ` \u00B7 ${r.rtt_ms}ms` : '';
+		return `${city}${rtt}`;
+	}
+
+	function connectionLabel(): string {
+		if ($connectionStatus === 'error') return 'Offline';
+		if ($connectionStatus !== 'connected') return 'Connecting...';
+		if (!$isReady) return 'Starting...';
+		return relayLabel() || 'Connected';
 	}
 
 	async function minimize() {
@@ -67,11 +84,26 @@
 		</span>
 	</a>
 
+	<!-- Connection status → links to /mesh -->
+	<a
+		href="/mesh"
+		class="flex items-center gap-1 ml-2 px-2 py-0.5 rounded-full
+			bg-surface-700/60 border border-surface-600 hover:border-surface-500
+			text-[10px] text-surface-400 hover:text-surface-200 transition-colors"
+		title={$currentRelay?.hostname ?? 'Mesh connection'}
+	>
+		<span class={daemonLed()}>{'\u{25CF}'}</span>
+		<span class="font-medium">{connectionLabel()}</span>
+		{#if $totalOnline > 0}
+			<span class="text-surface-500">{'\u{00B7}'} {$totalOnline} relays</span>
+		{/if}
+	</a>
+
 	<!-- Realm badge -->
 	{#if realmId}
 		<a
 			href="/settings"
-			class="flex items-center gap-1 ml-2 px-2 py-0.5 rounded-full
+			class="flex items-center gap-1 ml-1.5 px-2 py-0.5 rounded-full
 				bg-surface-700/60 border border-surface-600 hover:border-surface-500
 				text-[10px] text-surface-400 hover:text-surface-200 transition-colors"
 		>

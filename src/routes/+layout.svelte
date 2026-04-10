@@ -10,6 +10,7 @@
 	import KeyboardShortcutsHelp from '$lib/components/KeyboardShortcutsHelp.svelte';
 	import ToastContainer from '$lib/components/ToastContainer.svelte';
 	import { stopPolling } from '$lib/stores/daemon.js';
+	import { stopPolling as stopRelayPolling } from '$lib/stores/relay';
 	import { stopSettingsWatcher } from '$lib/stores/settings';
 	import { stopAppWatcher } from '$lib/stores/apps';
 	import { stopIdentityWatcher } from '$lib/stores/nodeIdentity';
@@ -115,6 +116,7 @@
 
 	onDestroy(() => {
 		stopPolling();
+		stopRelayPolling();
 		stopEventStream();
 		stopAppWatcher();
 		stopSettingsWatcher();

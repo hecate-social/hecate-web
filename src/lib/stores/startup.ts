@@ -22,6 +22,7 @@ import { startTrafficWatcher } from './traffic.js';
 import { startEventStream } from './events.js';
 import { checkForUpdate } from './updater.js';
 import { checkPluginUpdates } from './pluginUpdater.js';
+import { startPolling as startRelayPolling } from './relay';
 import type { DaemonHealth } from '../types.js';
 
 export type CheckStatus = 'pending' | 'active' | 'done' | 'failed';
@@ -99,6 +100,7 @@ export async function runStartupChecklist(): Promise<void> {
 	startSettingsWatcher();
 	startIdentityWatcher();
 	startTrafficWatcher();
+	startRelayPolling();
 	initSidebar();
 	checkForUpdate();
 	checkPluginUpdates();

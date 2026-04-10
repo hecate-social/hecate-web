@@ -5,11 +5,12 @@
 		fetchMeshStatus, discoverSubscribers, connectMeshSSE,
 		type MeshStatus, type MeshSubscriber, type MeshPeer, type MeshInitialEvent
 	} from '$lib/stores/mesh';
+	import { neighborhood, type RelayInfo } from '$lib/stores/relay';
 
 	// =====================================================================
 	// STATE
 	// =====================================================================
-	type View = 'overview' | 'status' | 'discovery';
+	type View = 'overview' | 'status' | 'discovery' | 'neighborhood';
 	type Mode = 'normal' | 'command' | 'search';
 	let currentView: View = $state('overview');
 	let mode: Mode = $state('normal');
@@ -244,9 +245,62 @@
 		return r;
 	});
 
+	let neighborhoodRows = $derived.by((): Row[] => {
+		const n = $neighborhood;
+		if (!n) return [{ key: 'loading', label: '', value: 'Loading neighborhood...', section: 'NEIGHBORHOOD', highlight: 'dim' }];
+		const r: Row[] = [];
+		// Current relay
+		if (n.current_relay) {
+			const cr = n.current_relay;
+			const rtt = cr.rtt_ms != null ? `${cr.rtt_ms}ms` : '--';
+			r.push({
+				key: 'current', label: '\u2605 CURRENT',
+				value: `${cr.city ?? cr.hostname}  ${rtt}`,
+				section: 'CONNECTED TO', highlight: 'relay', copyable: true
+			});
+		}
+		// Nearby relays
+		const nearby = n.nearby_relays.filter(
+			relay => relay.hostname !== n.current_relay?.hostname
+		).slice(0, 20);
+		if (nearby.length > 0) {
+			for (const relay of nearby) {
+				const city = parseCityFromHostname(relay.hostname);
+				const dist = relay.distance_km != null ? `${Math.round(relay.distance_km)}km` : '';
+				const rtt = relay.rtt_ms != null ? `${relay.rtt_ms}ms` : '';
+				const status = relay.status === 'online' ? '\u25CF' : '\u25CB';
+				const statusColor = relay.status === 'online' ? 'success' : 'danger';
+				r.push({
+					key: `relay-${relay.hostname}`,
+					label: `${status} ${dist}`,
+					value: `${city}${rtt ? '  ' + rtt : ''}`,
+					section: 'NEARBY RELAYS',
+					highlight: statusColor as 'success' | 'danger',
+					copyable: true
+				});
+			}
+		} else {
+			r.push({ key: 'no-nearby', label: '', value: 'No relay data', section: 'NEARBY RELAYS', highlight: 'dim' });
+		}
+		// Summary
+		r.push({
+			key: 'summary', label: 'MESH',
+			value: `${n.total_online} online \u00B7 ${n.total_known} known${n.total_online > 0 ? ' \u00B7 failover ready \u2713' : ''}`,
+			section: 'SUMMARY', highlight: n.total_online > 0 ? 'success' : 'dim'
+		});
+		return r;
+	});
+
+	function parseCityFromHostname(hostname: string): string {
+		const m = hostname.match(/^relay-[a-z]{2}-(.+?)\.macula/);
+		if (!m) return hostname;
+		return m[1].split('-').map(w => w[0].toUpperCase() + w.slice(1)).join(' ');
+	}
+
 	let rows = $derived(
 		currentView === 'overview' ? overviewRows :
 		currentView === 'status' ? statusRows :
+		currentView === 'neighborhood' ? neighborhoodRows :
 		discoveryRows
 	);
 
@@ -273,6 +327,8 @@
 	const commands: Command[] = [
 		{ name: 'overview', aliases: ['o', 'peers', 'p'], args: '', description: 'Relay overview (default)',
 			exec() { currentView = 'overview'; cursorIndex = 0; } },
+		{ name: 'neighborhood', aliases: ['n', 'nearby', 'relays'], args: '', description: 'Nearby relays (failover map)',
+			exec() { currentView = 'neighborhood'; cursorIndex = 0; } },
 		{ name: 'status', aliases: ['s'], args: '', description: 'Show full mesh status',
 			async exec() {
 				currentView = 'status'; cursorIndex = 0;
@@ -339,15 +395,16 @@
 				break;
 			case 'r': e.preventDefault(); refreshStatus(); break;
 			case '1': e.preventDefault(); currentView = 'overview'; cursorIndex = 0; break;
-			case '2': e.preventDefault(); currentView = 'status'; commands[1].exec(''); break;
-			case '3': e.preventDefault(); currentView = 'discovery'; cursorIndex = 0; break;
+			case '2': e.preventDefault(); currentView = 'neighborhood'; cursorIndex = 0; break;
+			case '3': e.preventDefault(); currentView = 'status'; cursorIndex = 0; refreshStatus(); break;
+			case '4': e.preventDefault(); currentView = 'discovery'; cursorIndex = 0; break;
 			case '/':
 				e.preventDefault(); mode = 'search'; searchQuery = ''; break;
 			case ':':
 				e.preventDefault(); mode = 'command'; commandInput = ''; statusMsg = ''; break;
 			case '?':
 				e.preventDefault();
-				statusMsg = 'j/k:nav  y:copy  r:refresh  1/2/3:view  /:search  ::cmd';
+				statusMsg = 'j/k:nav  y:copy  r:refresh  1-4:view  /:search  ::cmd';
 				break;
 		}
 	}
@@ -430,11 +487,11 @@
 			<span class="text-surface-700">·</span>
 		{/if}
 
-		{#each [['overview', '1'], ['status', '2'], ['discovery', '3']] as [view, key]}
+		{#each [['overview', '1'], ['neighborhood', '2'], ['status', '3'], ['discovery', '4']] as [view, key]}
 			<button
 				class="text-[10px] px-2 py-0.5 rounded cursor-pointer transition-colors
 					{currentView === view ? 'text-hecate-400 bg-hecate-600/20' : 'text-surface-500 hover:text-surface-300'}"
-				onclick={() => { currentView = view as View; cursorIndex = 0; if (view === 'status') commands[1].exec(''); }}
+				onclick={() => { currentView = view as View; cursorIndex = 0; if (view === 'status') refreshStatus(); }}
 			><span class="text-surface-600 mr-0.5">{key}</span>{view}</button>
 		{/each}
 	</div>
@@ -603,7 +660,7 @@
 				<span class="text-surface-600">{cursorIndex + 1}/{rows.length}</span>
 				<span class="text-surface-700">|</span>
 				<span class="text-surface-600 hover:text-surface-400 cursor-pointer"
-					onclick={() => statusMsg = 'j/k:nav  y:copy  r:refresh  1/2/3:view  /:search  ::cmd'}>?</span>
+					onclick={() => statusMsg = 'j/k:nav  y:copy  r:refresh  1-4:view  /:search  ::cmd'}>?</span>
 			{/if}
 		{/if}
 	</div>
