@@ -17,8 +17,7 @@ import { startTrafficWatcher } from './traffic.js';
 import { startEventStream } from './events.js';
 import { checkForUpdate } from './updater.js';
 import { checkPluginUpdates } from './pluginUpdater.js';
-import { startPolling as startRelayPolling } from './relay';
-import { post as apiPost } from '$lib/api';
+import { startPolling as startRelayPolling, ensureMeshActivated } from './relay';
 import type { DaemonHealth } from '../types.js';
 
 export type CheckStatus = 'pending' | 'active' | 'done' | 'failed';
@@ -99,7 +98,7 @@ export async function runStartupChecklist(): Promise<void> {
 	// The UI is fully visible. User sees "Local" in header.
 	// This triggers relay connection — user watches it happen live.
 	startRelayPolling();
-	activateMesh();
+	ensureMeshActivated();
 
 	// --- Reconnection handler ---
 	onReconnect(async () => {

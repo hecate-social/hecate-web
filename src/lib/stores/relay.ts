@@ -1,7 +1,7 @@
 // Relay neighborhood store — polls /api/mesh/neighborhood for nearby relay data.
 
 import { writable, derived } from 'svelte/store';
-import { get as apiGet } from '$lib/api';
+import { get as apiGet, post as apiPost } from '$lib/api';
 import { isReady } from './daemon';
 
 // --- Types ---
@@ -73,4 +73,18 @@ export function stopPolling(): void {
 		clearTimeout(pollTimer);
 		pollTimer = null;
 	}
+}
+
+// --- Mesh activation ---
+
+let meshActivated = false;
+
+/// Ensure mesh is activated. Idempotent — safe to call multiple times.
+/// Called from startup checklist and after realm join (proof of network).
+export function ensureMeshActivated(): void {
+	if (meshActivated) return;
+	meshActivated = true;
+	apiPost('/api/mesh/activate', {}).catch(() => {
+		meshActivated = false; // Allow retry on failure
+	});
 }
