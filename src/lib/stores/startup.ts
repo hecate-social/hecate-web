@@ -134,16 +134,10 @@ async function waitForReady(): Promise<void> {
 			return;
 		}
 
-		// Show store progress during boot
+		// Show store progress as a single counter
 		const boot = h.boot;
 		if (boot && boot.stores_total > 0) {
-			const storeNames = boot.stores ? Object.entries(boot.stores)
-				.filter(([, s]) => s === 'ready')
-				.map(([name]) => name.replace(/_store$/, ''))
-				.join(', ') : '';
-			const detail = `${boot.stores_ready}/${boot.stores_total} stores`;
-			const sub = storeNames ? `\n${storeNames}` : '';
-			updateCheck('stores', 'active', detail + sub);
+			updateCheck('stores', 'active', `${boot.stores_ready}/${boot.stores_total}`);
 		}
 	}, 60_000);
 }
