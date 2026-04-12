@@ -60,12 +60,12 @@
 			<div class="text-center space-y-2">
 				<img src="/macula-symbol-dark.svg" alt="" class="w-16 h-16 mx-auto" />
 				<div class="text-2xl font-bold text-macula-400">Hecate</div>
-				<div class="text-sm text-surface-400">Sovereign computing. No cloud required.</div>
-				<div class="text-xs text-surface-500 font-mono">Built on Macula</div>
+				<div class="text-base text-surface-400">Sovereign computing. No cloud required.</div>
+				<div class="text-sm text-surface-500 font-mono">Built on Macula</div>
 			</div>
 
 			<!-- Status rows -->
-			<div class="space-y-0.5 font-mono text-[11px]">
+			<div class="space-y-0.5 font-mono text-xs">
 				{#if $health}
 					<div class="flex gap-2">
 						<span class="w-16 text-right text-surface-500 shrink-0">daemon</span>
@@ -131,7 +131,7 @@
 					<div class="text-[9px] text-surface-500 uppercase tracking-wider mb-1">Recent</div>
 					{#each recentFiles as filePath}
 						<button
-							class="w-full text-left px-2 py-0.5 text-[11px] flex items-center gap-2 text-surface-400 hover:text-surface-200 hover:bg-surface-800 rounded transition-colors cursor-pointer font-mono"
+							class="w-full text-left px-2 py-0.5 text-xs flex items-center gap-2 text-surface-400 hover:text-surface-200 hover:bg-surface-800 rounded transition-colors cursor-pointer font-mono"
 							onclick={() => goto('/briefcase/edit?path=' + encodeURIComponent(filePath))}
 						>
 							<span class="text-surface-600 shrink-0">{'\uD83D\uDCC4'}</span>
@@ -142,7 +142,7 @@
 			{/if}
 
 			<!-- Hint -->
-			<div class="text-center text-[10px] text-surface-600 space-y-0.5 pt-4">
+			<div class="text-center text-xs text-surface-600 space-y-0.5 pt-4">
 				<div><span class="text-surface-500">Ctrl+P</span> to launch · <span class="text-surface-500">Ctrl+Shift+\u00B1</span> to zoom</div>
 			</div>
 
@@ -150,7 +150,7 @@
 	</div>
 
 	<!-- Status bar (minimal) -->
-	<div class="border-t border-surface-700 bg-surface-800/80 px-3 py-1 shrink-0 flex items-center gap-2 text-[10px] min-h-[24px]">
+	<div class="border-t border-surface-700 bg-surface-800/80 px-3 py-1 shrink-0 flex items-center gap-2 text-xs min-h-[24px]">
 		<span class="text-surface-500">home</span>
 		<div class="flex-1"></div>
 		<span class="text-surface-600">Ctrl+P: launcher</span>

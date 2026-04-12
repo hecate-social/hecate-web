@@ -45,7 +45,7 @@
 </script>
 
 <div class="rounded-lg border border-gray-700 bg-gray-800/50 p-3 space-y-3">
-	<h3 class="text-xs font-medium text-gray-400 uppercase tracking-wider">Match (Best of 3)</h3>
+	<h3 class="text-sm font-medium text-gray-400 uppercase tracking-wider">Match (Best of 3)</h3>
 
 	{#each players as player}
 		{@const wi = player.wall_index}
@@ -59,19 +59,19 @@
 			<div class="flex items-center justify-between">
 				<div class="flex items-center gap-2">
 					<span class="w-2 h-2 rounded-full" style="background-color: {color}"></span>
-					<span class="font-mono text-xs font-medium text-gray-200">{playerName(player)}</span>
+					<span class="font-mono text-sm font-medium text-gray-200">{playerName(player)}</span>
 					{#if isServing}
-						<span class="text-yellow-400 text-xs">●</span>
+						<span class="text-yellow-400 text-sm">●</span>
 					{/if}
 				</div>
-				<div class="flex items-center gap-2 font-mono text-xs">
+				<div class="flex items-center gap-2 font-mono text-sm">
 					{#each Array(gw) as _}
 						<span class="w-1.5 h-1.5 rounded-full" style="background-color: {color}"></span>
 					{/each}
 					<span class="font-bold" style="color: {color}">{pts}</span>
 				</div>
 			</div>
-			<div class="flex items-center gap-1.5 ml-4 text-[10px]">
+			<div class="flex items-center gap-1.5 ml-4 text-xs">
 				{#if badge}
 					<span class="px-1 rounded {badge.cls}">{badge.label}</span>
 				{/if}

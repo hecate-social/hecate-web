@@ -232,18 +232,18 @@
 			{#if view !== 'list'}
 				<button
 					onclick={cancelForm}
-					class="text-surface-400 hover:text-surface-200 text-xs cursor-pointer"
+					class="text-surface-400 hover:text-surface-200 text-sm cursor-pointer"
 				>
 					{'\u{2190}'} Back
 				</button>
 			{:else}
-				<button onclick={() => goto('/appstore')} class="text-surface-400 hover:text-surface-200 text-xs">
+				<button onclick={() => goto('/appstore')} class="text-surface-400 hover:text-surface-200 text-sm">
 					{'\u{2190}'} Appstore
 				</button>
 			{/if}
 
 			<span class="text-xl">{'\u{1F4CB}'}</span>
-			<h1 class="text-sm font-semibold text-surface-100">
+			<h1 class="text-base font-semibold text-surface-100">
 				{#if view === 'create'}
 					New Listing
 				{:else if view === 'edit'}
@@ -254,7 +254,7 @@
 			</h1>
 
 			{#if $health}
-				<div class="flex items-center gap-1.5 text-[10px]">
+				<div class="flex items-center gap-1.5 text-xs">
 					<span class="inline-block w-1.5 h-1.5 rounded-full bg-success-400"></span>
 					<span class="text-surface-500">v{$health.version}</span>
 				</div>
@@ -265,7 +265,7 @@
 			{#if view === 'list'}
 				<button
 					onclick={startCreate}
-					class="px-3 py-1.5 rounded-lg text-xs font-medium bg-accent-600 text-surface-50
+					class="px-3 py-1.5 rounded-lg text-sm font-medium bg-accent-600 text-surface-50
 						hover:bg-accent-500 transition-colors cursor-pointer"
 				>
 					+ New Listing
@@ -280,17 +280,17 @@
 			<div class="flex items-center justify-center h-full">
 				<div class="text-center text-surface-400">
 					<div class="text-2xl mb-2 animate-pulse">{'\u{1F4CB}'}</div>
-					<div class="text-sm">Loading listings...</div>
+					<div class="text-base">Loading listings...</div>
 				</div>
 			</div>
 		{:else if error}
 			<div class="flex items-center justify-center h-full">
 				<div class="text-center">
 					<div class="text-2xl mb-2">{'\u{26A0}'}</div>
-					<div class="text-sm text-danger-400 mb-4">{error}</div>
+					<div class="text-base text-danger-400 mb-4">{error}</div>
 					<button
 						onclick={() => { error = null; fetchAll(); }}
-						class="px-4 py-2 rounded-lg text-xs bg-accent-600 text-surface-50 hover:bg-accent-500 cursor-pointer"
+						class="px-4 py-2 rounded-lg text-sm bg-accent-600 text-surface-50 hover:bg-accent-500 cursor-pointer"
 					>
 						Retry
 					</button>
@@ -301,16 +301,16 @@
 			{#if confirmAction}
 				<div class="fixed inset-0 bg-surface-950/60 z-50 flex items-center justify-center">
 					<div class="bg-surface-800 border border-surface-600 rounded-xl p-6 max-w-sm w-full mx-4 shadow-2xl">
-						<h3 class="text-sm font-semibold text-surface-100 mb-3">
+						<h3 class="text-base font-semibold text-surface-100 mb-3">
 							{actionButtonLabel(confirmAction.type)} Listing?
 						</h3>
-						<p class="text-xs text-surface-400 mb-6">
+						<p class="text-sm text-surface-400 mb-6">
 							Are you sure you want to {confirmAction.type} this listing? This action cannot be undone easily.
 						</p>
 						<div class="flex gap-2 justify-end">
 							<button
 								onclick={() => (confirmAction = null)}
-								class="px-3 py-1.5 rounded-lg text-xs text-surface-400 hover:text-surface-200
+								class="px-3 py-1.5 rounded-lg text-sm text-surface-400 hover:text-surface-200
 									hover:bg-surface-700 transition-colors cursor-pointer"
 							>
 								Cancel
@@ -318,7 +318,7 @@
 							<button
 								onclick={confirmLifecycle}
 								disabled={actionLoading !== null}
-								class="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors cursor-pointer
+								class="px-3 py-1.5 rounded-lg text-sm font-medium transition-colors cursor-pointer
 									{actionButtonStyle(confirmAction.type)}
 									{actionLoading ? 'opacity-50 cursor-wait' : ''}"
 							>
@@ -333,13 +333,13 @@
 			{#if listings.length === 0}
 				<div class="flex flex-col items-center justify-center py-20 text-center">
 					<div class="text-2xl mb-3 text-surface-500">{'\u{1F4CB}'}</div>
-					<h3 class="text-sm font-medium text-surface-200 mb-1">No listings yet</h3>
-					<p class="text-xs text-surface-400 mb-4">
+					<h3 class="text-base font-medium text-surface-200 mb-1">No listings yet</h3>
+					<p class="text-sm text-surface-400 mb-4">
 						Create your first plugin listing to start selling
 					</p>
 					<button
 						onclick={startCreate}
-						class="px-4 py-2 rounded-lg text-xs bg-accent-600 text-surface-50 hover:bg-accent-500 cursor-pointer"
+						class="px-4 py-2 rounded-lg text-sm bg-accent-600 text-surface-50 hover:bg-accent-500 cursor-pointer"
 					>
 						+ New Listing
 					</button>
@@ -360,15 +360,15 @@
 									<span class="text-2xl shrink-0">{resolveEmoji(listing.icon, '\u{1F4E6}')}</span>
 									<div class="flex-1 min-w-0">
 										<div class="flex items-center gap-2 flex-wrap">
-											<span class="font-medium text-sm text-surface-100 truncate">
+											<span class="font-medium text-base text-surface-100 truncate">
 												{listing.name}
 											</span>
-											<span class="text-[10px] px-1.5 py-0.5 rounded-full bg-surface-700
+											<span class="text-xs px-1.5 py-0.5 rounded-full bg-surface-700
 												text-surface-400 border border-surface-600 shrink-0">
 												v{listing.version}
 											</span>
 											{#if listing.status_label}
-												<span class="text-[10px] px-1.5 py-0.5 rounded-full shrink-0
+												<span class="text-xs px-1.5 py-0.5 rounded-full shrink-0
 													{actions.includes('publish')
 													? 'bg-blue-500/15 text-blue-400'
 													: actions.includes('retract')
@@ -380,15 +380,15 @@
 												</span>
 											{/if}
 										</div>
-										<div class="text-[11px] text-surface-500 mt-0.5">{listing.org}</div>
-										<div class="text-[10px] mt-1
+										<div class="text-xs text-surface-500 mt-0.5">{listing.org}</div>
+										<div class="text-xs mt-1
 											{price === 'Free'
 											? 'text-success-400'
 											: 'text-accent-400'}">
 											{price}
 										</div>
 										{#if listing.description}
-											<div class="text-xs text-surface-400 mt-2 line-clamp-2">
+											<div class="text-sm text-surface-400 mt-2 line-clamp-2">
 												{listing.description}
 											</div>
 										{/if}
@@ -401,7 +401,7 @@
 								{#if actions.includes('amend')}
 									<button
 										onclick={() => startEdit(listing)}
-										class="px-3 py-1.5 rounded-lg text-xs font-medium text-surface-300
+										class="px-3 py-1.5 rounded-lg text-sm font-medium text-surface-300
 											bg-surface-700 hover:bg-surface-600 border border-surface-600
 											transition-colors cursor-pointer"
 									>
@@ -412,7 +412,7 @@
 									<button
 										onclick={() => (confirmAction = { id: listing.offering_id, type: action })}
 										disabled={loading}
-										class="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors cursor-pointer
+										class="px-3 py-1.5 rounded-lg text-sm font-medium transition-colors cursor-pointer
 											{actionButtonStyle(action)}
 											{loading ? 'opacity-50 cursor-wait' : ''}"
 									>
@@ -429,55 +429,55 @@
 			<div class="max-w-2xl mx-auto space-y-6">
 				<!-- Section 1: Plugin Identity -->
 				<div class="space-y-4">
-					<h2 class="text-[11px] text-surface-500 uppercase tracking-wider">Plugin Identity</h2>
+					<h2 class="text-xs text-surface-500 uppercase tracking-wider">Plugin Identity</h2>
 
 					<div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
 						<div>
-							<label for="plugin_id" class="block text-xs text-surface-400 mb-1">Plugin ID</label>
+							<label for="plugin_id" class="block text-sm text-surface-400 mb-1">Plugin ID</label>
 							<input
 								id="plugin_id"
 								bind:value={form.plugin_id}
 								disabled={view === 'edit'}
 								placeholder="hecate-social/trader"
 								class="w-full bg-surface-700 border border-surface-600 rounded-lg px-3 py-2
-									text-xs text-surface-100 placeholder-surface-500 focus:outline-none
+									text-sm text-surface-100 placeholder-surface-500 focus:outline-none
 									focus:border-accent-500 disabled:opacity-50 disabled:cursor-not-allowed"
 							/>
 						</div>
 						<div>
-							<label for="plugin_name" class="block text-xs text-surface-400 mb-1">Display Name</label>
+							<label for="plugin_name" class="block text-sm text-surface-400 mb-1">Display Name</label>
 							<input
 								id="plugin_name"
 								bind:value={form.plugin_name}
 								placeholder="Trader Bot"
 								class="w-full bg-surface-700 border border-surface-600 rounded-lg px-3 py-2
-									text-xs text-surface-100 placeholder-surface-500 focus:outline-none
+									text-sm text-surface-100 placeholder-surface-500 focus:outline-none
 									focus:border-accent-500"
 							/>
 						</div>
 					</div>
 
 					<div>
-						<label for="description" class="block text-xs text-surface-400 mb-1">Description</label>
+						<label for="description" class="block text-sm text-surface-400 mb-1">Description</label>
 						<textarea
 							id="description"
 							bind:value={form.description}
 							rows="3"
 							placeholder="What does this plugin do?"
 							class="w-full bg-surface-700 border border-surface-600 rounded-lg px-3 py-2
-								text-xs text-surface-100 placeholder-surface-500 focus:outline-none
+								text-sm text-surface-100 placeholder-surface-500 focus:outline-none
 								focus:border-accent-500 resize-none"
 						></textarea>
 					</div>
 
 					<div>
-						<label for="icon" class="block text-xs text-surface-400 mb-1">Icon</label>
+						<label for="icon" class="block text-sm text-surface-400 mb-1">Icon</label>
 						<input
 							id="icon"
 							bind:value={form.icon}
 							placeholder="Emoji or filename"
 							class="w-full bg-surface-700 border border-surface-600 rounded-lg px-3 py-2
-								text-xs text-surface-100 placeholder-surface-500 focus:outline-none
+								text-sm text-surface-100 placeholder-surface-500 focus:outline-none
 								focus:border-accent-500"
 						/>
 					</div>
@@ -485,83 +485,83 @@
 
 				<!-- Section 2: Distribution -->
 				<div class="space-y-4">
-					<h2 class="text-[11px] text-surface-500 uppercase tracking-wider">Distribution</h2>
+					<h2 class="text-xs text-surface-500 uppercase tracking-wider">Distribution</h2>
 
 					<div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
 						<div>
-							<label for="oci_image" class="block text-xs text-surface-400 mb-1">OCI Image</label>
+							<label for="oci_image" class="block text-sm text-surface-400 mb-1">OCI Image</label>
 							<input
 								id="oci_image"
 								bind:value={form.oci_image}
 								placeholder="ghcr.io/org/app:0.1.0"
 								class="w-full bg-surface-700 border border-surface-600 rounded-lg px-3 py-2
-									text-xs text-surface-100 placeholder-surface-500 focus:outline-none
+									text-sm text-surface-100 placeholder-surface-500 focus:outline-none
 									focus:border-accent-500"
 							/>
 						</div>
 						<div>
-							<label for="github_repo" class="block text-xs text-surface-400 mb-1">GitHub Repo</label>
+							<label for="github_repo" class="block text-sm text-surface-400 mb-1">GitHub Repo</label>
 							<input
 								id="github_repo"
 								bind:value={form.github_repo}
 								placeholder="hecate-social/hecate-trader"
 								class="w-full bg-surface-700 border border-surface-600 rounded-lg px-3 py-2
-									text-xs text-surface-100 placeholder-surface-500 focus:outline-none
+									text-sm text-surface-100 placeholder-surface-500 focus:outline-none
 									focus:border-accent-500"
 							/>
 						</div>
 						<div>
-							<label for="org" class="block text-xs text-surface-400 mb-1">Organization</label>
+							<label for="org" class="block text-sm text-surface-400 mb-1">Organization</label>
 							<input
 								id="org"
 								bind:value={form.org}
 								placeholder="hecate-social"
 								class="w-full bg-surface-700 border border-surface-600 rounded-lg px-3 py-2
-									text-xs text-surface-100 placeholder-surface-500 focus:outline-none
+									text-sm text-surface-100 placeholder-surface-500 focus:outline-none
 									focus:border-accent-500"
 							/>
 						</div>
 						<div>
-							<label for="version" class="block text-xs text-surface-400 mb-1">Version</label>
+							<label for="version" class="block text-sm text-surface-400 mb-1">Version</label>
 							<input
 								id="version"
 								bind:value={form.version}
 								placeholder="0.1.0"
 								class="w-full bg-surface-700 border border-surface-600 rounded-lg px-3 py-2
-									text-xs text-surface-100 placeholder-surface-500 focus:outline-none
+									text-sm text-surface-100 placeholder-surface-500 focus:outline-none
 									focus:border-accent-500"
 							/>
 						</div>
 						<div>
-							<label for="manifest_tag" class="block text-xs text-surface-400 mb-1">Manifest Tag</label>
+							<label for="manifest_tag" class="block text-sm text-surface-400 mb-1">Manifest Tag</label>
 							<input
 								id="manifest_tag"
 								bind:value={form.manifest_tag}
 								placeholder="latest"
 								class="w-full bg-surface-700 border border-surface-600 rounded-lg px-3 py-2
-									text-xs text-surface-100 placeholder-surface-500 focus:outline-none
+									text-sm text-surface-100 placeholder-surface-500 focus:outline-none
 									focus:border-accent-500"
 							/>
 						</div>
 						<div>
-							<label for="homepage" class="block text-xs text-surface-400 mb-1">Homepage</label>
+							<label for="homepage" class="block text-sm text-surface-400 mb-1">Homepage</label>
 							<input
 								id="homepage"
 								bind:value={form.homepage}
 								placeholder="https://example.com"
 								class="w-full bg-surface-700 border border-surface-600 rounded-lg px-3 py-2
-									text-xs text-surface-100 placeholder-surface-500 focus:outline-none
+									text-sm text-surface-100 placeholder-surface-500 focus:outline-none
 									focus:border-accent-500"
 							/>
 						</div>
 						<div>
-							<label for="min_daemon_version" class="block text-xs text-surface-400 mb-1">Min Daemon Version</label>
+							<label for="min_daemon_version" class="block text-sm text-surface-400 mb-1">Min Daemon Version</label>
 							<input
 								id="min_daemon_version"
 								bind:value={form.min_daemon_version}
 								placeholder="0.10.0"
 								class="w-full bg-surface-700 border border-surface-600 rounded-lg px-3 py-2
-									text-xs text-surface-100 placeholder-surface-500 focus:outline-none
+									text-sm text-surface-100 placeholder-surface-500 focus:outline-none
 									focus:border-accent-500"
 							/>
 						</div>
@@ -570,17 +570,17 @@
 
 				<!-- Section 3: Pricing -->
 				<div class="space-y-4">
-					<h2 class="text-[11px] text-surface-500 uppercase tracking-wider">Pricing</h2>
+					<h2 class="text-xs text-surface-500 uppercase tracking-wider">Pricing</h2>
 
 					<div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
 						<div>
-							<label for="license_type" class="block text-xs text-surface-400 mb-1">License Type</label>
+							<label for="license_type" class="block text-sm text-surface-400 mb-1">License Type</label>
 							<select
 								id="license_type"
 								bind:value={form.license_type}
 								onchange={() => { form.selling_formula = form.license_type; }}
 								class="w-full bg-surface-700 border border-surface-600 rounded-lg px-3 py-2
-									text-xs text-surface-100 focus:outline-none focus:border-accent-500"
+									text-sm text-surface-100 focus:outline-none focus:border-accent-500"
 							>
 								<option value="free">Free</option>
 								<option value="one_time">One-time</option>
@@ -588,12 +588,12 @@
 							</select>
 						</div>
 						<div>
-							<label for="fee_currency" class="block text-xs text-surface-400 mb-1">Currency</label>
+							<label for="fee_currency" class="block text-sm text-surface-400 mb-1">Currency</label>
 							<select
 								id="fee_currency"
 								bind:value={form.fee_currency}
 								class="w-full bg-surface-700 border border-surface-600 rounded-lg px-3 py-2
-									text-xs text-surface-100 focus:outline-none focus:border-accent-500"
+									text-sm text-surface-100 focus:outline-none focus:border-accent-500"
 							>
 								<option value="EUR">EUR</option>
 								<option value="USD">USD</option>
@@ -601,7 +601,7 @@
 						</div>
 						{#if form.license_type !== 'free'}
 							<div>
-								<label for="fee_cents" class="block text-xs text-surface-400 mb-1">
+								<label for="fee_cents" class="block text-sm text-surface-400 mb-1">
 									Price ({form.fee_currency === 'USD' ? '$' : '\u20AC'})
 								</label>
 								<input
@@ -612,36 +612,36 @@
 									bind:value={form.fee_cents}
 									placeholder="999"
 									class="w-full bg-surface-700 border border-surface-600 rounded-lg px-3 py-2
-										text-xs text-surface-100 placeholder-surface-500 focus:outline-none
+										text-sm text-surface-100 placeholder-surface-500 focus:outline-none
 										focus:border-accent-500"
 								/>
-								<span class="text-[10px] text-surface-500 mt-0.5 block">
+								<span class="text-xs text-surface-500 mt-0.5 block">
 									In cents ({(form.fee_cents / 100).toFixed(2)} {form.fee_currency})
 								</span>
 							</div>
 						{/if}
 						{#if form.license_type === 'subscription'}
 							<div>
-								<label for="duration_days" class="block text-xs text-surface-400 mb-1">Duration (days)</label>
+								<label for="duration_days" class="block text-sm text-surface-400 mb-1">Duration (days)</label>
 								<input
 									id="duration_days"
 									type="number"
 									min="1"
 									bind:value={form.duration_days}
 									class="w-full bg-surface-700 border border-surface-600 rounded-lg px-3 py-2
-										text-xs text-surface-100 focus:outline-none focus:border-accent-500"
+										text-sm text-surface-100 focus:outline-none focus:border-accent-500"
 								/>
 							</div>
 						{/if}
 						<div>
-							<label for="node_limit" class="block text-xs text-surface-400 mb-1">Node Limit</label>
+							<label for="node_limit" class="block text-sm text-surface-400 mb-1">Node Limit</label>
 							<input
 								id="node_limit"
 								type="number"
 								min="1"
 								bind:value={form.node_limit}
 								class="w-full bg-surface-700 border border-surface-600 rounded-lg px-3 py-2
-									text-xs text-surface-100 focus:outline-none focus:border-accent-500"
+									text-sm text-surface-100 focus:outline-none focus:border-accent-500"
 							/>
 						</div>
 					</div>
@@ -649,29 +649,29 @@
 
 				<!-- Section 4: Tags & Identity -->
 				<div class="space-y-4">
-					<h2 class="text-[11px] text-surface-500 uppercase tracking-wider">Tags & Identity</h2>
+					<h2 class="text-xs text-surface-500 uppercase tracking-wider">Tags & Identity</h2>
 
 					<div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
 						<div>
-							<label for="tags" class="block text-xs text-surface-400 mb-1">Tags</label>
+							<label for="tags" class="block text-sm text-surface-400 mb-1">Tags</label>
 							<input
 								id="tags"
 								bind:value={form.tags}
 								placeholder="ai, trading, bot"
 								class="w-full bg-surface-700 border border-surface-600 rounded-lg px-3 py-2
-									text-xs text-surface-100 placeholder-surface-500 focus:outline-none
+									text-sm text-surface-100 placeholder-surface-500 focus:outline-none
 									focus:border-accent-500"
 							/>
-							<span class="text-[10px] text-surface-500 mt-0.5 block">Comma-separated</span>
+							<span class="text-xs text-surface-500 mt-0.5 block">Comma-separated</span>
 						</div>
 						<div>
-							<label for="publisher_identity" class="block text-xs text-surface-400 mb-1">Publisher Identity</label>
+							<label for="publisher_identity" class="block text-sm text-surface-400 mb-1">Publisher Identity</label>
 							<input
 								id="publisher_identity"
 								bind:value={form.publisher_identity}
 								placeholder="hecate_user_id"
 								class="w-full bg-surface-700 border border-surface-600 rounded-lg px-3 py-2
-									text-xs text-surface-100 placeholder-surface-500 focus:outline-none
+									text-sm text-surface-100 placeholder-surface-500 focus:outline-none
 									focus:border-accent-500"
 							/>
 						</div>
@@ -682,7 +682,7 @@
 				<div class="flex gap-2 justify-end pt-2 pb-4">
 					<button
 						onclick={cancelForm}
-						class="px-4 py-2 rounded-lg text-xs text-surface-400 hover:text-surface-200
+						class="px-4 py-2 rounded-lg text-sm text-surface-400 hover:text-surface-200
 							hover:bg-surface-700 transition-colors cursor-pointer"
 					>
 						Cancel
@@ -691,7 +691,7 @@
 						<button
 							onclick={submitCreate}
 							disabled={actionLoading === 'create' || !form.plugin_id || !form.plugin_name}
-							class="px-4 py-2 rounded-lg text-xs font-medium bg-accent-600 text-surface-50
+							class="px-4 py-2 rounded-lg text-sm font-medium bg-accent-600 text-surface-50
 								hover:bg-accent-500 transition-colors cursor-pointer
 								disabled:opacity-50 disabled:cursor-not-allowed"
 						>
@@ -701,7 +701,7 @@
 						<button
 							onclick={submitEdit}
 							disabled={actionLoading === 'edit'}
-							class="px-4 py-2 rounded-lg text-xs font-medium bg-accent-600 text-surface-50
+							class="px-4 py-2 rounded-lg text-sm font-medium bg-accent-600 text-surface-50
 								hover:bg-accent-500 transition-colors cursor-pointer
 								disabled:opacity-50 disabled:cursor-not-allowed"
 						>

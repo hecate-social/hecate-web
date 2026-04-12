@@ -327,22 +327,22 @@
 
 <div class="flex flex-col h-full overflow-hidden bg-surface-900 text-surface-200 select-none">
 	<!-- Header -->
-	<div class="flex items-center gap-2 px-3 py-1 border-b border-surface-700 bg-surface-800/80 text-[11px] shrink-0">
-		<span class="text-macula-400 uppercase tracking-wider text-[10px]">Settings</span>
+	<div class="flex items-center gap-2 px-3 py-1 border-b border-surface-700 bg-surface-800/80 text-xs shrink-0">
+		<span class="text-macula-400 uppercase tracking-wider text-xs">Settings</span>
 		{#if $health}
 			<span class="text-surface-600">·</span>
-			<span class="text-[10px] {$health.status === 'healthy' ? 'text-success-400' : 'text-warning-400'}">{$health.status}</span>
+			<span class="text-xs {$health.status === 'healthy' ? 'text-success-400' : 'text-warning-400'}">{$health.status}</span>
 			<span class="text-surface-600">·</span>
-			<span class="text-[10px] text-surface-500">v{$health.version}</span>
+			<span class="text-xs text-surface-500">v{$health.version}</span>
 		{/if}
 	</div>
 
 	<!-- Content -->
 	<div class="flex-1 overflow-y-auto py-1">
 		{#if $settingsLoading && !$settings}
-			<div class="px-3 py-4 text-[11px] text-surface-500 animate-pulse">Loading settings...</div>
+			<div class="px-3 py-4 text-xs text-surface-500 animate-pulse">Loading settings...</div>
 		{:else if $settingsError && !$settings}
-			<div class="px-3 py-4 text-[11px] text-danger-400">{$settingsError}</div>
+			<div class="px-3 py-4 text-xs text-danger-400">{$settingsError}</div>
 		{:else}
 			{#each sections as [sectionName, sectionRows]}
 				<div class="px-2 py-0.5 text-[9px] text-surface-500 uppercase tracking-wider mt-1 first:mt-0">
@@ -353,7 +353,7 @@
 					{@const isCursor = idx === cursorIndex}
 					<div
 						data-cursor={isCursor ? 'true' : 'false'}
-						class="px-2 py-0.5 text-[11px] flex items-center gap-2 transition-colors
+						class="px-2 py-0.5 text-xs flex items-center gap-2 transition-colors
 							{isCursor
 								? 'bg-macula-600/30 text-surface-50 border-l-2 border-macula-400'
 								: 'text-surface-300 border-l-2 border-transparent'}"
@@ -362,9 +362,9 @@
 						onclick={() => { cursorIndex = idx; }}
 					>
 						<!-- Label -->
-						<span class="w-24 shrink-0 text-surface-500 text-right text-[10px]">{row.label}</span>
+						<span class="w-24 shrink-0 text-surface-500 text-right text-xs">{row.label}</span>
 						<!-- Value -->
-						<span class="flex-1 truncate font-mono text-[10px] {
+						<span class="flex-1 truncate font-mono text-xs {
 							row.key === 'status' && row.value === 'healthy' ? 'text-success-400' :
 							row.key === 'join-realm' ? 'text-macula-400' :
 							row.key.startsWith('realm-') ? 'text-surface-300' :
@@ -387,7 +387,7 @@
 	</div>
 
 	<!-- Status bar -->
-	<div class="border-t border-surface-700 bg-surface-800/80 px-3 py-1 shrink-0 flex items-center gap-2 text-[10px] min-h-[24px]">
+	<div class="border-t border-surface-700 bg-surface-800/80 px-3 py-1 shrink-0 flex items-center gap-2 text-xs min-h-[24px]">
 		{#if mode === 'command'}
 			<span class="text-macula-400">:</span>
 			<input
@@ -397,7 +397,7 @@
 					if (e.key === 'Enter') { e.preventDefault(); e.stopPropagation(); onCommandSubmit(); }
 					else if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); mode = 'normal'; commandInput = ''; }
 				}}
-				class="flex-1 bg-transparent border-none outline-none text-[10px] text-surface-100"
+				class="flex-1 bg-transparent border-none outline-none text-xs text-surface-100"
 				placeholder="Command..."
 			/>
 		{:else if mode === 'confirm'}

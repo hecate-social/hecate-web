@@ -31,12 +31,12 @@
 			transition:fly={{ x: 60, duration: 200 }}
 			role="alert"
 		>
-			<span class="text-sm leading-none mt-px {iconColors[toast.type]}">{icons[toast.type]}</span>
+			<span class="text-base leading-none mt-px {iconColors[toast.type]}">{icons[toast.type]}</span>
 			<span class="text-surface-200 leading-snug flex-1">{toast.message}</span>
 			{#if toast.dismissible}
 				<button
 					onclick={() => dismissToast(toast.id)}
-					class="text-surface-500 hover:text-surface-300 text-xs leading-none mt-px shrink-0"
+					class="text-surface-500 hover:text-surface-300 text-sm leading-none mt-px shrink-0"
 					aria-label="Dismiss"
 				>&times;</button>
 			{/if}

@@ -136,20 +136,20 @@
 		<div class="rounded-lg border border-gray-700 bg-gray-800/50 p-3">
 			<div class="flex items-center justify-between">
 				<div>
-					<span class="text-xs text-gray-400">Your Champion</span>
+					<span class="text-sm text-gray-400">Your Champion</span>
 					<div class="flex items-center gap-2 mt-1">
 						<span class="text-lg">{styleEmoji($champion.personality?.style ?? '')}</span>
-						<span class="text-sm font-medium text-gray-200">{$champion.name}</span>
-						<span class="text-xs text-gray-500">{$champion.personality?.style}</span>
+						<span class="text-base font-medium text-gray-200">{$champion.name}</span>
+						<span class="text-sm text-gray-500">{$champion.personality?.style}</span>
 					</div>
 				</div>
-				<div class="text-right text-xs text-gray-500">
+				<div class="text-right text-sm text-gray-500">
 					<div>W: {$champion.wins} L: {$champion.losses}</div>
 				</div>
 			</div>
 		</div>
 	{:else}
-		<div class="rounded-lg border border-gray-700 bg-gray-800/50 p-3 text-xs text-gray-500 animate-pulse">
+		<div class="rounded-lg border border-gray-700 bg-gray-800/50 p-3 text-sm text-gray-500 animate-pulse">
 			Generating champion...
 		</div>
 	{/if}
@@ -159,28 +159,28 @@
 		<button
 			onclick={handleQuickStart}
 			disabled={starting}
-			class="flex-1 px-3 py-2 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white text-xs rounded font-medium transition-colors"
+			class="flex-1 px-3 py-2 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white text-sm rounded font-medium transition-colors"
 		>
 			{starting ? 'Starting...' : 'Quick Play'}
 		</button>
 		<button
 			onclick={() => handleHost('lan')}
 			disabled={openingLobby}
-			class="flex-1 px-3 py-2 bg-purple-600 hover:bg-purple-500 disabled:opacity-50 text-white text-xs rounded font-medium transition-colors"
+			class="flex-1 px-3 py-2 bg-purple-600 hover:bg-purple-500 disabled:opacity-50 text-white text-sm rounded font-medium transition-colors"
 		>
 			{openingLobby && hostingMode === 'lan' ? 'Hosting...' : 'LAN'}
 		</button>
 		<button
 			onclick={() => handleHost('mesh')}
 			disabled={openingLobby}
-			class="flex-1 px-3 py-2 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white text-xs rounded font-medium transition-colors"
+			class="flex-1 px-3 py-2 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white text-sm rounded font-medium transition-colors"
 		>
 			{openingLobby && hostingMode === 'mesh' ? 'Hosting...' : 'Mesh'}
 		</button>
 		<button
 			onclick={() => handleHost('mixed')}
 			disabled={openingLobby}
-			class="flex-1 px-3 py-2 bg-amber-600 hover:bg-amber-500 disabled:opacity-50 text-white text-xs rounded font-medium transition-colors"
+			class="flex-1 px-3 py-2 bg-amber-600 hover:bg-amber-500 disabled:opacity-50 text-white text-sm rounded font-medium transition-colors"
 		>
 			{openingLobby && hostingMode === 'mixed' ? 'Hosting...' : 'Mixed'}
 		</button>
@@ -191,15 +191,15 @@
 		<div class="rounded-lg border border-purple-700/50 bg-purple-900/20 p-4">
 			<div class="flex items-center justify-between mb-2">
 				<div class="flex items-center gap-2">
-					<span class="text-xs font-medium text-purple-300">Lobby {$currentLobby.game_id.slice(0, 8)}</span>
-					<span class="text-[10px] px-1.5 py-0.5 rounded {
+					<span class="text-sm font-medium text-purple-300">Lobby {$currentLobby.game_id.slice(0, 8)}</span>
+					<span class="text-xs px-1.5 py-0.5 rounded {
 						$currentLobby.mode === 'mesh' ? 'bg-emerald-500/20 text-emerald-400' :
 						$currentLobby.mode === 'mixed' ? 'bg-amber-500/20 text-amber-400' :
 						'bg-purple-500/20 text-purple-400'}">
 						{$currentLobby.mode ?? 'lan'}
 					</span>
 				</div>
-				<span class="text-xs px-1.5 py-0.5 rounded {statusBadge($currentLobby.state)}">
+				<span class="text-sm px-1.5 py-0.5 rounded {statusBadge($currentLobby.state)}">
 					{$currentLobby.state}
 				</span>
 			</div>
@@ -208,7 +208,7 @@
 			<div class="space-y-1.5">
 				{#each $currentLobby.seats as seat}
 					<div class="space-y-0.5">
-						<div class="flex items-center justify-between text-xs">
+						<div class="flex items-center justify-between text-sm">
 							<div class="flex items-center gap-2">
 								<span class="w-2 h-2 rounded-full"
 									style="background-color: {seat.status === 'reserved' ? PLAYER_COLORS[seat.wall_index] ?? '#666' : '#374151'}">
@@ -223,7 +223,7 @@
 							<span class="text-gray-600">wall {seat.wall_index}</span>
 						</div>
 						{#if seat.status === 'reserved' && seat.transport}
-							<div class="ml-4 flex items-center gap-1.5 text-[10px]">
+							<div class="ml-4 flex items-center gap-1.5 text-xs">
 								<span class="px-1 rounded {seat.transport === 'mesh' ? 'bg-emerald-800/40 text-emerald-400' : seat.transport === 'local' ? 'bg-blue-800/40 text-blue-400' : 'bg-purple-800/40 text-purple-400'}">
 									{seat.transport === 'mesh' ? 'relay' : seat.transport === 'local' ? 'host' : seat.transport}
 								</span>
@@ -254,18 +254,18 @@
 	<!-- LAN Lobbies (from other nodes) -->
 	{#if $lobbies.length > 0}
 		<div>
-			<h3 class="text-sm font-medium text-gray-300 mb-2">Nearby Games</h3>
+			<h3 class="text-base font-medium text-gray-300 mb-2">Nearby Games</h3>
 			<div class="space-y-2">
 				{#each $lobbies.filter(l => l?.game_id) as lobby}
 					<div class="rounded-lg border border-gray-700 bg-gray-800/30 p-3">
 						<div class="flex items-center justify-between">
 							<div>
-								<span class="text-xs font-mono text-gray-300">{lobby.game_id.slice(0, 8)}</span>
-								<span class="ml-2 text-xs text-gray-500">hosted by {lobby.host_node?.split('@')[0] ?? '?'}</span>
+								<span class="text-sm font-mono text-gray-300">{lobby.game_id.slice(0, 8)}</span>
+								<span class="ml-2 text-sm text-gray-500">hosted by {lobby.host_node?.split('@')[0] ?? '?'}</span>
 							</div>
-							<span class="text-xs text-gray-400">{lobby.open_seats} open</span>
+							<span class="text-sm text-gray-400">{lobby.open_seats} open</span>
 						</div>
-						<div class="mt-1 text-xs text-gray-400">
+						<div class="mt-1 text-sm text-gray-400">
 							Champion: {lobby.host_champion_name ?? 'Unknown'}
 						</div>
 					</div>
@@ -277,7 +277,7 @@
 	<!-- Active Games -->
 	{#if $games.length > 0}
 		<div>
-			<h3 class="text-sm font-medium text-gray-300 mb-2">Recent Games</h3>
+			<h3 class="text-base font-medium text-gray-300 mb-2">Recent Games</h3>
 			<div class="space-y-2">
 				{#each $games as game}
 					<button
@@ -286,12 +286,12 @@
 					>
 						<div class="flex items-center justify-between">
 							<div>
-								<span class="text-xs font-mono text-gray-300">{game.game_id.slice(0, 12)}</span>
-								<span class="ml-2 text-xs px-1.5 py-0.5 rounded {statusBadge(game.status)}">
+								<span class="text-sm font-mono text-gray-300">{game.game_id.slice(0, 12)}</span>
+								<span class="ml-2 text-sm px-1.5 py-0.5 rounded {statusBadge(game.status)}">
 									{game.status}
 								</span>
 							</div>
-							<span class="text-xs text-gray-400">{game.players.length} players</span>
+							<span class="text-sm text-gray-400">{game.players.length} players</span>
 						</div>
 					</button>
 				{/each}

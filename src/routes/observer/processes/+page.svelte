@@ -125,12 +125,12 @@
 <svelte:window onkeydown={onKeyDown} />
 
 <div class="flex flex-col h-full overflow-hidden bg-surface-900 text-surface-200 select-none">
-	<div class="flex items-center gap-2 px-3 py-1 border-b border-surface-700 bg-surface-800/80 text-[11px] shrink-0">
-		<span class="text-macula-400 uppercase tracking-wider text-[10px]">Processes</span>
+	<div class="flex items-center gap-2 px-3 py-1 border-b border-surface-700 bg-surface-800/80 text-xs shrink-0">
+		<span class="text-macula-400 uppercase tracking-wider text-xs">Processes</span>
 		<span class="text-surface-600">({processTotal})</span>
 		<span class="text-surface-600">·</span>
-		<span class="text-[10px] text-surface-500">sort:{sortField}</span>
-		{#if searchQuery}<span class="text-macula-400 text-[10px]">/{searchQuery}</span>{/if}
+		<span class="text-xs text-surface-500">sort:{sortField}</span>
+		{#if searchQuery}<span class="text-macula-400 text-xs">/{searchQuery}</span>{/if}
 	</div>
 
 	<div class="flex flex-1 min-h-0 divide-x divide-surface-700/50">
@@ -145,11 +145,11 @@
 				<span class="flex-1">Function</span>
 			</div>
 			{#if loading}
-				<div class="px-3 py-4 text-[11px] text-surface-500 animate-pulse">Loading...</div>
+				<div class="px-3 py-4 text-xs text-surface-500 animate-pulse">Loading...</div>
 			{:else}
 				{#each filtered as proc, i}
 					<button data-cursor={i === cursorIndex ? 'true' : 'false'}
-						class="w-full text-left px-2 py-px text-[10px] flex items-center gap-1.5 cursor-pointer transition-colors font-mono
+						class="w-full text-left px-2 py-px text-xs flex items-center gap-1.5 cursor-pointer transition-colors font-mono
 							{i === cursorIndex ? 'bg-macula-600/30 text-surface-50 border-l-2 border-macula-400' : 'text-surface-300 hover:bg-surface-800 border-l-2 border-transparent'}"
 						onclick={() => cursorIndex = i}>
 						<span class="w-4 shrink-0 text-[8px] {proc.status === 'running' ? 'text-success-400' : 'text-surface-600'}">{proc.status === 'running' ? '\u25CF' : '\u25CB'}</span>
@@ -166,7 +166,7 @@
 		<!-- Process detail preview -->
 		<div class="w-1/3 overflow-y-auto py-1 shrink-0 bg-surface-900/50">
 			{#if detail}
-				<div class="px-3 py-2 space-y-1 text-[10px]">
+				<div class="px-3 py-2 space-y-1 text-xs">
 					<div class="text-macula-400 font-mono">{detail.registered_name || detail.pid}</div>
 					{#if detail.gen_type}
 						<div class="text-macula-300 text-[9px]">{detail.gen_type}</div>
@@ -219,19 +219,19 @@
 					{/if}
 				</div>
 			{:else if selectedProc}
-				<div class="px-3 py-2 text-[10px] text-surface-500 animate-pulse">Loading...</div>
+				<div class="px-3 py-2 text-xs text-surface-500 animate-pulse">Loading...</div>
 			{:else}
 				<div class="flex items-center justify-center h-full text-surface-600 text-[9px]">No selection</div>
 			{/if}
 		</div>
 	</div>
 
-	<div class="border-t border-surface-700 bg-surface-800/80 px-3 py-1 shrink-0 flex items-center gap-2 text-[10px] min-h-[24px]">
+	<div class="border-t border-surface-700 bg-surface-800/80 px-3 py-1 shrink-0 flex items-center gap-2 text-xs min-h-[24px]">
 		{#if mode === 'command'}
 			<span class="text-macula-400">:</span>
 			<input type="text" bind:value={commandInput} use:focusOnMount
 				onkeydown={(e) => { if (e.key === 'Enter') { e.preventDefault(); e.stopPropagation(); onCommandSubmit(); } else if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); mode = 'normal'; commandInput = ''; } }}
-				class="flex-1 bg-transparent border-none outline-none text-[10px] text-surface-100" placeholder="Command..." />
+				class="flex-1 bg-transparent border-none outline-none text-xs text-surface-100" placeholder="Command..." />
 		{:else if mode === 'search'}
 			<span class="text-macula-400">/{searchQuery}<span class="animate-pulse">_</span></span>
 			<span class="text-surface-600">{filtered.length} matches</span>

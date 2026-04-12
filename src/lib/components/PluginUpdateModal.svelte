@@ -64,7 +64,7 @@
 			<FocusTrap active={isOpen}>
 				<h2 class="text-lg font-semibold text-surface-100">Plugin Update Available</h2>
 
-				<p class="text-sm text-surface-300 mt-2">
+				<p class="text-base text-surface-300 mt-2">
 					<span class="capitalize">{update?.name}</span>
 					<span class="font-mono text-surface-500">v{update?.installed_version}</span>
 					&rarr;
@@ -73,14 +73,14 @@
 
 				{#if update?.body}
 					<div
-						class="mt-3 max-h-32 overflow-y-auto text-xs text-surface-400 bg-surface-900 rounded p-3 whitespace-pre-wrap"
+						class="mt-3 max-h-32 overflow-y-auto text-sm text-surface-400 bg-surface-900 rounded p-3 whitespace-pre-wrap"
 					>
 						{update.body}
 					</div>
 				{/if}
 
 				{#if error}
-					<p class="mt-3 text-xs text-danger-400 bg-danger-900/30 rounded p-2">{error}</p>
+					<p class="mt-3 text-sm text-danger-400 bg-danger-900/30 rounded p-2">{error}</p>
 				{/if}
 
 				{#if updateState === 'pulling'}
@@ -88,25 +88,25 @@
 						<div
 							class="w-4 h-4 border-2 border-macula-500 border-t-transparent rounded-full animate-spin"
 						></div>
-						<span class="text-sm text-macula-400">Pulling image...</span>
+						<span class="text-base text-macula-400">Pulling image...</span>
 					</div>
 				{:else if updateState === 'restarting'}
 					<div class="mt-4 flex items-center gap-2">
 						<div
 							class="w-4 h-4 border-2 border-macula-500 border-t-transparent rounded-full animate-spin"
 						></div>
-						<span class="text-sm text-macula-400">Restarting service...</span>
+						<span class="text-base text-macula-400">Restarting service...</span>
 					</div>
 				{:else}
 					<div class="mt-5 flex gap-3 justify-end">
 						<button
-							class="px-3 py-1.5 text-sm text-surface-400 hover:text-surface-200 transition-colors cursor-pointer"
+							class="px-3 py-1.5 text-base text-surface-400 hover:text-surface-200 transition-colors cursor-pointer"
 							onclick={close}
 						>
 							Later
 						</button>
 						<button
-							class="px-4 py-1.5 text-sm bg-macula-600 hover:bg-macula-500 text-white rounded transition-colors cursor-pointer"
+							class="px-4 py-1.5 text-base bg-macula-600 hover:bg-macula-500 text-white rounded transition-colors cursor-pointer"
 							onclick={() => doUpdate()}
 						>
 							Update Now

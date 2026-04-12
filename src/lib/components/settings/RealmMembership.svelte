@@ -95,7 +95,7 @@
 </script>
 
 <div class="rounded-xl border border-surface-600 bg-surface-800/80 p-5 space-y-4">
-	<h2 class="text-xs font-semibold text-surface-300 uppercase tracking-wider">Realms</h2>
+	<h2 class="text-sm font-semibold text-surface-300 uppercase tracking-wider">Realms</h2>
 
 	<!-- Active memberships -->
 	{#if $settings?.realms && $settings.realms.length > 0}
@@ -104,14 +104,14 @@
 				<div class="flex items-center gap-3 p-3 rounded-lg bg-surface-700/50 border border-surface-600">
 					<div class="flex-1 space-y-1">
 						<div class="flex items-center gap-2">
-							<span class="text-[10px] px-2 py-0.5 rounded-full bg-success-500/20 text-success-400 border border-success-500/30">
+							<span class="text-xs px-2 py-0.5 rounded-full bg-success-500/20 text-success-400 border border-success-500/30">
 								{realm.realm_id}
 							</span>
-							<span class="text-[10px] text-surface-500">
+							<span class="text-xs text-surface-500">
 								via {realm.oauth_provider}
 							</span>
 						</div>
-						<div class="flex items-center gap-2 text-xs text-surface-300">
+						<div class="flex items-center gap-2 text-sm text-surface-300">
 							<span>{realm.oauth_account}</span>
 							<span class="text-surface-600">|</span>
 							<span class="text-surface-500">Joined {formatTimestamp(realm.confirmed_at)}</span>
@@ -120,7 +120,7 @@
 					<button
 						onclick={() => handleLeave(realm.membership_id)}
 						disabled={leavingId === realm.membership_id}
-						class="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors cursor-pointer
+						class="px-3 py-1.5 rounded-lg text-sm font-medium transition-colors cursor-pointer
 							bg-surface-700 text-surface-300 hover:bg-danger-500/20 hover:text-danger-400 border border-surface-600
 							disabled:opacity-50 disabled:cursor-not-allowed"
 					>
@@ -130,14 +130,14 @@
 			{/each}
 		</div>
 	{:else}
-		<p class="text-xs text-surface-500">No realm memberships yet.</p>
+		<p class="text-sm text-surface-500">No realm memberships yet.</p>
 	{/if}
 
 	<!-- Join flow -->
 	{#if joinStep === 'idle'}
 		<button
 			onclick={() => { joinStep = 'url-input'; }}
-			class="px-4 py-2 rounded-lg text-xs font-medium transition-colors cursor-pointer
+			class="px-4 py-2 rounded-lg text-sm font-medium transition-colors cursor-pointer
 				bg-accent-600 text-surface-50 hover:bg-accent-500"
 		>
 			Join a Realm
@@ -145,12 +145,12 @@
 	{:else if joinStep === 'url-input'}
 		<div class="space-y-3">
 			<label class="block">
-				<span class="text-[10px] text-surface-500 uppercase tracking-wider font-medium">Realm URL</span>
+				<span class="text-xs text-surface-500 uppercase tracking-wider font-medium">Realm URL</span>
 				<input
 					type="url"
 					bind:value={realmUrl}
 					placeholder="https://macula.io"
-					class="mt-1 w-full px-3 py-2 rounded-lg text-sm
+					class="mt-1 w-full px-3 py-2 rounded-lg text-base
 						bg-surface-800 border border-surface-600 text-surface-100
 						placeholder:text-surface-600
 						focus:outline-none focus:border-accent-500/50 focus:ring-1 focus:ring-accent-500/30
@@ -160,7 +160,7 @@
 			<div class="flex gap-2">
 				<button
 					onclick={() => { joinStep = 'idle'; }}
-					class="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors cursor-pointer
+					class="px-3 py-1.5 rounded-lg text-sm font-medium transition-colors cursor-pointer
 						bg-surface-700 text-surface-400 hover:text-surface-200 border border-surface-600"
 				>
 					Cancel
@@ -168,7 +168,7 @@
 				<button
 					onclick={handleJoin}
 					disabled={!realmUrl.trim()}
-					class="px-4 py-1.5 rounded-lg text-xs font-medium transition-colors cursor-pointer
+					class="px-4 py-1.5 rounded-lg text-sm font-medium transition-colors cursor-pointer
 						bg-accent-600 text-surface-50 hover:bg-accent-500
 						disabled:opacity-40 disabled:cursor-not-allowed"
 				>
@@ -177,22 +177,22 @@
 			</div>
 		</div>
 	{:else if joinStep === 'initiating'}
-		<div class="flex items-center gap-2 text-sm text-surface-400">
+		<div class="flex items-center gap-2 text-base text-surface-400">
 			<span class="animate-pulse">...</span>
 			<span>Starting join session...</span>
 		</div>
 	{:else if joinStep === 'waiting' && session}
 		<div class="space-y-3">
-			<p class="text-xs text-surface-400">
+			<p class="text-sm text-surface-400">
 				Log in via the browser window that just opened.
 			</p>
 			<div class="flex items-center justify-between">
-				<span class="text-[10px] text-surface-500 animate-pulse">
+				<span class="text-xs text-surface-500 animate-pulse">
 					Waiting for login...
 				</span>
 				<button
 					onclick={handleCancel}
-					class="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors cursor-pointer
+					class="px-3 py-1.5 rounded-lg text-sm font-medium transition-colors cursor-pointer
 						bg-surface-700 text-surface-400 hover:text-surface-200 border border-surface-600"
 				>
 					Cancel
@@ -200,15 +200,15 @@
 			</div>
 		</div>
 	{:else if joinStep === 'success'}
-		<div class="flex items-center gap-2 text-sm text-success-400">
+		<div class="flex items-center gap-2 text-base text-success-400">
 			<span>Joined successfully!</span>
 		</div>
 	{:else if joinStep === 'error'}
 		<div class="space-y-3">
-			<div class="text-xs text-danger-400">{errorMessage}</div>
+			<div class="text-sm text-danger-400">{errorMessage}</div>
 			<button
 				onclick={handleRetry}
-				class="px-4 py-2 rounded-lg text-xs font-medium transition-colors cursor-pointer
+				class="px-4 py-2 rounded-lg text-sm font-medium transition-colors cursor-pointer
 					bg-accent-600 text-surface-50 hover:bg-accent-500"
 			>
 				Try again

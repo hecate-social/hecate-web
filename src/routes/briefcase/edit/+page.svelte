@@ -112,7 +112,7 @@
 		<div class="flex items-center bg-surface-800/60 border-b border-surface-700/50 shrink-0 overflow-x-auto">
 			{#each tabs as tab, i (tab.path)}
 				<button
-					class="flex items-center gap-1 px-3 py-1 text-[10px] border-r border-surface-700/30 shrink-0 transition-colors cursor-pointer
+					class="flex items-center gap-1 px-3 py-1 text-xs border-r border-surface-700/30 shrink-0 transition-colors cursor-pointer
 						{i === activeTabIdx
 							? 'bg-surface-900 text-macula-400 border-b-2 border-b-macula-500'
 							: 'text-surface-500 hover:text-surface-300 hover:bg-surface-800 border-b-2 border-b-transparent'}"
@@ -130,7 +130,7 @@
 			{/each}
 		</div>
 	{:else if tabs.length === 1}
-		<div class="flex items-center gap-2 px-3 py-1 border-b border-surface-700 bg-surface-800/80 text-[11px] shrink-0">
+		<div class="flex items-center gap-2 px-3 py-1 border-b border-surface-700 bg-surface-800/80 text-xs shrink-0">
 			<button
 				onclick={goBack}
 				class="text-surface-500 hover:text-macula-400 transition-colors cursor-pointer"
@@ -158,14 +158,14 @@
 		{/each}
 
 		{#if tabs.length === 0}
-			<div class="flex items-center justify-center h-full text-surface-500 text-sm">
+			<div class="flex items-center justify-center h-full text-surface-500 text-base">
 				No file specified
 			</div>
 		{/if}
 	</div>
 
 	<!-- Status bar -->
-	<div class="border-t border-surface-700 bg-surface-800/80 px-3 py-1 shrink-0 flex items-center gap-2 text-[10px] min-h-[24px]">
+	<div class="border-t border-surface-700 bg-surface-800/80 px-3 py-1 shrink-0 flex items-center gap-2 text-xs min-h-[24px]">
 		<span class="text-surface-500 truncate">{activeTab?.name ?? ''}</span>
 		<span class="text-surface-700">|</span>
 		<span class="text-surface-500">{wordCount}w {charCount}c</span>

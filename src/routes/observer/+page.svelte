@@ -116,21 +116,21 @@
 <svelte:window onkeydown={onKeyDown} />
 
 <div class="flex flex-col h-full overflow-hidden bg-surface-900 text-surface-200 select-none">
-	<div class="flex items-center gap-2 px-3 py-1 border-b border-surface-700 bg-surface-800/80 text-[11px] shrink-0">
-		<span class="text-macula-400 uppercase tracking-wider text-[10px]">System</span>
+	<div class="flex items-center gap-2 px-3 py-1 border-b border-surface-700 bg-surface-800/80 text-xs shrink-0">
+		<span class="text-macula-400 uppercase tracking-wider text-xs">System</span>
 		{#if $systemOverview}
 			<span class="text-surface-600">·</span>
-			<span class="text-[10px] text-surface-500">{formatBytes($systemOverview.memory.total)}</span>
+			<span class="text-xs text-surface-500">{formatBytes($systemOverview.memory.total)}</span>
 			<span class="text-surface-600">·</span>
-			<span class="text-[10px] text-surface-500">{$systemOverview.processes.count} procs</span>
+			<span class="text-xs text-surface-500">{$systemOverview.processes.count} procs</span>
 			<span class="text-surface-600">·</span>
-			<span class="text-[10px] text-surface-500">{formatUptime($systemOverview.uptime_ms)}</span>
+			<span class="text-xs text-surface-500">{formatUptime($systemOverview.uptime_ms)}</span>
 		{/if}
 	</div>
 
 	<div class="flex-1 overflow-y-auto py-1 min-h-0">
 		{#if loading}
-			<div class="px-3 py-4 text-[11px] text-surface-500 animate-pulse">Loading...</div>
+			<div class="px-3 py-4 text-xs text-surface-500 animate-pulse">Loading...</div>
 		{:else}
 			{#if $metricsHistory.length > 2}
 				<div class="px-2 py-1 grid grid-cols-4 gap-2">
@@ -145,22 +145,22 @@
 				{#each sectionRows as row}
 					{@const idx = rows.indexOf(row)}
 					<div data-cursor={idx === cursorIndex ? 'true' : 'false'}
-						class="px-2 py-0.5 text-[11px] flex items-center gap-2 transition-colors
+						class="px-2 py-0.5 text-xs flex items-center gap-2 transition-colors
 							{idx === cursorIndex ? 'bg-macula-600/30 text-surface-50 border-l-2 border-macula-400' : 'text-surface-300 border-l-2 border-transparent'}">
-						<span class="w-20 shrink-0 text-surface-500 text-right text-[10px] capitalize">{row.label}</span>
-						<span class="flex-1 truncate font-mono text-[10px]">{row.value}</span>
+						<span class="w-20 shrink-0 text-surface-500 text-right text-xs capitalize">{row.label}</span>
+						<span class="flex-1 truncate font-mono text-xs">{row.value}</span>
 					</div>
 				{/each}
 			{/each}
 		{/if}
 	</div>
 
-	<div class="border-t border-surface-700 bg-surface-800/80 px-3 py-1 shrink-0 flex items-center gap-2 text-[10px] min-h-[24px]">
+	<div class="border-t border-surface-700 bg-surface-800/80 px-3 py-1 shrink-0 flex items-center gap-2 text-xs min-h-[24px]">
 		{#if mode === 'command'}
 			<span class="text-macula-400">:</span>
 			<input type="text" bind:value={commandInput} use:focusOnMount
 				onkeydown={(e) => { if (e.key === 'Enter') { e.preventDefault(); e.stopPropagation(); onCommandSubmit(); } else if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); mode = 'normal'; commandInput = ''; } }}
-				class="flex-1 bg-transparent border-none outline-none text-[10px] text-surface-100" placeholder="Command..." />
+				class="flex-1 bg-transparent border-none outline-none text-xs text-surface-100" placeholder="Command..." />
 		{:else}
 			{#if statusMsg}
 				<span class="text-amber-400 truncate flex-1">{statusMsg}</span>

@@ -267,26 +267,26 @@
 
 <div class="flex flex-col h-full overflow-hidden bg-surface-900 text-surface-200 select-none">
 	<!-- Header -->
-	<div class="flex items-center gap-2 px-3 py-1 border-b border-surface-700 bg-surface-800/80 text-[11px] shrink-0">
-		<span class="text-macula-400 uppercase tracking-wider text-[10px]">LLM</span>
+	<div class="flex items-center gap-2 px-3 py-1 border-b border-surface-700 bg-surface-800/80 text-xs shrink-0">
+		<span class="text-macula-400 uppercase tracking-wider text-xs">LLM</span>
 		{#if $selectedModel}
 			<span class="text-surface-600">·</span>
-			<span class="text-[10px] text-surface-300">{$selectedModel}</span>
+			<span class="text-xs text-surface-300">{$selectedModel}</span>
 			{#if currentModelObj?.provider}
 				<span class="text-[9px] text-macula-400">{currentModelObj.provider}</span>
 			{/if}
 		{:else}
 			<span class="text-surface-600">·</span>
-			<span class="text-[10px] text-surface-500">no model</span>
+			<span class="text-xs text-surface-500">no model</span>
 		{/if}
 		<div class="flex-1"></div>
 		<button
-			class="text-[10px] px-2 py-0.5 rounded cursor-pointer transition-colors
+			class="text-xs px-2 py-0.5 rounded cursor-pointer transition-colors
 				{currentView === 'chat' ? 'text-macula-400 bg-macula-600/20' : 'text-surface-500 hover:text-surface-300'}"
 			onclick={() => { currentView = 'chat'; tick().then(() => inputEl?.focus()); }}
 		>chat</button>
 		<button
-			class="text-[10px] px-2 py-0.5 rounded cursor-pointer transition-colors
+			class="text-xs px-2 py-0.5 rounded cursor-pointer transition-colors
 				{currentView === 'models' ? 'text-macula-400 bg-macula-600/20' : 'text-surface-500 hover:text-surface-300'}"
 			onclick={() => { currentView = 'models'; modelCursor = 0; }}
 		>models ({$models.length})</button>
@@ -296,7 +296,7 @@
 		<!-- Model browser -->
 		<div class="flex-1 overflow-y-auto py-1">
 			{#if filteredModels.length === 0}
-				<div class="px-3 py-4 text-[11px] text-surface-600">
+				<div class="px-3 py-4 text-xs text-surface-600">
 					{modelSearch ? 'No matches' : 'No models available — :refresh'}
 				</div>
 			{:else}
@@ -310,7 +310,7 @@
 						{@const isSelected = model.name === $selectedModel}
 						<button
 							data-model-cursor={isCursor ? 'true' : 'false'}
-							class="w-full text-left px-2 py-0.5 text-[11px] flex items-center gap-1.5 cursor-pointer transition-colors
+							class="w-full text-left px-2 py-0.5 text-xs flex items-center gap-1.5 cursor-pointer transition-colors
 								{isCursor
 									? 'bg-macula-600/30 text-surface-50 border-l-2 border-macula-400'
 									: 'text-surface-300 hover:bg-surface-800 border-l-2 border-transparent'}"
@@ -325,7 +325,7 @@
 							<span class="w-3 text-center shrink-0 text-[8px] {isSelected ? 'text-macula-400' : 'text-surface-600'}">
 								{isSelected ? '\u25CF' : ' '}
 							</span>
-							<span class="flex-1 truncate font-mono text-[10px] {isSelected ? 'text-macula-400' : ''}">{model.name}</span>
+							<span class="flex-1 truncate font-mono text-xs {isSelected ? 'text-macula-400' : ''}">{model.name}</span>
 							<span class="text-[9px] text-surface-600 shrink-0 w-12 text-right">{model.parameter_size ?? ''}</span>
 							<span class="text-[9px] text-surface-600 shrink-0 w-16 text-right">{specialtyOf(model)}</span>
 							<span class="text-[9px] text-amber-400/60 shrink-0 w-8 text-right">{costOf(model)}</span>
@@ -336,7 +336,7 @@
 		</div>
 
 		<!-- Model browser status bar -->
-		<div class="border-t border-surface-700 bg-surface-800/80 px-3 py-1 shrink-0 flex items-center gap-2 text-[10px] min-h-[24px]">
+		<div class="border-t border-surface-700 bg-surface-800/80 px-3 py-1 shrink-0 flex items-center gap-2 text-xs min-h-[24px]">
 			{#if modelMode === 'search'}
 				<span class="text-macula-400">/{modelSearch}<span class="animate-pulse">_</span></span>
 				<span class="text-surface-600">{filteredModels.length} matches</span>
@@ -358,7 +358,7 @@
 		<div bind:this={messagesContainer} class="flex-1 overflow-y-auto p-4">
 			{#if $messages.length === 0 && !$isStreaming}
 				<div class="flex items-center justify-center h-full">
-					<div class="text-center text-surface-500 text-[11px] space-y-1">
+					<div class="text-center text-surface-500 text-xs space-y-1">
 						<div class="text-lg mb-2">{'\u25C6'}</div>
 						{#if $selectedModel}
 							<div>Using <span class="text-macula-400">{$selectedModel}</span></div>
@@ -381,7 +381,7 @@
 		<!-- Input area (REPL-style) -->
 		<div class="border-t border-surface-700 bg-surface-800/80 px-3 py-1.5 shrink-0">
 			<div class="flex items-end gap-2">
-				<span class="text-macula-400 text-[11px] py-1.5 shrink-0">{$isStreaming ? '\u25CF' : '\u276F'}</span>
+				<span class="text-macula-400 text-xs py-1.5 shrink-0">{$isStreaming ? '\u25CF' : '\u276F'}</span>
 				<textarea
 					bind:this={inputEl}
 					bind:value={inputValue}

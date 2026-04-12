@@ -308,14 +308,14 @@
 		>
 			<!-- Group header -->
 			<button
-				class="flex items-center gap-1 w-full h-7 text-[10px] uppercase tracking-wider text-surface-400 hover:text-surface-200 cursor-pointer select-none
+				class="flex items-center gap-1 w-full h-7 text-xs uppercase tracking-wider text-surface-400 hover:text-surface-200 cursor-pointer select-none
 					{$sidebarCollapsed ? 'justify-center px-0' : 'px-2'}"
 				onclick={() => toggleGroupCollapsed(group.id)}
 				oncontextmenu={(e) => onContextMenu(e, 'group', group.id)}
 			>
 				{#if $sidebarCollapsed}
 					<span
-						class="text-sm cursor-pointer leading-none"
+						class="text-base cursor-pointer leading-none"
 						onclick={(e) => onIconClick(e, group.id)}
 					>{resolveEmoji(group.icon, '\uD83D\uDCC1')}</span>
 				{:else}
@@ -323,7 +323,7 @@
 						{'\u25B6'}
 					</span>
 					<span
-						class="text-sm cursor-pointer hover:scale-110 transition-transform leading-none"
+						class="text-base cursor-pointer hover:scale-110 transition-transform leading-none"
 						onclick={(e) => onIconClick(e, group.id)}
 						title="Change icon"
 					>{resolveEmoji(group.icon, '\uD83D\uDCC1')}</span>
@@ -338,7 +338,7 @@
 							}}
 							onblur={commitRename}
 							autofocus
-							class="bg-surface-700 text-surface-100 text-[10px] uppercase tracking-wider px-1 rounded w-full outline-none border border-macula-500/50"
+							class="bg-surface-700 text-surface-100 text-xs uppercase tracking-wider px-1 rounded w-full outline-none border border-macula-500/50"
 							onclick={(e) => e.stopPropagation()}
 						/>
 					{:else}
@@ -368,9 +368,9 @@
 						onfocus={() => (focusedIndex = visibleIndex(tab.id))}
 						oncontextmenu={(e) => onContextMenu(e, 'app', tab.id)}
 					>
-						<span class="text-sm shrink-0">{tab.icon}</span>
+						<span class="text-base shrink-0">{tab.icon}</span>
 						{#if !$sidebarCollapsed}
-							<span class="text-xs truncate flex-1 text-left">{tab.name}</span>
+							<span class="text-sm truncate flex-1 text-left">{tab.name}</span>
 							{#if tab.isPlugin}
 									{#if indicator === 'online'}
 										<span class="text-[8px] text-health-ok">{'\u25CF'}</span>
@@ -407,7 +407,7 @@
 			role="list"
 		>
 			{#if !$sidebarCollapsed}
-				<div class="flex items-center gap-1 px-2 h-7 text-[10px] uppercase tracking-wider text-surface-500">
+				<div class="flex items-center gap-1 px-2 h-7 text-xs uppercase tracking-wider text-surface-500">
 					<span>Ungrouped</span>
 				</div>
 			{/if}
@@ -431,9 +431,9 @@
 					onfocus={() => (focusedIndex = visibleIndex(tab.id))}
 					oncontextmenu={(e) => onContextMenu(e, 'app', tab.id)}
 				>
-					<span class="text-sm shrink-0">{tab.icon}</span>
+					<span class="text-base shrink-0">{tab.icon}</span>
 					{#if !$sidebarCollapsed}
-						<span class="text-xs truncate flex-1 text-left">{tab.name}</span>
+						<span class="text-sm truncate flex-1 text-left">{tab.name}</span>
 						{#if tab.isPlugin}
 							{#if indicator === 'online'}
 								<span class="text-[8px] text-health-ok">{'\u25CF'}</span>
@@ -475,12 +475,12 @@
 					onblur={commitNewGroup}
 					autofocus
 					placeholder="Group name..."
-					class="w-full bg-surface-700 text-surface-100 text-[10px] px-2 py-1 rounded outline-none border border-macula-500/50 placeholder:text-surface-500"
+					class="w-full bg-surface-700 text-surface-100 text-xs px-2 py-1 rounded outline-none border border-macula-500/50 placeholder:text-surface-500"
 				/>
 			{:else}
 				<button
 					onclick={() => (showNewGroup = true)}
-					class="w-full text-[10px] text-surface-500 hover:text-surface-300 py-1 rounded hover:bg-surface-700/50 transition-colors cursor-pointer"
+					class="w-full text-xs text-surface-500 hover:text-surface-300 py-1 rounded hover:bg-surface-700/50 transition-colors cursor-pointer"
 				>
 					+ New Group
 				</button>
@@ -498,26 +498,26 @@
 	>
 		{#if contextMenu.type === 'group'}
 			<button
-				class="w-full text-left px-3 py-1.5 text-xs text-surface-200 hover:bg-surface-600 cursor-pointer"
+				class="w-full text-left px-3 py-1.5 text-sm text-surface-200 hover:bg-surface-600 cursor-pointer"
 				onclick={() => handleContextAction('rename')}
 			>
 				Rename
 			</button>
 			<button
-				class="w-full text-left px-3 py-1.5 text-xs text-surface-200 hover:bg-surface-600 cursor-pointer"
+				class="w-full text-left px-3 py-1.5 text-sm text-surface-200 hover:bg-surface-600 cursor-pointer"
 				onclick={() => handleContextAction('change-icon')}
 			>
 				Change Icon
 			</button>
 			<button
-				class="w-full text-left px-3 py-1.5 text-xs text-danger-400 hover:bg-surface-600 cursor-pointer"
+				class="w-full text-left px-3 py-1.5 text-sm text-danger-400 hover:bg-surface-600 cursor-pointer"
 				onclick={() => handleContextAction('delete')}
 			>
 				Delete Group
 			</button>
 		{:else if contextMenu.type === 'app'}
 			<button
-				class="w-full text-left px-3 py-1.5 text-xs text-surface-200 hover:bg-surface-600 cursor-pointer"
+				class="w-full text-left px-3 py-1.5 text-sm text-surface-200 hover:bg-surface-600 cursor-pointer"
 				onclick={() => handleContextAction('ungroup')}
 			>
 				Move to Ungrouped

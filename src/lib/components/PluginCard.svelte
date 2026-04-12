@@ -63,7 +63,7 @@
 
 	<!-- Name -->
 	<span
-		class="text-sm font-medium transition-colors text-center leading-tight
+		class="text-base font-medium transition-colors text-center leading-tight
 			{online || isCore
 				? 'text-surface-100 group-hover:text-accent-400'
 				: 'text-surface-300 group-hover:text-surface-100'}"
@@ -75,7 +75,7 @@
 	{#if version || updateVersion}
 		<div class="flex items-center gap-1.5 flex-wrap justify-center">
 			{#if version}
-				<span class="text-[10px] text-surface-500 bg-surface-700/80 px-1.5 py-0.5 rounded">
+				<span class="text-xs text-surface-500 bg-surface-700/80 px-1.5 py-0.5 rounded">
 					v{version}
 				</span>
 			{/if}
@@ -85,7 +85,7 @@
 				<span
 					role="button"
 					tabindex="0"
-					class="text-[10px] font-semibold bg-macula-600 hover:bg-macula-500 text-white px-1.5 py-0.5 rounded cursor-pointer"
+					class="text-xs font-semibold bg-macula-600 hover:bg-macula-500 text-white px-1.5 py-0.5 rounded cursor-pointer"
 					onclick={(e) => {
 						e.stopPropagation();
 						showPluginUpdateModal.set(card.id);
@@ -104,7 +104,7 @@
 	{/if}
 
 	<!-- Description -->
-	<span class="text-[10px] text-surface-500 text-center leading-relaxed line-clamp-2">
+	<span class="text-xs text-surface-500 text-center leading-relaxed line-clamp-2">
 		{card.description}
 	</span>
 </button>

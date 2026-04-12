@@ -30,12 +30,12 @@
 		onclick={toggle}
 	>
 		<span class="text-base leading-none">{group.icon || '\uD83D\uDCC1'}</span>
-		<span class="text-xs font-semibold uppercase tracking-wider flex-1">{group.name}</span>
-		<span class="text-[10px] text-surface-500 tabular-nums">
+		<span class="text-sm font-semibold uppercase tracking-wider flex-1">{group.name}</span>
+		<span class="text-xs text-surface-500 tabular-nums">
 			{group.appIds.length}
 		</span>
 		<span
-			class="text-[10px] text-surface-500 transition-transform duration-200
+			class="text-xs text-surface-500 transition-transform duration-200
 				{group.collapsed ? '' : 'rotate-90'}"
 		>
 			{'\u25B6'}

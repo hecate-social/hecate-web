@@ -54,10 +54,10 @@
 		class="flex items-center gap-1.5 px-2 h-10 hover:bg-surface-700/50 transition-colors"
 	>
 		<img src="/macula-symbol-dark.svg" alt="" class="w-5 h-5" />
-		<span class="text-sm font-bold text-macula-400">Hecate</span>
-		<span class="text-[10px] text-surface-400 font-mono">v{appVersion}</span>
+		<span class="text-base font-bold text-macula-400">Hecate</span>
+		<span class="text-xs text-surface-400 font-mono">v{appVersion}</span>
 		<span class={variantClass[hdr.daemon.variant]}>{iconChar[hdr.daemon.icon]}</span>
-		<span class="flex items-center gap-0.5 ml-1.5 text-xs font-mono leading-none select-none">
+		<span class="flex items-center gap-0.5 ml-1.5 text-sm font-mono leading-none select-none">
 			<span class={$txActive ? 'text-amber-400' : 'text-surface-600'}>{'\u{25B2}'}</span>
 			<span class={$rxActive ? 'text-emerald-400' : 'text-surface-600'}>{'\u{25BC}'}</span>
 		</span>
@@ -68,7 +68,7 @@
 		href="/mesh"
 		class="flex items-center gap-1 ml-2 px-2 py-0.5 rounded-full
 			bg-surface-700/60 border border-surface-600 hover:border-surface-500
-			text-[10px] text-surface-400 hover:text-surface-200 transition-colors"
+			text-xs text-surface-400 hover:text-surface-200 transition-colors"
 		title="Mesh connection"
 	>
 		<span class={variantClass[hdr.mesh.variant]}>{iconChar[hdr.mesh.icon]}</span>
@@ -84,7 +84,7 @@
 			href="/settings"
 			class="flex items-center gap-1 ml-1.5 px-2 py-0.5 rounded-full
 				bg-surface-700/60 border border-surface-600 hover:border-surface-500
-				text-[10px] text-surface-400 hover:text-surface-200 transition-colors"
+				text-xs text-surface-400 hover:text-surface-200 transition-colors"
 		>
 			<svg class="size-3 text-amber-400" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
 				<path stroke-linecap="round" stroke-linejoin="round" d="M12 21a9.004 9.004 0 0 0 8.716-6.747M12 21a9.004 9.004 0 0 1-8.716-6.747M12 21c2.485 0 4.5-4.03 4.5-9S14.485 3 12 3m0 18c-2.485 0-4.5-4.03-4.5-9S9.515 3 12 3m0 0a8.997 8.997 0 0 1 7.843 4.582M12 3a8.997 8.997 0 0 0-7.843 4.582m15.686 0A11.953 11.953 0 0 1 12 10.5c-2.998 0-5.74-1.1-7.843-2.918m15.686 0A8.959 8.959 0 0 1 21 12c0 .778-.099 1.533-.284 2.253m0 0A17.919 17.919 0 0 1 12 16.5c-3.162 0-6.133-.815-8.716-2.247m0 0A9.015 9.015 0 0 1 3 12c0-1.605.42-3.113 1.157-4.418" />
@@ -99,13 +99,13 @@
 	<!-- App update badge -->
 	{#if $updateState !== 'idle'}
 		<span
-			class="px-2 py-1 rounded text-[10px] font-semibold bg-macula-600 text-white animate-pulse mr-1"
+			class="px-2 py-1 rounded text-xs font-semibold bg-macula-600 text-white animate-pulse mr-1"
 		>
 			Updating...
 		</span>
 	{:else if $hasUpdate}
 		<button
-			class="px-2 py-1 rounded text-[10px] font-semibold bg-macula-600 hover:bg-macula-500 text-white cursor-pointer mr-1"
+			class="px-2 py-1 rounded text-xs font-semibold bg-macula-600 hover:bg-macula-500 text-white cursor-pointer mr-1"
 			onclick={() => showUpdateModal.set(true)}
 		>
 			Update v{$updateVersion}

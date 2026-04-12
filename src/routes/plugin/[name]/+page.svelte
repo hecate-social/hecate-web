@@ -179,19 +179,19 @@
 		{#if progressError}
 			<div class="flex flex-col items-center gap-2 max-w-sm text-center">
 				<div class="px-4 py-3 rounded-md bg-red-500/10 border border-red-500/30 w-full">
-					<p class="text-sm text-red-400 font-medium">App failed to start</p>
-					<p class="text-xs text-surface-400 mt-1">The plugin may have crashed or timed out. Check daemon logs for details.</p>
+					<p class="text-base text-red-400 font-medium">App failed to start</p>
+					<p class="text-sm text-surface-400 mt-1">The plugin may have crashed or timed out. Check daemon logs for details.</p>
 				</div>
 				{#if debugError}
-					<p class="text-xs text-surface-500 font-mono break-all max-w-md">{debugError}</p>
+					<p class="text-sm text-surface-500 font-mono break-all max-w-md">{debugError}</p>
 				{/if}
 			</div>
 		{:else}
 			<!-- Phase label -->
 			<div class="flex flex-col items-center gap-1.5">
-				<p class="text-sm font-medium text-surface-200">{statusLabel || 'Working'}...</p>
+				<p class="text-base font-medium text-surface-200">{statusLabel || 'Working'}...</p>
 				{#if phase.hint}
-					<p class="text-xs text-surface-500">{phase.hint}</p>
+					<p class="text-sm text-surface-500">{phase.hint}</p>
 				{/if}
 			</div>
 
@@ -201,12 +201,12 @@
 			</div>
 
 			<!-- Elapsed time -->
-			<p class="text-[11px] text-surface-600 tabular-nums">{formatElapsed(elapsed)}</p>
+			<p class="text-xs text-surface-600 tabular-nums">{formatElapsed(elapsed)}</p>
 
 			{#if progressWarn}
 				<div class="px-4 py-2 rounded-md bg-amber-500/10 border border-amber-500/30 max-w-sm text-center">
-					<p class="text-xs text-amber-400 font-medium">Taking longer than usual</p>
-					<p class="text-xs text-surface-400 mt-1">First start may take a moment while the plugin initializes.</p>
+					<p class="text-sm text-amber-400 font-medium">Taking longer than usual</p>
+					<p class="text-sm text-surface-400 mt-1">First start may take a moment while the plugin initializes.</p>
 				</div>
 			{/if}
 		{/if}
@@ -215,13 +215,13 @@
 	<div class="flex flex-col items-center justify-center h-full gap-4">
 		<span class="text-4xl">{'\u{1F4E6}'}</span>
 		<h2 class="text-lg font-bold text-surface-100">{displayName}</h2>
-		<p class="text-sm text-surface-400 text-center max-w-md">
+		<p class="text-base text-surface-400 text-center max-w-md">
 			{statusLabel}. Press Start to launch it.
 		</p>
 		<button
 			onclick={startPlugin}
 			disabled={starting}
-			class="px-6 py-2 rounded-lg text-sm font-medium transition-colors cursor-pointer
+			class="px-6 py-2 rounded-lg text-base font-medium transition-colors cursor-pointer
 				{starting
 					? 'bg-surface-600 text-surface-400'
 					: 'bg-macula-600 hover:bg-macula-500 text-white'}"
@@ -233,25 +233,25 @@
 	<div class="flex flex-col items-center justify-center h-full gap-4">
 		<span class="text-4xl">{'\u{1F50C}'}</span>
 		<h2 class="text-lg font-bold text-surface-100">{displayName}</h2>
-		<p class="text-sm text-surface-400 text-center max-w-md">
+		<p class="text-base text-surface-400 text-center max-w-md">
 			{statusLabel || 'Installed'}. Waiting for it to become ready.
 		</p>
 		{#if debugError}
 			<div class="mt-1 px-4 py-2 rounded-md bg-red-500/10 border border-red-500/30 max-w-lg">
-				<p class="text-xs text-red-400 break-all">{debugError}</p>
+				<p class="text-sm text-red-400 break-all">{debugError}</p>
 			</div>
 		{/if}
 	</div>
 {:else if !$appsLoaded}
 	<div class="flex flex-col items-center justify-center h-full gap-4">
 		<span class="text-4xl animate-pulse">{'\u{2699}\uFE0F'}</span>
-		<p class="text-sm text-surface-400">Loading...</p>
+		<p class="text-base text-surface-400">Loading...</p>
 	</div>
 {:else}
 	<div class="flex flex-col items-center justify-center h-full gap-4">
 		<span class="text-4xl">{'\u{1F50C}'}</span>
 		<h2 class="text-lg font-bold text-surface-100">{displayName}</h2>
-		<p class="text-sm text-surface-400 text-center max-w-md">
+		<p class="text-base text-surface-400 text-center max-w-md">
 			This app is not installed. Visit the App Store to install it.
 		</p>
 	</div>
@@ -261,14 +261,14 @@
 	<div class="absolute bottom-2 right-2 z-10">
 		<button
 			onclick={() => showDetails = !showDetails}
-			class="text-[10px] text-surface-500 hover:text-surface-300 transition-colors px-2 py-1 rounded hover:bg-surface-700/50 cursor-pointer"
+			class="text-xs text-surface-500 hover:text-surface-300 transition-colors px-2 py-1 rounded hover:bg-surface-700/50 cursor-pointer"
 			aria-label="Toggle status details"
 		>
 			{showDetails ? 'Hide details' : 'Details'}
 		</button>
 
 		{#if showDetails}
-			<div class="absolute bottom-7 right-0 w-72 bg-surface-800 border border-surface-600 rounded-lg shadow-xl p-3 text-xs">
+			<div class="absolute bottom-7 right-0 w-72 bg-surface-800 border border-surface-600 rounded-lg shadow-xl p-3 text-sm">
 				<table class="w-full">
 					<tbody>
 						<tr>

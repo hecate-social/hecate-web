@@ -32,7 +32,7 @@
 </script>
 
 <footer
-	class="flex items-center gap-4 bg-surface-800 border-t border-surface-600 px-3 h-7 text-[11px] font-mono text-surface-300 shrink-0"
+	class="flex items-center gap-4 bg-surface-800 border-t border-surface-600 px-3 h-7 text-xs font-mono text-surface-300 shrink-0"
 >
 	<!-- Daemon status -->
 	<div class="flex items-center gap-1.5">

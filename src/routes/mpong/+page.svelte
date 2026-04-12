@@ -77,13 +77,13 @@
 	<div class="flex items-center justify-between px-4 py-2 border-b border-gray-700">
 		<div class="flex items-center gap-2">
 			{#if selectedGameId}
-				<button onclick={backToLobby} class="text-xs text-gray-400 hover:text-gray-200 transition-colors">
+				<button onclick={backToLobby} class="text-sm text-gray-400 hover:text-gray-200 transition-colors">
 					&larr; Lobby
 				</button>
-				<span class="text-xs text-gray-600">/</span>
+				<span class="text-sm text-gray-600">/</span>
 			{/if}
-			<h1 class="text-sm font-medium text-gray-200">MPong</h1>
-			<span class="text-xs text-gray-500">Mesh Pong Stress Test</span>
+			<h1 class="text-base font-medium text-gray-200">MPong</h1>
+			<span class="text-sm text-gray-500">Mesh Pong Stress Test</span>
 		</div>
 	</div>
 
@@ -93,9 +93,9 @@
 				<MpongLobby onSelectGame={selectGame} />
 			</div>
 		{:else if loadError}
-			<div class="text-center text-red-400 text-sm mt-8">
+			<div class="text-center text-red-400 text-base mt-8">
 				{loadError}
-				<button onclick={backToLobby} class="block mx-auto mt-2 text-xs text-gray-400 hover:text-gray-200">
+				<button onclick={backToLobby} class="block mx-auto mt-2 text-sm text-gray-400 hover:text-gray-200">
 					Back to lobby
 				</button>
 			</div>
@@ -112,7 +112,7 @@
 						<MpongControls game={game} onBack={backToLobby} onNewGame={selectGame} />
 						<MpongScoreboard players={players} gameState={gs} />
 					{:else}
-						<div class="rounded-lg border border-gray-700 bg-gray-800/50 p-3 text-xs text-gray-500 animate-pulse">
+						<div class="rounded-lg border border-gray-700 bg-gray-800/50 p-3 text-sm text-gray-500 animate-pulse">
 							Connecting...
 						</div>
 					{/if}

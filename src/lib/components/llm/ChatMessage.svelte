@@ -44,26 +44,26 @@
 
 <div class="flex {isUser ? 'justify-end' : 'justify-start'} mb-3">
 	<div
-		class="max-w-[80%] rounded-lg px-4 py-2.5 text-sm leading-relaxed
+		class="max-w-[80%] rounded-lg px-4 py-2.5 text-base leading-relaxed
 			{isUser
 			? 'bg-macula-600/20 border border-macula-500/30 text-surface-100'
 			: isError
 				? 'bg-danger-500/10 border border-danger-500/30 text-danger-400'
 				: 'bg-surface-700 border border-surface-600 text-surface-100'}"
 	>
-		<div class="text-[10px] text-surface-400 mb-1">
+		<div class="text-xs text-surface-400 mb-1">
 			{isUser ? 'You' : 'Assistant'}
 		</div>
 
 		{#each parts as part}
 			{#if part.type === 'think'}
 				<details class="mb-2 group">
-					<summary class="text-[11px] text-surface-400 cursor-pointer hover:text-surface-300
+					<summary class="text-xs text-surface-400 cursor-pointer hover:text-surface-300
 						select-none flex items-center gap-1">
-						<span class="text-[10px] transition-transform group-open:rotate-90">{'\u{25B6}'}</span>
+						<span class="text-xs transition-transform group-open:rotate-90">{'\u{25B6}'}</span>
 						Reasoning
 					</summary>
-					<div class="mt-1 pl-3 border-l-2 border-surface-600 text-xs text-surface-400
+					<div class="mt-1 pl-3 border-l-2 border-surface-600 text-sm text-surface-400
 						whitespace-pre-wrap break-words leading-relaxed">
 						{part.content.trim()}
 					</div>

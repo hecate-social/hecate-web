@@ -510,20 +510,20 @@
 
 <div class="flex flex-col h-full overflow-hidden bg-surface-900 text-surface-200 select-none">
 	<!-- Header -->
-	<div class="flex items-center gap-2 px-3 py-1 border-b border-surface-700 bg-surface-800/80 text-[11px] shrink-0">
-		<span class="text-macula-400 uppercase tracking-wider text-[10px]">
+	<div class="flex items-center gap-2 px-3 py-1 border-b border-surface-700 bg-surface-800/80 text-xs shrink-0">
+		<span class="text-macula-400 uppercase tracking-wider text-xs">
 			{currentView === 'detail' ? 'Detail' : currentView === 'installed' ? 'Installed' : 'Appstore'}
 		</span>
 		<span class="text-surface-600">({flatItems.length})</span>
 		<div class="flex-1"></div>
 		{#if currentView !== 'detail'}
 			<button
-				class="text-[10px] px-2 py-0.5 rounded cursor-pointer transition-colors
+				class="text-xs px-2 py-0.5 rounded cursor-pointer transition-colors
 					{currentView === 'browse' ? 'text-macula-400 bg-macula-600/20' : 'text-surface-500 hover:text-surface-300'}"
 				onclick={() => { currentView = 'browse'; cursorIndex = 0; }}
 			>browse</button>
 			<button
-				class="text-[10px] px-2 py-0.5 rounded cursor-pointer transition-colors
+				class="text-xs px-2 py-0.5 rounded cursor-pointer transition-colors
 					{currentView === 'installed' ? 'text-macula-400 bg-macula-600/20' : 'text-surface-500 hover:text-surface-300'}"
 				onclick={() => { currentView = 'installed'; cursorIndex = 0; }}
 			>installed ({installedCount})</button>
@@ -535,11 +535,11 @@
 		<!-- List pane -->
 		<div class="flex-1 overflow-y-auto py-1 min-w-0" class:hidden={currentView === 'detail'}>
 			{#if isLoading}
-				<div class="px-3 py-4 text-[11px] text-surface-500 animate-pulse">Loading catalog...</div>
+				<div class="px-3 py-4 text-xs text-surface-500 animate-pulse">Loading catalog...</div>
 			{:else if error}
-				<div class="px-3 py-4 text-[11px] text-danger-400">{error}</div>
+				<div class="px-3 py-4 text-xs text-danger-400">{error}</div>
 			{:else if flatItems.length === 0}
-				<div class="px-3 py-4 text-[11px] text-surface-600">
+				<div class="px-3 py-4 text-xs text-surface-600">
 					{searchQuery ? 'No matches' : 'No plugins available'}
 				</div>
 			{:else}
@@ -553,7 +553,7 @@
 						{@const loading = actionLoading === item.plugin_id}
 						<button
 							data-cursor={isCursor ? 'true' : 'false'}
-							class="w-full text-left px-2 py-px text-[11px] flex items-center gap-1.5 cursor-pointer transition-colors
+							class="w-full text-left px-2 py-px text-xs flex items-center gap-1.5 cursor-pointer transition-colors
 								{isCursor
 									? 'bg-macula-600/30 text-surface-50 border-l-2 border-macula-400'
 									: 'text-surface-300 hover:bg-surface-800 border-l-2 border-transparent'}"
@@ -590,17 +590,17 @@
 					<div class="flex items-center gap-2">
 						<span class="text-2xl">{resolveEmoji(selectedPlugin.icon ?? 'package')}</span>
 						<div>
-							<div class="text-sm font-semibold text-surface-100">{selectedPlugin.name}</div>
-							<div class="text-[10px] text-surface-500">{selectedPlugin.org} · v{selectedPlugin.version}</div>
+							<div class="text-base font-semibold text-surface-100">{selectedPlugin.name}</div>
+							<div class="text-xs text-surface-500">{selectedPlugin.org} · v{selectedPlugin.version}</div>
 						</div>
 					</div>
 
 					{#if selectedPlugin.description}
-						<div class="text-[11px] text-surface-400">{selectedPlugin.description}</div>
+						<div class="text-xs text-surface-400">{selectedPlugin.description}</div>
 					{/if}
 
 					<!-- Info grid -->
-					<div class="grid grid-cols-2 gap-x-4 gap-y-1 text-[10px]">
+					<div class="grid grid-cols-2 gap-x-4 gap-y-1 text-xs">
 						<div class="text-surface-500">Price</div>
 						<div class="text-surface-300">{formatPrice(selectedPlugin)}</div>
 
@@ -649,7 +649,7 @@
 					{/if}
 
 					<!-- Actions hint -->
-					<div class="text-[10px] text-surface-600 mt-4">
+					<div class="text-xs text-surface-600 mt-4">
 						i: {getActionState(selectedPlugin) === 'installed' ? 'remove' : 'install'}
 						{#if getActionState(selectedPlugin) === 'update'} · u: upgrade{/if}
 						 · h/Esc: back
@@ -662,12 +662,12 @@
 				<div class="px-3 py-2 space-y-2">
 					<div class="flex items-center gap-2">
 						<span class="text-lg">{resolveEmoji(selectedItem.icon ?? 'package')}</span>
-						<span class="text-[11px] text-surface-200 font-medium">{selectedItem.name}</span>
+						<span class="text-xs text-surface-200 font-medium">{selectedItem.name}</span>
 					</div>
 					{#if selectedItem.description}
-						<div class="text-[10px] text-surface-500">{selectedItem.description}</div>
+						<div class="text-xs text-surface-500">{selectedItem.description}</div>
 					{/if}
-					<div class="text-[10px] text-surface-600 space-y-0.5">
+					<div class="text-xs text-surface-600 space-y-0.5">
 						<div>{selectedItem.org} · v{selectedItem.version}</div>
 						<div>{formatPrice(selectedItem)} · {selectedItem.plugin_type ?? 'unknown'}</div>
 						{#if selectedItem.installed_version}
@@ -677,14 +677,14 @@
 				</div>
 			</div>
 		{:else if currentView !== 'detail'}
-			<div class="w-1/3 shrink-0 flex items-center justify-center text-surface-600 text-[10px]">
+			<div class="w-1/3 shrink-0 flex items-center justify-center text-surface-600 text-xs">
 				No selection
 			</div>
 		{/if}
 	</div>
 
 	<!-- Status bar -->
-	<div class="border-t border-surface-700 bg-surface-800/80 px-3 py-1 shrink-0 flex items-center gap-2 text-[10px] min-h-[24px]">
+	<div class="border-t border-surface-700 bg-surface-800/80 px-3 py-1 shrink-0 flex items-center gap-2 text-xs min-h-[24px]">
 		{#if mode === 'command'}
 			<span class="text-macula-400">:</span>
 			<input
@@ -694,7 +694,7 @@
 					if (e.key === 'Enter') { e.preventDefault(); e.stopPropagation(); onCommandSubmit(); }
 					else if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); mode = 'normal'; commandInput = ''; }
 				}}
-				class="flex-1 bg-transparent border-none outline-none text-[10px] text-surface-100"
+				class="flex-1 bg-transparent border-none outline-none text-xs text-surface-100"
 				placeholder="Command... (Tab to complete)"
 			/>
 		{:else if mode === 'search'}

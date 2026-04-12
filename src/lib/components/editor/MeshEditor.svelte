@@ -188,7 +188,7 @@
 
 <div class="h-full overflow-hidden relative" bind:this={container}>
 	{#if loadError}
-		<div class="absolute top-0 left-0 right-0 bg-danger-600/90 text-white text-[11px] px-3 py-1 z-10">
+		<div class="absolute top-0 left-0 right-0 bg-danger-600/90 text-white text-xs px-3 py-1 z-10">
 			{loadError} — path: {path}
 		</div>
 	{/if}
