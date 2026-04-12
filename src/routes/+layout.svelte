@@ -2,6 +2,8 @@
 	import '../app.css';
 	import TitleBar from '$lib/components/TitleBar.svelte';
 	import StatusBar from '$lib/components/StatusBar.svelte';
+	import ZenChrome from '$lib/components/ZenChrome.svelte';
+	import ZenDragBar from '$lib/components/ZenDragBar.svelte';
 	import Launcher from '$lib/components/Launcher.svelte';
 	import DaemonStartingOverlay from '$lib/components/DaemonStartingOverlay.svelte';
 	import OnboardingOverlay from '$lib/components/OnboardingOverlay.svelte';
@@ -21,6 +23,7 @@
 	import { pluginPaths, pluginTabs } from '$lib/plugins-registry';
 	import { runStartupChecklist } from '$lib/stores/startup';
 	import { dispatchKeydown, registerShortcut } from '$lib/stores/keyboard';
+	import { mode } from '$lib/stores/mode';
 	import '$lib/stores/theme.js';
 	import '$lib/stores/zoom';
 	import { onMount, onDestroy } from 'svelte';
@@ -84,6 +87,35 @@
 		);
 	}
 
+	// Ctrl+Shift+Z: toggle zen mode
+	const unregisterZenToggle = registerShortcut({
+		key: 'Z',
+		modifiers: ['ctrl', 'shift'],
+		label: 'Toggle Zen Mode',
+		category: 'Mode',
+		handler: () => mode.toggle(),
+	});
+
+	// Zen mode only: plain digits 1-9 jump to tabs (Alt+N still works in both modes).
+	// Registered unconditionally; the handler checks $mode at fire time.
+	const unregisterZenDigits: (() => void)[] = [];
+	for (let n = 1; n <= 9; n++) {
+		unregisterZenDigits.push(
+			registerShortcut({
+				key: String(n),
+				modifiers: [],
+				label: `Go to Page ${n} (zen)`,
+				category: 'Navigation',
+				handler: () => {
+					if (get(mode) !== 'zen') return;
+					const tabs = get(pluginTabs);
+					const tab = tabs[n - 1];
+					if (tab) goto(tab.path);
+				},
+			})
+		);
+	}
+
 	// F12 or Ctrl+Shift+I: toggle devtools
 	const unregisterDevtools = registerShortcut({
 		key: 'F12',
@@ -126,6 +158,8 @@
 		unregisterTabForward();
 		unregisterTabBackward();
 		unregisterAltNums.forEach((fn) => fn());
+		unregisterZenToggle();
+		unregisterZenDigits.forEach((fn) => fn());
 		unregisterDevtools();
 		unregisterDevtools2();
 	});
@@ -141,13 +175,19 @@
 <KeyboardShortcutsHelp />
 
 <div class="flex flex-col h-screen w-screen overflow-hidden">
-	<TitleBar />
-
-	<main class="flex-1 overflow-hidden relative">
-		{@render children()}
-	</main>
-
-	<StatusBar />
+	{#if $mode === 'zen'}
+		<ZenDragBar />
+		<main class="flex-1 overflow-hidden relative">
+			{@render children()}
+		</main>
+		<ZenChrome />
+	{:else}
+		<TitleBar />
+		<main class="flex-1 overflow-hidden relative">
+			{@render children()}
+		</main>
+		<StatusBar />
+	{/if}
 </div>
 
 <ToastContainer />

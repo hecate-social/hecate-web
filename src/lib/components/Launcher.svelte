@@ -4,8 +4,10 @@
 	import { pluginTabs } from '$lib/plugins-registry';
 	import { apps } from '$lib/stores/apps';
 	import { pushOverlay, popOverlay, registerShortcut } from '$lib/stores/keyboard';
+	import { mode } from '$lib/stores/mode';
 	import { resolveEmoji } from '$lib/emoji';
 	import { onDestroy, tick } from 'svelte';
+	import { get } from 'svelte/store';
 
 	let open = $state(false);
 	let query = $state('');
@@ -156,7 +158,19 @@
 		handler: () => toggle(),
 	});
 
-	onDestroy(() => { unregP(); unregK(); });
+	// Zen mode: `:` opens the launcher (vim-style command prompt).
+	// Registered unconditionally — handler checks mode at fire time.
+	const unregColon = registerShortcut({
+		key: ':',
+		modifiers: ['shift'],
+		label: 'Launcher (zen)',
+		category: 'Mode',
+		handler: () => {
+			if (get(mode) === 'zen') toggle();
+		},
+	});
+
+	onDestroy(() => { unregP(); unregK(); unregColon(); });
 
 	// =====================================================================
 	// HELPERS

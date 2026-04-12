@@ -105,6 +105,39 @@ body {
 	-webkit-user-select: none;
 }
 
+/* ─────────────────────────────────────────────────────────────────
+   ZEN MODE — keyboard-driven, terminal aesthetic.
+   Applied on <html data-mode="zen">.
+   - No animations (snappy, deliberate motion only when the user acts)
+   - Monochrome accent palette (macula sky only)
+   - Block cursor
+   - Tighter chrome
+   ───────────────────────────────────────────────────────────────── */
+[data-mode='zen'] *,
+[data-mode='zen'] *::before,
+[data-mode='zen'] *::after {
+	transition-property: none !important;
+	animation: none !important;
+}
+
+[data-mode='zen'] {
+	/* Fold the orange accent into the sky palette — single color feel */
+	--color-accent-400: #7dd3fc; /* macula-300 */
+	--color-accent-500: #38bdf8; /* macula-400 */
+	--color-accent-600: #0ea5e9; /* macula-500 */
+}
+
+[data-mode='zen'] input,
+[data-mode='zen'] textarea {
+	caret-shape: block;
+	caret-color: var(--color-macula-400);
+}
+
+/* Zen mode: hide decorative elements marked with data-zen-hide */
+[data-mode='zen'] [data-zen-hide] {
+	display: none !important;
+}
+
 /* Scrollbar */
 ::-webkit-scrollbar {
 	width: 6px;
