@@ -64,7 +64,7 @@
 
 <div class="flex flex-col h-full overflow-hidden bg-surface-900 text-surface-200 select-none">
 	<div class="flex items-center gap-2 px-3 py-1 border-b border-surface-700 bg-surface-800/80 text-[11px] shrink-0">
-		<span class="text-hecate-400 uppercase tracking-wider text-[10px]">PG Groups</span>
+		<span class="text-macula-400 uppercase tracking-wider text-[10px]">PG Groups</span>
 		<span class="text-surface-600">({groups.length})</span>
 	</div>
 
@@ -77,9 +77,9 @@
 				{#each filtered as group, i}
 					<button data-cursor={i === cursorIndex ? 'true' : 'false'}
 						class="w-full text-left px-2 py-0.5 text-[10px] flex items-center gap-1.5 cursor-pointer transition-colors
-							{i === cursorIndex ? 'bg-hecate-600/30 text-surface-50 border-l-2 border-hecate-400' : 'text-surface-300 hover:bg-surface-800 border-l-2 border-transparent'}"
+							{i === cursorIndex ? 'bg-macula-600/30 text-surface-50 border-l-2 border-macula-400' : 'text-surface-300 hover:bg-surface-800 border-l-2 border-transparent'}"
 						onclick={() => cursorIndex = i}>
-						<span class="flex-1 truncate font-mono text-hecate-300">{group.group}</span>
+						<span class="flex-1 truncate font-mono text-macula-300">{group.group}</span>
 						<span class="text-[9px] text-surface-500 shrink-0">{group.member_count} members</span>
 					</button>
 				{/each}
@@ -93,7 +93,7 @@
 		<div class="w-1/3 overflow-y-auto py-1 shrink-0 bg-surface-900/50">
 			{#if selectedGroup}
 				<div class="px-3 py-2 space-y-1">
-					<div class="text-hecate-400 font-mono text-[10px] truncate">{selectedGroup.group}</div>
+					<div class="text-macula-400 font-mono text-[10px] truncate">{selectedGroup.group}</div>
 					<div class="text-[10px] text-surface-500 mb-2">{selectedGroup.member_count} members</div>
 					{#each selectedGroup.members as member}
 						<div class="flex items-center gap-1.5 text-[9px]">
@@ -113,12 +113,12 @@
 
 	<div class="border-t border-surface-700 bg-surface-800/80 px-3 py-1 shrink-0 flex items-center gap-2 text-[10px] min-h-[24px]">
 		{#if mode === 'command'}
-			<span class="text-hecate-400">:</span>
+			<span class="text-macula-400">:</span>
 			<input type="text" bind:value={commandInput} use:focusOnMount
 				onkeydown={(e) => { if (e.key === 'Enter') { e.preventDefault(); e.stopPropagation(); onCommandSubmit(); } else if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); mode = 'normal'; commandInput = ''; } }}
 				class="flex-1 bg-transparent border-none outline-none text-[10px] text-surface-100" placeholder="Command..." />
 		{:else if mode === 'search'}
-			<span class="text-hecate-400">/{searchQuery}<span class="animate-pulse">_</span></span>
+			<span class="text-macula-400">/{searchQuery}<span class="animate-pulse">_</span></span>
 			<span class="text-surface-600">{filtered.length} matches</span>
 		{:else}
 			{#if statusMsg}<span class="text-amber-400 truncate flex-1">{statusMsg}</span>

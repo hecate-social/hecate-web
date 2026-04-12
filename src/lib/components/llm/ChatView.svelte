@@ -90,13 +90,13 @@
 			onclick={togglePicker}
 			class="flex items-center gap-2 bg-surface-700 border border-surface-600 rounded px-2.5 py-1
 				text-xs text-surface-100 hover:border-surface-500 transition-colors cursor-pointer
-				focus:outline-none focus:border-hecate-500
-				{showPicker ? 'border-hecate-500' : ''}"
+				focus:outline-none focus:border-macula-500
+				{showPicker ? 'border-macula-500' : ''}"
 		>
 			{#if $selectedModel}
 				<span class="truncate max-w-[180px]">{$selectedModel}</span>
 				{#if currentModelObj?.provider}
-					<span class="text-[9px] px-1.5 py-0.5 rounded-full bg-surface-600 text-hecate-400 shrink-0">
+					<span class="text-[9px] px-1.5 py-0.5 rounded-full bg-surface-600 text-macula-400 shrink-0">
 						{currentModelObj.provider}
 					</span>
 				{/if}
@@ -147,7 +147,7 @@
 					<div class="text-sm">Start a conversation</div>
 					<div class="text-[11px] mt-1">
 						{#if $selectedModel}
-							Using <span class="text-hecate-400">{$selectedModel}</span>
+							Using <span class="text-macula-400">{$selectedModel}</span>
 						{:else}
 							No model selected
 						{/if}
@@ -178,7 +178,7 @@
 				rows={1}
 				class="flex-1 bg-surface-700 border border-surface-600 rounded-lg px-4 py-2.5 text-sm
 					text-surface-100 placeholder-surface-400 resize-none
-					focus:outline-none focus:border-hecate-500
+					focus:outline-none focus:border-macula-500
 					disabled:opacity-50 disabled:cursor-not-allowed"
 			></textarea>
 			<button
@@ -187,7 +187,7 @@
 				class="px-4 py-2.5 rounded-lg text-sm font-medium transition-colors cursor-pointer
 					{$isStreaming || !inputValue.trim() || !$selectedModel
 					? 'bg-surface-600 text-surface-400 cursor-not-allowed'
-					: 'bg-hecate-600 text-surface-50 hover:bg-hecate-500'}"
+					: 'bg-macula-600 text-surface-50 hover:bg-macula-500'}"
 			>
 				Send
 			</button>

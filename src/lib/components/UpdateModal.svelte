@@ -53,7 +53,7 @@
 				<h2 class="text-lg font-semibold text-surface-100">Update Available</h2>
 
 				<p class="text-sm text-surface-300 mt-2">
-					Hecate <span class="font-mono text-hecate-400">v{$availableUpdate?.version}</span> is
+					Hecate <span class="font-mono text-macula-400">v{$availableUpdate?.version}</span> is
 					ready to install.
 				</p>
 
@@ -69,7 +69,7 @@
 					<div class="mt-4">
 						<div class="w-full bg-surface-700 rounded-full h-2 overflow-hidden">
 							<div
-								class="bg-hecate-500 h-2 rounded-full transition-all duration-300"
+								class="bg-macula-500 h-2 rounded-full transition-all duration-300"
 								style="width: {progress}%"
 							></div>
 						</div>
@@ -83,16 +83,16 @@
 				{:else if $updateState === 'installing'}
 					<div class="mt-4 flex items-center gap-2">
 						<div
-							class="w-4 h-4 border-2 border-hecate-500 border-t-transparent rounded-full animate-spin"
+							class="w-4 h-4 border-2 border-macula-500 border-t-transparent rounded-full animate-spin"
 						></div>
-						<span class="text-sm text-hecate-400">Installing...</span>
+						<span class="text-sm text-macula-400">Installing...</span>
 					</div>
 				{:else if $updateState === 'restarting'}
 					<div class="mt-4 flex items-center gap-2">
 						<div
-							class="w-4 h-4 border-2 border-hecate-500 border-t-transparent rounded-full animate-spin"
+							class="w-4 h-4 border-2 border-macula-500 border-t-transparent rounded-full animate-spin"
 						></div>
-						<span class="text-sm text-hecate-400">Restarting...</span>
+						<span class="text-sm text-macula-400">Restarting...</span>
 					</div>
 				{:else}
 					<div class="mt-5 flex gap-3 justify-end">
@@ -103,7 +103,7 @@
 							Later
 						</button>
 						<button
-							class="px-4 py-1.5 text-sm bg-hecate-600 hover:bg-hecate-500 text-white rounded transition-colors cursor-pointer"
+							class="px-4 py-1.5 text-sm bg-macula-600 hover:bg-macula-500 text-white rounded transition-colors cursor-pointer"
 							onclick={() => startUpdate()}
 						>
 							Update Now

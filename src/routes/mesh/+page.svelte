@@ -457,7 +457,7 @@
 <div class="flex flex-col h-full overflow-hidden bg-surface-900 text-surface-200 select-none">
 	<!-- Header -->
 	<div class="flex items-center gap-2 px-3 py-1.5 border-b border-surface-700 bg-surface-800/80 text-[11px] shrink-0">
-		<span class="text-hecate-400 uppercase tracking-wider text-[10px] font-bold">Mesh</span>
+		<span class="text-macula-400 uppercase tracking-wider text-[10px] font-bold">Mesh</span>
 
 		{#if meshConnected}
 			<span class="text-success-400 text-[10px]">●</span>
@@ -477,7 +477,7 @@
 
 		{#if meshStatus?.subscriptions?.length}
 			<span class="text-surface-600">·</span>
-			<span class="text-[10px] text-hecate-400/70 font-mono">{meshStatus.subscriptions.length} sub{meshStatus.subscriptions.length !== 1 ? 's' : ''}</span>
+			<span class="text-[10px] text-macula-400/70 font-mono">{meshStatus.subscriptions.length} sub{meshStatus.subscriptions.length !== 1 ? 's' : ''}</span>
 		{/if}
 
 		<div class="flex-1"></div>
@@ -490,7 +490,7 @@
 		{#each [['overview', '1'], ['neighborhood', '2'], ['status', '3'], ['discovery', '4']] as [view, key]}
 			<button
 				class="text-[10px] px-2 py-0.5 rounded cursor-pointer transition-colors
-					{currentView === view ? 'text-hecate-400 bg-hecate-600/20' : 'text-surface-500 hover:text-surface-300'}"
+					{currentView === view ? 'text-macula-400 bg-macula-600/20' : 'text-surface-500 hover:text-surface-300'}"
 				onclick={() => { currentView = view as View; cursorIndex = 0; if (view === 'status') refreshStatus(); }}
 			><span class="text-surface-600 mr-0.5">{key}</span>{view}</button>
 		{/each}
@@ -524,7 +524,7 @@
 				<!-- Subscriptions card -->
 				<div class="mesh-card">
 					<div class="mesh-card-label">SUBSCRIPTIONS</div>
-					<div class="mesh-card-value text-hecate-400">
+					<div class="mesh-card-value text-macula-400">
 						{meshStatus?.subscriptions?.length ?? 0}
 					</div>
 					<div class="mesh-card-sub">
@@ -569,7 +569,7 @@
 				<div class="px-2 py-0.5 text-[9px] text-surface-500 uppercase tracking-wider mt-2 first:mt-1">
 					{sectionName}
 					{#if sectionName === 'SUBSCRIPTIONS'}
-						<span class="normal-case text-hecate-400/60">({meshStatus?.subscriptions?.length ?? 0})</span>
+						<span class="normal-case text-macula-400/60">({meshStatus?.subscriptions?.length ?? 0})</span>
 					{/if}
 					{#if sectionName === 'PEERS ON RELAY'}
 						<span class="normal-case text-surface-600">({peers.length})</span>
@@ -589,7 +589,7 @@
 						data-cursor={isCursor ? 'true' : 'false'}
 						class="px-2 py-0.5 text-[11px] flex items-center gap-2 transition-colors
 							{isCursor
-								? 'bg-hecate-600/30 text-surface-50 border-l-2 border-hecate-400'
+								? 'bg-macula-600/30 text-surface-50 border-l-2 border-macula-400'
 								: 'text-surface-300 border-l-2 border-transparent'}
 							{matchSearch ? 'bg-amber-500/10' : ''}"
 						role="button"
@@ -603,14 +603,14 @@
 						{:else}
 							<span class="w-20 shrink-0 text-[10px] truncate
 								{row.highlight === 'relay' ? 'text-blue-400' :
-								 row.highlight === 'hecate' ? 'text-hecate-400/60' :
+								 row.highlight === 'hecate' ? 'text-macula-400/60' :
 								 'text-surface-500'} text-right">{row.label}</span>
 						{/if}
 						<span class="flex-1 truncate font-mono text-[10px]
 							{row.highlight === 'success' ? 'text-success-400' :
 							 row.highlight === 'danger' ? 'text-danger-400' :
 							 row.highlight === 'dim' ? 'text-surface-600' :
-							 row.highlight === 'hecate' ? 'text-hecate-400' :
+							 row.highlight === 'hecate' ? 'text-macula-400' :
 							 row.highlight === 'relay' ? 'text-blue-300' :
 							 ''}">{row.value}</span>
 						{#if row.copyable && isCursor}
@@ -628,7 +628,7 @@
 	<!-- Status bar -->
 	<div class="border-t border-surface-700 bg-surface-800/80 px-3 py-1 shrink-0 flex items-center gap-2 text-[10px] min-h-[24px]">
 		{#if mode === 'command'}
-			<span class="text-hecate-400">:</span>
+			<span class="text-macula-400">:</span>
 			<input
 				type="text" bind:value={commandInput}
 				use:focusOnMount
@@ -640,7 +640,7 @@
 				placeholder="Command..."
 			/>
 		{:else if mode === 'search'}
-			<span class="text-hecate-400">/{searchQuery}<span class="animate-pulse">_</span></span>
+			<span class="text-macula-400">/{searchQuery}<span class="animate-pulse">_</span></span>
 		{:else}
 			{#if statusMsg}
 				<span class="text-amber-400 truncate flex-1">{statusMsg}</span>

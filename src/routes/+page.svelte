@@ -59,7 +59,7 @@
 			<!-- Header -->
 			<div class="text-center space-y-1">
 				<div class="text-2xl">{'\uD83D\uDD25\uD83D\uDDDD\uFE0F\uD83D\uDD25'}</div>
-				<div class="text-lg font-bold text-hecate-400">Hecate</div>
+				<div class="text-lg font-bold text-macula-400">Hecate</div>
 				<div class="text-[11px] text-surface-500">Sovereign computing. No cloud required.</div>
 			</div>
 

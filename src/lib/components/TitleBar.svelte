@@ -54,7 +54,7 @@
 		class="flex items-center gap-1.5 px-2 h-10 hover:bg-surface-700/50 transition-colors"
 	>
 		<span class="text-base">{'\u{1F525}\u{1F5DD}\u{FE0F}\u{1F525}'}</span>
-		<span class="text-sm font-bold text-hecate-400">Hecate</span>
+		<span class="text-sm font-bold text-macula-400">Hecate</span>
 		<span class="text-[10px] text-surface-400 font-mono">v{appVersion}</span>
 		<span class={variantClass[hdr.daemon.variant]}>{iconChar[hdr.daemon.icon]}</span>
 		<span class="flex items-center gap-0.5 ml-1.5 text-xs font-mono leading-none select-none">
@@ -99,13 +99,13 @@
 	<!-- App update badge -->
 	{#if $updateState !== 'idle'}
 		<span
-			class="px-2 py-1 rounded text-[10px] font-semibold bg-hecate-600 text-white animate-pulse mr-1"
+			class="px-2 py-1 rounded text-[10px] font-semibold bg-macula-600 text-white animate-pulse mr-1"
 		>
 			Updating...
 		</span>
 	{:else if $hasUpdate}
 		<button
-			class="px-2 py-1 rounded text-[10px] font-semibold bg-hecate-600 hover:bg-hecate-500 text-white cursor-pointer mr-1"
+			class="px-2 py-1 rounded text-[10px] font-semibold bg-macula-600 hover:bg-macula-500 text-white cursor-pointer mr-1"
 			onclick={() => showUpdateModal.set(true)}
 		>
 			Update v{$updateVersion}

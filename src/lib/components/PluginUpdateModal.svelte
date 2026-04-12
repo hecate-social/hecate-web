@@ -68,7 +68,7 @@
 					<span class="capitalize">{update?.name}</span>
 					<span class="font-mono text-surface-500">v{update?.installed_version}</span>
 					&rarr;
-					<span class="font-mono text-hecate-400">v{update?.latest_version}</span>
+					<span class="font-mono text-macula-400">v{update?.latest_version}</span>
 				</p>
 
 				{#if update?.body}
@@ -86,16 +86,16 @@
 				{#if updateState === 'pulling'}
 					<div class="mt-4 flex items-center gap-2">
 						<div
-							class="w-4 h-4 border-2 border-hecate-500 border-t-transparent rounded-full animate-spin"
+							class="w-4 h-4 border-2 border-macula-500 border-t-transparent rounded-full animate-spin"
 						></div>
-						<span class="text-sm text-hecate-400">Pulling image...</span>
+						<span class="text-sm text-macula-400">Pulling image...</span>
 					</div>
 				{:else if updateState === 'restarting'}
 					<div class="mt-4 flex items-center gap-2">
 						<div
-							class="w-4 h-4 border-2 border-hecate-500 border-t-transparent rounded-full animate-spin"
+							class="w-4 h-4 border-2 border-macula-500 border-t-transparent rounded-full animate-spin"
 						></div>
-						<span class="text-sm text-hecate-400">Restarting service...</span>
+						<span class="text-sm text-macula-400">Restarting service...</span>
 					</div>
 				{:else}
 					<div class="mt-5 flex gap-3 justify-end">
@@ -106,7 +106,7 @@
 							Later
 						</button>
 						<button
-							class="px-4 py-1.5 text-sm bg-hecate-600 hover:bg-hecate-500 text-white rounded transition-colors cursor-pointer"
+							class="px-4 py-1.5 text-sm bg-macula-600 hover:bg-macula-500 text-white rounded transition-colors cursor-pointer"
 							onclick={() => doUpdate()}
 						>
 							Update Now

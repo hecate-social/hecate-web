@@ -114,7 +114,7 @@
 				<button
 					class="flex items-center gap-1 px-3 py-1 text-[10px] border-r border-surface-700/30 shrink-0 transition-colors cursor-pointer
 						{i === activeTabIdx
-							? 'bg-surface-900 text-hecate-400 border-b-2 border-b-hecate-500'
+							? 'bg-surface-900 text-macula-400 border-b-2 border-b-macula-500'
 							: 'text-surface-500 hover:text-surface-300 hover:bg-surface-800 border-b-2 border-b-transparent'}"
 					onclick={() => { activeTabIdx = i; }}
 				>
@@ -133,7 +133,7 @@
 		<div class="flex items-center gap-2 px-3 py-1 border-b border-surface-700 bg-surface-800/80 text-[11px] shrink-0">
 			<button
 				onclick={goBack}
-				class="text-surface-500 hover:text-hecate-400 transition-colors cursor-pointer"
+				class="text-surface-500 hover:text-macula-400 transition-colors cursor-pointer"
 				title="Back to Briefcase (Alt+Left)"
 			>&#8592; briefcase</button>
 			<span class="text-surface-700">|</span>
@@ -178,6 +178,6 @@
 			<span class="text-surface-600">{activeTabIdx + 1}/{tabs.length}</span>
 		{/if}
 		<span class="text-surface-700">|</span>
-		<span class="text-surface-600 {vimMode === 'INSERT' ? 'text-hecate-400' : ''} {vimMode.startsWith('V') ? 'text-amber-400' : ''}">{vimMode}</span>
+		<span class="text-surface-600 {vimMode === 'INSERT' ? 'text-macula-400' : ''} {vimMode.startsWith('V') ? 'text-amber-400' : ''}">{vimMode}</span>
 	</div>
 </div>

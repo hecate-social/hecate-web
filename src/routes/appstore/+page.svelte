@@ -481,7 +481,7 @@
 			case 'installed': return 'text-success-400';
 			case 'update': return 'text-amber-400';
 			case 'revoked': return 'text-danger-400';
-			default: return 'text-hecate-400';
+			default: return 'text-macula-400';
 		}
 	}
 
@@ -497,7 +497,7 @@
 		const actions = item.available_actions ?? [];
 		if (actions.includes('stop')) return 'text-success-400';
 		if (actions.includes('start')) return 'text-amber-400';
-		if (actions.includes('remove')) return 'text-hecate-400';
+		if (actions.includes('remove')) return 'text-macula-400';
 		return 'text-surface-600';
 	}
 
@@ -511,7 +511,7 @@
 <div class="flex flex-col h-full overflow-hidden bg-surface-900 text-surface-200 select-none">
 	<!-- Header -->
 	<div class="flex items-center gap-2 px-3 py-1 border-b border-surface-700 bg-surface-800/80 text-[11px] shrink-0">
-		<span class="text-hecate-400 uppercase tracking-wider text-[10px]">
+		<span class="text-macula-400 uppercase tracking-wider text-[10px]">
 			{currentView === 'detail' ? 'Detail' : currentView === 'installed' ? 'Installed' : 'Appstore'}
 		</span>
 		<span class="text-surface-600">({flatItems.length})</span>
@@ -519,12 +519,12 @@
 		{#if currentView !== 'detail'}
 			<button
 				class="text-[10px] px-2 py-0.5 rounded cursor-pointer transition-colors
-					{currentView === 'browse' ? 'text-hecate-400 bg-hecate-600/20' : 'text-surface-500 hover:text-surface-300'}"
+					{currentView === 'browse' ? 'text-macula-400 bg-macula-600/20' : 'text-surface-500 hover:text-surface-300'}"
 				onclick={() => { currentView = 'browse'; cursorIndex = 0; }}
 			>browse</button>
 			<button
 				class="text-[10px] px-2 py-0.5 rounded cursor-pointer transition-colors
-					{currentView === 'installed' ? 'text-hecate-400 bg-hecate-600/20' : 'text-surface-500 hover:text-surface-300'}"
+					{currentView === 'installed' ? 'text-macula-400 bg-macula-600/20' : 'text-surface-500 hover:text-surface-300'}"
 				onclick={() => { currentView = 'installed'; cursorIndex = 0; }}
 			>installed ({installedCount})</button>
 		{/if}
@@ -555,7 +555,7 @@
 							data-cursor={isCursor ? 'true' : 'false'}
 							class="w-full text-left px-2 py-px text-[11px] flex items-center gap-1.5 cursor-pointer transition-colors
 								{isCursor
-									? 'bg-hecate-600/30 text-surface-50 border-l-2 border-hecate-400'
+									? 'bg-macula-600/30 text-surface-50 border-l-2 border-macula-400'
 									: 'text-surface-300 hover:bg-surface-800 border-l-2 border-transparent'}"
 							onclick={() => { cursorIndex = idx; }}
 							ondblclick={() => openDetail(item.offering_id)}
@@ -612,7 +612,7 @@
 
 						{#if selectedPlugin.homepage}
 							<div class="text-surface-500">Homepage</div>
-							<div class="text-hecate-400 truncate">{selectedPlugin.homepage}</div>
+							<div class="text-macula-400 truncate">{selectedPlugin.homepage}</div>
 						{/if}
 
 						{#if selectedPlugin.publisher_identity}
@@ -686,7 +686,7 @@
 	<!-- Status bar -->
 	<div class="border-t border-surface-700 bg-surface-800/80 px-3 py-1 shrink-0 flex items-center gap-2 text-[10px] min-h-[24px]">
 		{#if mode === 'command'}
-			<span class="text-hecate-400">:</span>
+			<span class="text-macula-400">:</span>
 			<input
 				type="text" bind:value={commandInput}
 				use:focusOnMount
@@ -698,7 +698,7 @@
 				placeholder="Command... (Tab to complete)"
 			/>
 		{:else if mode === 'search'}
-			<span class="text-hecate-400">/{searchQuery}<span class="animate-pulse">_</span></span>
+			<span class="text-macula-400">/{searchQuery}<span class="animate-pulse">_</span></span>
 			<span class="text-surface-600">{flatItems.length} matches</span>
 		{:else if mode === 'confirm'}
 			<span class="text-amber-400">{confirmPrompt}</span>

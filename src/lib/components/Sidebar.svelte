@@ -292,7 +292,7 @@
 	bind:this={asideEl}
 	tabindex="0"
 	onkeydown={handleSidebarKeydown}
-	class="flex flex-col bg-surface-800 border-r border-surface-600 shrink-0 overflow-y-auto overflow-x-hidden transition-[width] duration-200 outline-none focus:ring-1 focus:ring-hecate-500/30
+	class="flex flex-col bg-surface-800 border-r border-surface-600 shrink-0 overflow-y-auto overflow-x-hidden transition-[width] duration-200 outline-none focus:ring-1 focus:ring-macula-500/30
 		{$sidebarCollapsed ? 'w-12' : 'w-52'}"
 >
 	<!-- Groups -->
@@ -300,7 +300,7 @@
 		{@const apps = group.appIds.map(tabOrPlaceholder)}
 		<div
 			class="border-b border-surface-700/50
-				{dragOverGroupId === group.id ? 'bg-hecate-900/20' : ''}"
+				{dragOverGroupId === group.id ? 'bg-macula-900/20' : ''}"
 			ondragover={(e) => onDragOverGroup(e, group.id)}
 			ondragleave={onDragLeave}
 			ondrop={(e) => onDropOnGroup(e, group.id)}
@@ -338,7 +338,7 @@
 							}}
 							onblur={commitRename}
 							autofocus
-							class="bg-surface-700 text-surface-100 text-[10px] uppercase tracking-wider px-1 rounded w-full outline-none border border-hecate-500/50"
+							class="bg-surface-700 text-surface-100 text-[10px] uppercase tracking-wider px-1 rounded w-full outline-none border border-macula-500/50"
 							onclick={(e) => e.stopPropagation()}
 						/>
 					{:else}
@@ -360,10 +360,10 @@
 						class="flex items-center gap-2 w-full h-8 cursor-pointer transition-colors
 							{$sidebarCollapsed ? 'justify-center px-0' : 'px-3'}
 							{isActive(tab.id)
-								? 'bg-surface-700 text-surface-50 border-l-2 border-hecate-500'
+								? 'bg-surface-700 text-surface-50 border-l-2 border-macula-500'
 								: 'text-surface-300 hover:text-surface-100 hover:bg-surface-700/50 border-l-2 border-transparent'}
 							{tab.isPlugin && indicator === 'offline' ? 'opacity-60' : ''}
-							{visibleIndex(tab.id) === focusedIndex ? 'ring-1 ring-hecate-500/50' : ''}"
+							{visibleIndex(tab.id) === focusedIndex ? 'ring-1 ring-macula-500/50' : ''}"
 						onclick={() => navigateToApp(tab)}
 						onfocus={() => (focusedIndex = visibleIndex(tab.id))}
 						oncontextmenu={(e) => onContextMenu(e, 'app', tab.id)}
@@ -382,7 +382,7 @@
 							{/if}
 							{#if tab.isPlugin && $hasPluginUpdate(tab.id)}
 								<button
-									class="px-1 py-0.5 rounded text-[8px] font-semibold bg-hecate-600 hover:bg-hecate-500 text-white cursor-pointer"
+									class="px-1 py-0.5 rounded text-[8px] font-semibold bg-macula-600 hover:bg-macula-500 text-white cursor-pointer"
 									onclick={(e) => { e.stopPropagation(); showPluginUpdateModal.set(tab.id); }}
 								>
 									v{$pluginUpdateVersion(tab.id)}
@@ -400,7 +400,7 @@
 		{@const ungrouped = $ungroupedApps}
 		<div
 			class="border-b border-surface-700/50
-				{dragOverUngrouped ? 'bg-hecate-900/20' : ''}"
+				{dragOverUngrouped ? 'bg-macula-900/20' : ''}"
 			ondragover={onDragOverUngrouped}
 			ondragleave={onDragLeave}
 			ondrop={onDropOnUngrouped}
@@ -423,10 +423,10 @@
 					class="flex items-center gap-2 w-full h-8 cursor-pointer transition-colors
 						{$sidebarCollapsed ? 'justify-center px-0' : 'px-3'}
 						{isActive(tab.id)
-							? 'bg-surface-700 text-surface-50 border-l-2 border-hecate-500'
+							? 'bg-surface-700 text-surface-50 border-l-2 border-macula-500'
 							: 'text-surface-300 hover:text-surface-100 hover:bg-surface-700/50 border-l-2 border-transparent'}
 						{tab.isPlugin && indicator === 'offline' ? 'opacity-60' : ''}
-						{visibleIndex(tab.id) === focusedIndex ? 'ring-1 ring-hecate-500/50' : ''}"
+						{visibleIndex(tab.id) === focusedIndex ? 'ring-1 ring-macula-500/50' : ''}"
 					onclick={() => navigateToApp(tab)}
 					onfocus={() => (focusedIndex = visibleIndex(tab.id))}
 					oncontextmenu={(e) => onContextMenu(e, 'app', tab.id)}
@@ -445,7 +445,7 @@
 						{/if}
 						{#if tab.isPlugin && $hasPluginUpdate(tab.id)}
 							<button
-								class="px-1 py-0.5 rounded text-[8px] font-semibold bg-hecate-600 hover:bg-hecate-500 text-white cursor-pointer"
+								class="px-1 py-0.5 rounded text-[8px] font-semibold bg-macula-600 hover:bg-macula-500 text-white cursor-pointer"
 								onclick={(e) => { e.stopPropagation(); showPluginUpdateModal.set(tab.id); }}
 							>
 								v{$pluginUpdateVersion(tab.id)}
@@ -475,7 +475,7 @@
 					onblur={commitNewGroup}
 					autofocus
 					placeholder="Group name..."
-					class="w-full bg-surface-700 text-surface-100 text-[10px] px-2 py-1 rounded outline-none border border-hecate-500/50 placeholder:text-surface-500"
+					class="w-full bg-surface-700 text-surface-100 text-[10px] px-2 py-1 rounded outline-none border border-macula-500/50 placeholder:text-surface-500"
 				/>
 			{:else}
 				<button

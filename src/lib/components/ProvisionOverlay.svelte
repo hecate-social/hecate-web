@@ -202,7 +202,7 @@
 						<button
 							class="flex-1 py-2 px-3 rounded text-xs font-medium transition-all cursor-pointer
 								{installType === 'hecate-node'
-									? 'bg-hecate-600/20 text-hecate-300 ring-1 ring-hecate-500/40'
+									? 'bg-macula-600/20 text-macula-300 ring-1 ring-macula-500/40'
 									: 'bg-surface-800 text-surface-500 hover:text-surface-300'}"
 							onclick={() => selectType('hecate-node')}
 						>Hecate Node</button>
@@ -217,7 +217,7 @@
 					<div class="space-y-1">
 						<label class="text-xs text-surface-500 uppercase tracking-wider" for="node-name">Node Name</label>
 						<input id="node-name" type="text" bind:value={nodeName}
-							class="w-full bg-surface-800 border border-surface-700 rounded px-3 py-2 text-sm text-surface-100 font-mono focus:outline-none focus:border-hecate-500"
+							class="w-full bg-surface-800 border border-surface-700 rounded px-3 py-2 text-sm text-surface-100 font-mono focus:outline-none focus:border-macula-500"
 						/>
 					</div>
 
@@ -226,7 +226,7 @@
 						<div class="space-y-1">
 							<label class="text-xs text-surface-500 uppercase tracking-wider" for="ssh-user">SSH User</label>
 							<input id="ssh-user" type="text" bind:value={sshUser} bind:this={sshUserInput}
-								class="w-full bg-surface-800 border border-surface-700 rounded px-3 py-2 text-sm text-surface-100 font-mono focus:outline-none focus:border-hecate-500"
+								class="w-full bg-surface-800 border border-surface-700 rounded px-3 py-2 text-sm text-surface-100 font-mono focus:outline-none focus:border-macula-500"
 								placeholder="username"
 								onkeydown={(e) => { if (e.key === 'Enter') startInstall(); }}
 							/>
@@ -234,7 +234,7 @@
 						<div class="space-y-1">
 							<label class="text-xs text-surface-500 uppercase tracking-wider" for="ssh-pass">Password <span class="normal-case text-surface-600">(optional)</span></label>
 							<input id="ssh-pass" type="password" bind:value={sshPassword}
-								class="w-full bg-surface-800 border border-surface-700 rounded px-3 py-2 text-sm text-surface-100 font-mono focus:outline-none focus:border-hecate-500"
+								class="w-full bg-surface-800 border border-surface-700 rounded px-3 py-2 text-sm text-surface-100 font-mono focus:outline-none focus:border-macula-500"
 								placeholder="key auth"
 								onkeydown={(e) => { if (e.key === 'Enter') startInstall(); }}
 							/>
@@ -250,7 +250,7 @@
 					{/if}
 
 					<button
-						class="w-full py-2.5 bg-hecate-600 hover:bg-hecate-500 text-white text-sm font-medium rounded transition-colors cursor-pointer"
+						class="w-full py-2.5 bg-macula-600 hover:bg-macula-500 text-white text-sm font-medium rounded transition-colors cursor-pointer"
 						onclick={startInstall}
 					>Install</button>
 				</div>
@@ -268,7 +268,7 @@
 							{exitCode === 0 ? 'Completed' : `Exited ${exitCode}`}
 						</span>
 						<button
-							class="px-4 py-1.5 bg-hecate-600 hover:bg-hecate-500 text-white text-sm rounded transition-colors cursor-pointer"
+							class="px-4 py-1.5 bg-macula-600 hover:bg-macula-500 text-white text-sm rounded transition-colors cursor-pointer"
 							onclick={onClose}
 						>Close</button>
 					</div>

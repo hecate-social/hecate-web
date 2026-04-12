@@ -27,9 +27,9 @@
 <div class="flex justify-start mb-3">
 	<div
 		class="max-w-[80%] rounded-lg px-4 py-2.5 text-sm leading-relaxed
-			bg-surface-700 border border-hecate-500/30 text-surface-100"
+			bg-surface-700 border border-macula-500/30 text-surface-100"
 	>
-		<div class="text-[10px] text-hecate-400 mb-1 flex items-center gap-1">
+		<div class="text-[10px] text-macula-400 mb-1 flex items-center gap-1">
 			<span class="animate-pulse">{'\u{25CF}'}</span>
 			Assistant
 		</div>
@@ -71,14 +71,14 @@
 				</details>
 			{/if}
 			<div class="whitespace-pre-wrap break-words">{visibleContent}<span
-					class="inline-block w-1.5 h-4 bg-hecate-400 animate-pulse ml-0.5 align-text-bottom"
+					class="inline-block w-1.5 h-4 bg-macula-400 animate-pulse ml-0.5 align-text-bottom"
 				></span></div>
 		{:else}
 			<div class="flex items-center gap-2 text-surface-400">
 				<span class="flex gap-1">
-					<span class="w-1.5 h-1.5 rounded-full bg-hecate-500 animate-bounce" style="animation-delay: 0ms"></span>
-					<span class="w-1.5 h-1.5 rounded-full bg-hecate-500 animate-bounce" style="animation-delay: 150ms"></span>
-					<span class="w-1.5 h-1.5 rounded-full bg-hecate-500 animate-bounce" style="animation-delay: 300ms"></span>
+					<span class="w-1.5 h-1.5 rounded-full bg-macula-500 animate-bounce" style="animation-delay: 0ms"></span>
+					<span class="w-1.5 h-1.5 rounded-full bg-macula-500 animate-bounce" style="animation-delay: 150ms"></span>
+					<span class="w-1.5 h-1.5 rounded-full bg-macula-500 animate-bounce" style="animation-delay: 300ms"></span>
 				</span>
 				<span class="text-xs">Thinking...</span>
 			</div>

@@ -146,7 +146,7 @@
 						{@const globalIdx = items.indexOf(item)}
 						<button
 							class="w-full flex items-center gap-3 px-4 py-2 text-left transition-colors cursor-pointer
-								{globalIdx === selectedIndex ? 'bg-hecate-500/10 text-surface-50' : 'text-surface-300 hover:bg-surface-700/50'}"
+								{globalIdx === selectedIndex ? 'bg-macula-500/10 text-surface-50' : 'text-surface-300 hover:bg-surface-700/50'}"
 							onclick={() => execute(item)}
 							onmouseenter={() => (selectedIndex = globalIdx)}
 						>

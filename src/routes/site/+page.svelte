@@ -353,7 +353,7 @@
 
 			<!-- Header -->
 			<div class="space-y-1">
-				<div class="text-lg font-bold text-hecate-400 tracking-wide">Site</div>
+				<div class="text-lg font-bold text-macula-400 tracking-wide">Site</div>
 				{#if $site}
 					<div class="text-sm text-surface-400 font-mono">{$site.site_id}</div>
 				{/if}
@@ -378,7 +378,7 @@
 									data-cursor={isCursor ? 'true' : 'false'}
 									class="w-full text-left px-3 py-2 flex items-center gap-4 rounded transition-all duration-100
 										{isCursor
-											? 'bg-hecate-600/20 ring-1 ring-hecate-500/40'
+											? 'bg-macula-600/20 ring-1 ring-macula-500/40'
 											: 'hover:bg-surface-800/50'}"
 									onclick={() => { cursorIndex = idx; }}
 								>
@@ -392,7 +392,7 @@
 									<span class="shrink-0 text-xs tracking-wider truncate
 										{row.status ? 'w-36' : 'w-40'}
 										{row.section === 'LAN' ? 'uppercase' : ''}
-										{isCursor ? 'text-hecate-300' : 'text-surface-500'}"
+										{isCursor ? 'text-macula-300' : 'text-surface-500'}"
 									>{row.label}</span>
 
 									<!-- Value -->
@@ -434,7 +434,7 @@
 	<!-- Command bar -->
 	<div class="border-t border-surface-700/50 bg-surface-850 px-4 py-1.5 shrink-0 flex items-center gap-3 text-xs min-h-[32px]">
 		{#if mode === 'command'}
-			<span class="text-hecate-400 font-bold">:</span>
+			<span class="text-macula-400 font-bold">:</span>
 			<input
 				type="text" bind:value={commandInput}
 				use:focusOnMount

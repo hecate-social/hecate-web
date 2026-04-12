@@ -190,7 +190,7 @@
 	>
 		<!-- Search input -->
 		<div class="flex items-center gap-2 px-3 py-2 border-b border-surface-700">
-			<span class="text-hecate-400 text-[11px]">&gt;</span>
+			<span class="text-macula-400 text-[11px]">&gt;</span>
 			<input
 				bind:this={inputEl}
 				type="text"
@@ -216,13 +216,13 @@
 							data-launcher-selected={selected ? 'true' : 'false'}
 							class="w-full flex items-center gap-2.5 px-3 py-1.5 text-left transition-colors cursor-pointer
 								{selected
-									? 'bg-hecate-600/25 text-surface-50 border-l-2 border-hecate-400'
+									? 'bg-macula-600/25 text-surface-50 border-l-2 border-macula-400'
 									: 'text-surface-300 hover:bg-surface-700/50 border-l-2 border-transparent'}"
 							onclick={() => navigate(item)}
 							onmouseenter={() => { selectedIndex = globalIdx; }}
 						>
 							<span class="text-sm shrink-0 w-5 text-center">{item.icon}</span>
-							<span class="text-[11px] flex-1 truncate {active ? 'text-hecate-400' : ''}">{item.label}</span>
+							<span class="text-[11px] flex-1 truncate {active ? 'text-macula-400' : ''}">{item.label}</span>
 							{#if item.group === 'Plugins'}
 								<span class="text-[8px] shrink-0 {item.online ? 'text-success-400' : 'text-surface-600'}">{item.online ? '\u25CF' : '\u25CB'}</span>
 							{/if}

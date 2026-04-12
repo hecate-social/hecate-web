@@ -85,7 +85,7 @@
 				<span
 					role="button"
 					tabindex="0"
-					class="text-[10px] font-semibold bg-hecate-600 hover:bg-hecate-500 text-white px-1.5 py-0.5 rounded cursor-pointer"
+					class="text-[10px] font-semibold bg-macula-600 hover:bg-macula-500 text-white px-1.5 py-0.5 rounded cursor-pointer"
 					onclick={(e) => {
 						e.stopPropagation();
 						showPluginUpdateModal.set(card.id);

@@ -197,7 +197,7 @@
 
 			<!-- Progress bar -->
 			<div class="w-56 h-1.5 bg-surface-700 rounded-full overflow-hidden">
-				<div class="h-full bg-hecate-500 rounded-full animate-pulse" style="width: 60%"></div>
+				<div class="h-full bg-macula-500 rounded-full animate-pulse" style="width: 60%"></div>
 			</div>
 
 			<!-- Elapsed time -->
@@ -224,7 +224,7 @@
 			class="px-6 py-2 rounded-lg text-sm font-medium transition-colors cursor-pointer
 				{starting
 					? 'bg-surface-600 text-surface-400'
-					: 'bg-hecate-600 hover:bg-hecate-500 text-white'}"
+					: 'bg-macula-600 hover:bg-macula-500 text-white'}"
 		>
 			{starting ? 'Starting...' : 'Start App'}
 		</button>

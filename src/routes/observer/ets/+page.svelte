@@ -153,16 +153,16 @@
 	<!-- Header -->
 	<div class="flex items-center gap-2 px-3 py-1 border-b border-surface-700 bg-surface-800/80 text-[11px] shrink-0">
 		{#if currentView === 'content'}
-			<button onclick={goBack} class="text-surface-500 hover:text-hecate-400 transition-colors cursor-pointer text-[10px]">&#8592; tables</button>
+			<button onclick={goBack} class="text-surface-500 hover:text-macula-400 transition-colors cursor-pointer text-[10px]">&#8592; tables</button>
 			<span class="text-surface-700">|</span>
-			<span class="text-hecate-400 font-mono text-[10px]">{contentTableName}</span>
+			<span class="text-macula-400 font-mono text-[10px]">{contentTableName}</span>
 			{#if contentTableInfo}
 				<span class="text-surface-600 text-[10px]">{contentTableInfo.size} rows · {contentTableInfo.type} · {contentTableInfo.protection}</span>
 			{/if}
 		{:else}
-			<span class="text-hecate-400 uppercase tracking-wider text-[10px]">ETS Tables</span>
+			<span class="text-macula-400 uppercase tracking-wider text-[10px]">ETS Tables</span>
 			<span class="text-surface-600">({tables.length})</span>
-			{#if searchQuery}<span class="text-hecate-400 text-[10px]">/{searchQuery}</span>{/if}
+			{#if searchQuery}<span class="text-macula-400 text-[10px]">/{searchQuery}</span>{/if}
 		{/if}
 	</div>
 
@@ -175,10 +175,10 @@
 				{#each filteredTables as table, i}
 					<button data-cursor={i === cursorIndex ? 'true' : 'false'}
 						class="w-full text-left px-2 py-0.5 text-[10px] flex items-center gap-1.5 cursor-pointer transition-colors font-mono
-							{i === cursorIndex ? 'bg-hecate-600/30 text-surface-50 border-l-2 border-hecate-400' : 'text-surface-300 hover:bg-surface-800 border-l-2 border-transparent'}"
+							{i === cursorIndex ? 'bg-macula-600/30 text-surface-50 border-l-2 border-macula-400' : 'text-surface-300 hover:bg-surface-800 border-l-2 border-transparent'}"
 						onclick={() => cursorIndex = i}
 						ondblclick={() => table.named_table && drillIntoTable(table.name)}>
-						<span class="flex-1 truncate text-hecate-300">{table.name}</span>
+						<span class="flex-1 truncate text-macula-300">{table.name}</span>
 						<span class="w-16 text-right shrink-0 text-surface-500">{table.size.toLocaleString()}</span>
 						<span class="w-20 text-right shrink-0">{formatBytes(table.memory_bytes)}</span>
 						<span class="w-20 shrink-0 text-surface-500">{table.type}</span>
@@ -195,11 +195,11 @@
 				{#each contentRows as row, i}
 					<div data-cursor={i === cursorIndex ? 'true' : 'false'}
 						class="px-2 py-1 border-b border-surface-800/50 cursor-pointer transition-colors
-							{i === cursorIndex ? 'bg-hecate-600/20' : 'hover:bg-surface-800/50'}"
+							{i === cursorIndex ? 'bg-macula-600/20' : 'hover:bg-surface-800/50'}"
 						role="button" tabindex="-1" onclick={() => cursorIndex = i}>
 						<div class="flex items-baseline gap-2 text-[10px]">
 							<span class="text-surface-600 shrink-0 text-[9px]">#{contentOffset + i + 1}</span>
-							<span class="truncate font-mono text-hecate-300">{typeof row.key === 'string' ? row.key : JSON.stringify(row.key).substring(0, 80)}</span>
+							<span class="truncate font-mono text-macula-300">{typeof row.key === 'string' ? row.key : JSON.stringify(row.key).substring(0, 80)}</span>
 						</div>
 					</div>
 				{/each}
@@ -213,7 +213,7 @@
 		<div class="w-1/3 overflow-y-auto py-1 shrink-0 bg-surface-900/50">
 			{#if currentView === 'tables' && selectedTable}
 				<div class="px-3 py-2 space-y-1 text-[10px]">
-					<div class="text-hecate-400 font-mono">{selectedTable.name}</div>
+					<div class="text-macula-400 font-mono">{selectedTable.name}</div>
 					<div class="text-surface-400">{selectedTable.size.toLocaleString()} rows · {formatBytes(selectedTable.memory_bytes)}</div>
 					<div class="text-surface-400">{selectedTable.type} · {selectedTable.protection}</div>
 					<div class="text-surface-500">owner: {selectedTable.owner ?? '?'}</div>
@@ -243,12 +243,12 @@
 	<!-- Status bar -->
 	<div class="border-t border-surface-700 bg-surface-800/80 px-3 py-1 shrink-0 flex items-center gap-2 text-[10px] min-h-[24px]">
 		{#if mode === 'command'}
-			<span class="text-hecate-400">:</span>
+			<span class="text-macula-400">:</span>
 			<input type="text" bind:value={commandInput} use:focusOnMount
 				onkeydown={(e) => { if (e.key === 'Enter') { e.preventDefault(); e.stopPropagation(); onCommandSubmit(); } else if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); mode = 'normal'; commandInput = ''; } }}
 				class="flex-1 bg-transparent border-none outline-none text-[10px] text-surface-100" placeholder="Command..." />
 		{:else if mode === 'search'}
-			<span class="text-hecate-400">/{searchQuery}<span class="animate-pulse">_</span></span>
+			<span class="text-macula-400">/{searchQuery}<span class="animate-pulse">_</span></span>
 			<span class="text-surface-600">{filteredTables.length} matches</span>
 		{:else}
 			{#if statusMsg}<span class="text-amber-400 truncate flex-1">{statusMsg}</span>

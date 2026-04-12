@@ -46,7 +46,7 @@
 	<div
 		class="max-w-[80%] rounded-lg px-4 py-2.5 text-sm leading-relaxed
 			{isUser
-			? 'bg-hecate-600/20 border border-hecate-500/30 text-surface-100'
+			? 'bg-macula-600/20 border border-macula-500/30 text-surface-100'
 			: isError
 				? 'bg-danger-500/10 border border-danger-500/30 text-danger-400'
 				: 'bg-surface-700 border border-surface-600 text-surface-100'}"

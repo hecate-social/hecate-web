@@ -103,7 +103,7 @@
 						onclick={() => toggleSpecialty(specialty)}
 						class="px-2.5 py-1 text-[11px] rounded-full border transition-colors cursor-pointer
 							{selectedSpecialty === specialty
-								? 'bg-hecate-500/20 border-hecate-500/50 text-hecate-400'
+								? 'bg-macula-500/20 border-macula-500/50 text-macula-400'
 								: 'bg-surface-800/60 border-surface-600/50 text-surface-300 hover:border-surface-500 hover:text-surface-200'}"
 					>
 						{specialty}
@@ -144,7 +144,7 @@
 					</span>
 					<div class="flex flex-col items-center gap-1">
 						<div class="flex items-center gap-1.5">
-							<span class="text-[10px] px-1.5 py-0.5 rounded-full bg-surface-700 text-hecate-400">
+							<span class="text-[10px] px-1.5 py-0.5 rounded-full bg-surface-700 text-macula-400">
 								{model.provider}
 							</span>
 							<span class="text-[10px] text-amber-400/80" title="Estimated cost">

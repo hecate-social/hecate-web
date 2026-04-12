@@ -14,16 +14,16 @@ export const hecateTheme = EditorView.theme({
 		fontFamily: 'ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace',
 	},
 	'.cm-content': {
-		caretColor: 'var(--color-hecate-400, #818cf8)',
+		caretColor: 'var(--color-macula-400, #818cf8)',
 		padding: '0.5rem 0',
 	},
 	'.cm-cursor, .cm-dropCursor': {
-		borderLeftColor: 'var(--color-hecate-400, #818cf8)',
+		borderLeftColor: 'var(--color-macula-400, #818cf8)',
 		borderLeftWidth: '2px',
 	},
 	// Vim fat cursor
 	'.cm-fat-cursor .cm-cursor': {
-		background: 'var(--color-hecate-400, #818cf8) !important',
+		background: 'var(--color-macula-400, #818cf8) !important',
 		border: 'none !important',
 		width: '0.6em',
 		opacity: '0.7',
@@ -59,7 +59,7 @@ export const hecateTheme = EditorView.theme({
 	},
 	'.cm-tooltip-autocomplete': {
 		'& > ul > li[aria-selected]': {
-			backgroundColor: 'var(--color-hecate-600, #4f46e5)',
+			backgroundColor: 'var(--color-macula-600, #4f46e5)',
 			color: 'white',
 		},
 	},
