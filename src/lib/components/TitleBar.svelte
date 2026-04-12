@@ -53,7 +53,7 @@
 		href="/"
 		class="flex items-center gap-1.5 px-2 h-10 hover:bg-surface-700/50 transition-colors"
 	>
-		<span class="text-base">{'\u{1F525}\u{1F5DD}\u{FE0F}\u{1F525}'}</span>
+		<img src="/macula-symbol-dark.svg" alt="" class="w-5 h-5" />
 		<span class="text-sm font-bold text-macula-400">Hecate</span>
 		<span class="text-[10px] text-surface-400 font-mono">v{appVersion}</span>
 		<span class={variantClass[hdr.daemon.variant]}>{iconChar[hdr.daemon.icon]}</span>

@@ -57,10 +57,11 @@
 		<div class="max-w-xl mx-auto px-6 py-8 space-y-6">
 
 			<!-- Header -->
-			<div class="text-center space-y-1">
-				<div class="text-2xl">{'\uD83D\uDD25\uD83D\uDDDD\uFE0F\uD83D\uDD25'}</div>
-				<div class="text-lg font-bold text-macula-400">Hecate</div>
-				<div class="text-[11px] text-surface-500">Sovereign computing. No cloud required.</div>
+			<div class="text-center space-y-2">
+				<img src="/macula-symbol-dark.svg" alt="" class="w-16 h-16 mx-auto" />
+				<div class="text-2xl font-bold text-macula-400">Hecate</div>
+				<div class="text-sm text-surface-400">Sovereign computing. No cloud required.</div>
+				<div class="text-xs text-surface-500 font-mono">Built on Macula</div>
 			</div>
 
 			<!-- Status rows -->
