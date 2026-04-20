@@ -6,6 +6,7 @@
 		type RealmFile
 	} from '$lib/stores/briefcase-realm';
 	import { toastSuccess, toastError } from '$lib/stores/toasts';
+	import { isTauri } from '$lib/tauri';
 
 	let dragOver = false;
 	let uploading = false;
@@ -32,21 +33,50 @@
 		}
 	}
 
-	function onDragOver(e: DragEvent) {
+	/** Read a file from a Tauri-reported path into a browser File object. */
+	async function tauriPathToFile(path: string): Promise<File> {
+		const { readFile } = await import('@tauri-apps/plugin-fs');
+		const bytes = await readFile(path);
+		const name = path.split(/[\\/]/).pop() || 'file';
+		return new File([bytes], name);
+	}
+
+	async function onDragOver(e: DragEvent) {
 		e.preventDefault();
 		dragOver = true;
 	}
-	function onDragLeave() {
+	async function onDragLeave() {
 		dragOver = false;
 	}
-	function onDrop(e: DragEvent) {
+	async function onDrop(e: DragEvent) {
 		e.preventDefault();
 		dragOver = false;
-		if (e.dataTransfer?.files) handleFiles(e.dataTransfer.files);
+		if (e.dataTransfer?.files && e.dataTransfer.files.length > 0) {
+			await handleFiles(e.dataTransfer.files);
+		}
 	}
-	function onPickClick() {
+
+	async function onPickClick() {
+		// In Tauri, prefer the native dialog — the HTML file input .click()
+		// is unreliable across WebView versions.
+		if (isTauri()) {
+			try {
+				const { open } = await import('@tauri-apps/plugin-dialog');
+				const selected = await open({ multiple: true, directory: false });
+				if (!selected) return;
+				const paths = Array.isArray(selected) ? selected : [selected];
+				const files = await Promise.all(paths.map(tauriPathToFile));
+				await handleFiles(files);
+				return;
+			} catch (e) {
+				toastError(`File picker failed: ${String(e)}`);
+				return;
+			}
+		}
+		// Browser fallback
 		fileInput?.click();
 	}
+
 	function onPick(e: Event) {
 		const t = e.target as HTMLInputElement;
 		if (t.files) handleFiles(t.files);
