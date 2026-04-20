@@ -34,7 +34,7 @@
 			<path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
 		</svg>
 		{#if $activityCount > 0}
-			<span class="text-[10px]">{$activityCount}</span>
+			<span class="text-xs">{$activityCount}</span>
 		{/if}
 	</button>
 
@@ -44,18 +44,18 @@
 			transition:fly={{ y: 10, duration: 150 }}
 		>
 			<div class="flex items-center justify-between px-3 py-1.5 border-b border-surface-600">
-				<span class="text-[11px] font-medium text-surface-300">Activity</span>
+				<span class="text-xs font-medium text-surface-300">Activity</span>
 				{#if $activityCount > 0}
 					<button
 						onclick={clearActivity}
-						class="text-[10px] text-surface-500 hover:text-surface-300 cursor-pointer"
+						class="text-xs text-surface-500 hover:text-surface-300 cursor-pointer"
 					>Clear</button>
 				{/if}
 			</div>
 
 			<div class="overflow-y-auto max-h-52">
 				{#if $activities.length === 0}
-					<div class="px-3 py-4 text-center text-[11px] text-surface-500">
+					<div class="px-3 py-4 text-center text-xs text-surface-500">
 						No activity yet
 					</div>
 				{:else}
@@ -63,8 +63,8 @@
 						<div class="flex items-start gap-2 px-3 py-1.5 hover:bg-surface-700/50 border-b border-surface-700/30 last:border-0">
 							<span class="size-1.5 rounded-full mt-1.5 shrink-0 {levelDots[entry.level]}"></span>
 							<div class="flex-1 min-w-0">
-								<p class="text-[11px] text-surface-200 leading-snug truncate">{entry.message}</p>
-								<p class="text-[10px] text-surface-500">{formatTime(entry.timestamp)}</p>
+								<p class="text-xs text-surface-200 leading-snug truncate">{entry.message}</p>
+								<p class="text-xs text-surface-500">{formatTime(entry.timestamp)}</p>
 							</div>
 						</div>
 					{/each}

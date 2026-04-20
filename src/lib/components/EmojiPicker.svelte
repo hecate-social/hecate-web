@@ -57,13 +57,13 @@
 			type="text"
 			bind:value={customInput}
 			placeholder="Custom..."
-			class="flex-1 bg-surface-800 text-surface-100 text-xs px-2 py-1 rounded outline-none border border-surface-600 focus:border-hecate-500/50 placeholder:text-surface-500"
+			class="flex-1 bg-surface-800 text-surface-100 text-sm px-2 py-1 rounded outline-none border border-surface-600 focus:border-macula-500/50 placeholder:text-surface-500"
 			onkeydown={(e) => {
 				if (e.key === 'Enter') handleCustomSubmit();
 			}}
 		/>
 		<button
-			class="px-2 py-1 text-xs bg-hecate-600 hover:bg-hecate-500 text-white rounded cursor-pointer"
+			class="px-2 py-1 text-sm bg-macula-600 hover:bg-macula-500 text-white rounded cursor-pointer"
 			onclick={handleCustomSubmit}
 		>
 			OK

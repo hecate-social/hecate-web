@@ -164,10 +164,10 @@
 
 <div class="flex flex-col h-full overflow-hidden bg-surface-900 text-surface-200 select-none">
 	<!-- Header -->
-	<div class="flex items-center gap-2 px-3 py-1 border-b border-surface-700 bg-surface-800/80 text-[11px] shrink-0">
-		<span class="text-hecate-400 uppercase tracking-wider text-[10px]">Supervision</span>
+	<div class="flex items-center gap-2 px-3 py-1 border-b border-surface-700 bg-surface-800/80 text-xs shrink-0">
+		<span class="text-macula-400 uppercase tracking-wider text-xs">Supervision</span>
 		<div class="flex-1"></div>
-		<span class="text-[10px] text-surface-600 truncate max-w-[400px]">{breadcrumb}</span>
+		<span class="text-xs text-surface-600 truncate max-w-[400px]">{breadcrumb}</span>
 	</div>
 
 	<!-- Three-column ranger -->
@@ -179,9 +179,9 @@
 				<div class="px-2 py-0.5 text-[9px] text-surface-500 uppercase tracking-wider">{parent.label}</div>
 				{#each parent.items as item, i}
 					{@const isCurrent = current && item.id === current.label}
-					<div class="px-2 py-px text-[10px] truncate font-mono
-						{isCurrent ? 'text-hecate-400 bg-surface-700/50' : 'text-surface-500'}">
-						<span class="text-[8px] {item.type === 'supervisor' ? 'text-hecate-400' : 'text-surface-600'}">
+					<div class="px-2 py-px text-xs truncate font-mono
+						{isCurrent ? 'text-macula-400 bg-surface-700/50' : 'text-surface-500'}">
+						<span class="text-[8px] {item.type === 'supervisor' ? 'text-macula-400' : 'text-surface-600'}">
 							{item.type === 'supervisor' ? '\u25B6' : '\u25CF'}
 						</span>
 						{item.id}
@@ -195,20 +195,20 @@
 		<!-- CENTER: Current children -->
 		<div class="flex-1 overflow-y-auto py-1 min-w-0">
 			{#if loading}
-				<div class="px-3 py-4 text-[11px] text-surface-500 animate-pulse">Loading...</div>
+				<div class="px-3 py-4 text-xs text-surface-500 animate-pulse">Loading...</div>
 			{:else if current}
 				<div class="px-2 py-0.5 text-[9px] text-surface-500 uppercase tracking-wider">{current.label} ({current.items.length})</div>
 				{#each current.items as item, i}
 					{@const isCursor = i === current.cursor}
 					{@const isSupervisor = item.type === 'supervisor'}
 					<button data-cursor={isCursor ? 'true' : 'false'}
-						class="w-full text-left px-2 py-0.5 text-[10px] flex items-center gap-1.5 cursor-pointer transition-colors font-mono
-							{isCursor ? 'bg-hecate-600/30 text-surface-50 border-l-2 border-hecate-400' : 'text-surface-300 hover:bg-surface-800 border-l-2 border-transparent'}"
+						class="w-full text-left px-2 py-0.5 text-xs flex items-center gap-1.5 cursor-pointer transition-colors font-mono
+							{isCursor ? 'bg-macula-600/30 text-surface-50 border-l-2 border-macula-400' : 'text-surface-300 hover:bg-surface-800 border-l-2 border-transparent'}"
 						onclick={() => setCursor(i)}>
-						<span class="text-[8px] shrink-0 {isSupervisor ? 'text-hecate-400' : item.status === 'waiting' || item.status === 'running' ? 'text-success-400' : 'text-surface-600'}">
+						<span class="text-[8px] shrink-0 {isSupervisor ? 'text-macula-400' : item.status === 'waiting' || item.status === 'running' ? 'text-success-400' : 'text-surface-600'}">
 							{isSupervisor ? '\u25B6' : '\u25CF'}
 						</span>
-						<span class="flex-1 truncate {isSupervisor ? 'text-hecate-300' : ''}">{item.id}</span>
+						<span class="flex-1 truncate {isSupervisor ? 'text-macula-300' : ''}">{item.id}</span>
 						<span class="text-[9px] text-surface-600 shrink-0">{item.type}</span>
 						{#if isSupervisor && item.child_count > 0}
 							<span class="text-[9px] text-surface-500 shrink-0">{item.child_count}</span>
@@ -216,7 +216,7 @@
 					</button>
 				{/each}
 				{#if current.items.length === 0}
-					<div class="px-3 py-4 text-[11px] text-surface-600">No children</div>
+					<div class="px-3 py-4 text-xs text-surface-600">No children</div>
 				{/if}
 			{/if}
 		</div>
@@ -224,8 +224,8 @@
 		<!-- RIGHT: Preview -->
 		<div class="w-1/3 overflow-y-auto py-1 shrink-0 bg-surface-900/50">
 			{#if selectedItem}
-				<div class="px-3 py-2 space-y-1 text-[10px]">
-					<div class="text-hecate-400 font-mono">{selectedItem.id}</div>
+				<div class="px-3 py-2 space-y-1 text-xs">
+					<div class="text-macula-400 font-mono">{selectedItem.id}</div>
 					<div class="text-surface-400">{selectedItem.type} · {selectedItem.status}</div>
 					{#if selectedItem.pid}
 						<div class="text-surface-500 font-mono">{selectedItem.pid}</div>
@@ -243,14 +243,14 @@
 					{#if previewDetail && selectedItem.type === 'worker'}
 						<div class="text-surface-600 mt-3 text-[9px] uppercase">Process Info</div>
 						{#if previewDetail.gen_type}
-							<div class="text-hecate-300 text-[9px]">{previewDetail.gen_type}</div>
+							<div class="text-macula-300 text-[9px]">{previewDetail.gen_type}</div>
 						{/if}
 						<div class="text-surface-400">Memory: {formatBytes(previewDetail.memory)}</div>
 						<div class="text-surface-400">Red: {previewDetail.reductions.toLocaleString()}</div>
 						<div class="text-surface-400 {previewDetail.message_queue_len > 100 ? 'text-amber-400' : ''}">MQ: {previewDetail.message_queue_len}</div>
 						<div class="text-surface-500">{previewDetail.current_function}</div>
 						{#if previewWithState && previewDetail.gen_state != null}
-							<div class="text-hecate-400 mt-3 text-[9px] uppercase">State</div>
+							<div class="text-macula-400 mt-3 text-[9px] uppercase">State</div>
 							<pre class="text-[9px] text-surface-200 font-mono whitespace-pre-wrap break-all leading-relaxed bg-surface-800/50 rounded p-1.5 max-h-40 overflow-y-auto">{typeof previewDetail.gen_state === 'object' && previewDetail.gen_state !== null && 'formatted' in (previewDetail.gen_state as Record<string, unknown>) ? (previewDetail.gen_state as Record<string, unknown>).formatted : JSON.stringify(previewDetail.gen_state, null, 2)}</pre>
 						{:else if !previewWithState}
 							<div class="text-surface-600 mt-2 text-[9px]">l to load state</div>
@@ -258,7 +258,7 @@
 						{#if previewWithState && (previewDetail.messages_count ?? 0) > 0}
 							<div class="text-amber-400 mt-2 text-[9px] uppercase">Inbox ({previewDetail.messages_count})</div>
 							{#each previewDetail.messages ?? [] as msg}
-								<div class="text-[9px] font-mono text-surface-400 truncate"><span class="text-hecate-300">{msg.type}</span></div>
+								<div class="text-[9px] font-mono text-surface-400 truncate"><span class="text-macula-300">{msg.type}</span></div>
 							{/each}
 						{/if}
 						{#if previewDetail.current_stacktrace.length > 0}
@@ -276,14 +276,14 @@
 	</div>
 
 	<!-- Status bar -->
-	<div class="border-t border-surface-700 bg-surface-800/80 px-3 py-1 shrink-0 flex items-center gap-2 text-[10px] min-h-[24px]">
+	<div class="border-t border-surface-700 bg-surface-800/80 px-3 py-1 shrink-0 flex items-center gap-2 text-xs min-h-[24px]">
 		{#if mode === 'command'}
-			<span class="text-hecate-400">:</span>
+			<span class="text-macula-400">:</span>
 			<input type="text" bind:value={commandInput} use:focusOnMount
 				onkeydown={(e) => { if (e.key === 'Enter') { e.preventDefault(); e.stopPropagation(); onCommandSubmit(); } else if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); mode = 'normal'; commandInput = ''; } }}
-				class="flex-1 bg-transparent border-none outline-none text-[10px] text-surface-100" placeholder="Command... (cd <name>, refresh, q)" />
+				class="flex-1 bg-transparent border-none outline-none text-xs text-surface-100" placeholder="Command... (cd <name>, refresh, q)" />
 		{:else if mode === 'search'}
-			<span class="text-hecate-400">/{searchQuery}<span class="animate-pulse">_</span></span>
+			<span class="text-macula-400">/{searchQuery}<span class="animate-pulse">_</span></span>
 		{:else}
 			{#if statusMsg}<span class="text-amber-400 truncate flex-1">{statusMsg}</span>
 			{:else}

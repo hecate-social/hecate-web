@@ -179,30 +179,30 @@
 <div class="flex flex-col h-full overflow-hidden bg-surface-900 text-surface-200 select-none">
 	<!-- Header -->
 	<!-- Observer nav -->
-	<div class="flex items-center gap-2 px-3 py-0.5 border-b border-surface-700/50 bg-surface-800/60 text-[10px] shrink-0">
-		<span class="text-hecate-400 uppercase tracking-wider text-[9px]">Observer</span>
+	<div class="flex items-center gap-2 px-3 py-0.5 border-b border-surface-700/50 bg-surface-800/60 text-xs shrink-0">
+		<span class="text-macula-400 uppercase tracking-wider text-[9px]">Observer</span>
 		<div class="flex-1"></div>
 		{#each ['system', 'processes', 'ets', 'supervision', 'plugins', 'stores', 'subscriptions'] as v}
 			<button
 				class="px-1.5 py-0.5 rounded cursor-pointer transition-colors
-					{v === 'stores' ? 'text-hecate-400 bg-hecate-600/20' : 'text-surface-600 hover:text-surface-400'}"
+					{v === 'stores' ? 'text-macula-400 bg-macula-600/20' : 'text-surface-600 hover:text-surface-400'}"
 				onclick={() => { if (v !== 'stores') goto('/observer'); }}
 			>{v}</button>
 		{/each}
 	</div>
 	<!-- Store header -->
-	<div class="flex items-center gap-2 px-3 py-1 border-b border-surface-700 bg-surface-800/80 text-[11px] shrink-0">
-		<button onclick={() => goto('/observer/stores')} class="text-surface-500 hover:text-hecate-400 transition-colors cursor-pointer text-[10px]">&#8592; stores</button>
+	<div class="flex items-center gap-2 px-3 py-1 border-b border-surface-700 bg-surface-800/80 text-xs shrink-0">
+		<button onclick={() => goto('/observer/stores')} class="text-surface-500 hover:text-macula-400 transition-colors cursor-pointer text-xs">&#8592; stores</button>
 		<span class="text-surface-700">|</span>
-		<span class="text-hecate-400 font-mono text-[10px]">{storeId}</span>
+		<span class="text-macula-400 font-mono text-xs">{storeId}</span>
 		{#if storeInfo}
 			<span class="text-[8px] {storeInfo.running ? 'text-success-400' : 'text-danger-400'}">{storeInfo.running ? '\u25CF' : '\u25CB'}</span>
 		{/if}
 		<div class="flex-1"></div>
 		{#each tabs as t}
 			<button
-				class="text-[10px] px-1.5 py-0.5 rounded cursor-pointer transition-colors
-					{activeTab === t ? 'text-hecate-400 bg-hecate-600/20' : 'text-surface-600 hover:text-surface-400'}"
+				class="text-xs px-1.5 py-0.5 rounded cursor-pointer transition-colors
+					{activeTab === t ? 'text-macula-400 bg-macula-600/20' : 'text-surface-600 hover:text-surface-400'}"
 				onclick={() => switchTab(t)}
 			>{t}</button>
 		{/each}
@@ -211,17 +211,17 @@
 	<!-- Content -->
 	<div class="flex-1 overflow-y-auto py-1 min-h-0">
 		{#if loading}
-			<div class="px-3 py-4 text-[11px] text-surface-500 animate-pulse">Loading...</div>
+			<div class="px-3 py-4 text-xs text-surface-500 animate-pulse">Loading...</div>
 
 		<!-- OVERVIEW -->
 		{:else if activeTab === 'overview'}
 			<div class="px-2 py-0.5 text-[9px] text-surface-500 uppercase tracking-wider">Store</div>
 			{#each overviewRows as row, i}
 				<div data-cursor={i === cursorIndex ? 'true' : 'false'}
-					class="px-2 py-0.5 text-[11px] flex items-center gap-2 transition-colors
-						{i === cursorIndex ? 'bg-hecate-600/30 text-surface-50 border-l-2 border-hecate-400' : 'text-surface-300 border-l-2 border-transparent'}">
-					<span class="w-24 shrink-0 text-surface-500 text-right text-[10px]">{row.label}</span>
-					<span class="flex-1 truncate font-mono text-[10px] {row.key === 'status' ? (storeInfo?.running ? 'text-success-400' : 'text-danger-400') : ''}">{row.value}</span>
+					class="px-2 py-0.5 text-xs flex items-center gap-2 transition-colors
+						{i === cursorIndex ? 'bg-macula-600/30 text-surface-50 border-l-2 border-macula-400' : 'text-surface-300 border-l-2 border-transparent'}">
+					<span class="w-24 shrink-0 text-surface-500 text-right text-xs">{row.label}</span>
+					<span class="flex-1 truncate font-mono text-xs {row.key === 'status' ? (storeInfo?.running ? 'text-success-400' : 'text-danger-400') : ''}">{row.value}</span>
 				</div>
 			{/each}
 
@@ -234,17 +234,17 @@
 			</div>
 			{#each streams as stream, i}
 				<button data-cursor={i === cursorIndex ? 'true' : 'false'}
-					class="w-full text-left px-2 py-0.5 text-[10px] flex items-center gap-1.5 cursor-pointer transition-colors font-mono
-						{i === cursorIndex ? 'bg-hecate-600/30 text-surface-50 border-l-2 border-hecate-400' : 'text-surface-300 hover:bg-surface-800 border-l-2 border-transparent'}"
+					class="w-full text-left px-2 py-0.5 text-xs flex items-center gap-1.5 cursor-pointer transition-colors font-mono
+						{i === cursorIndex ? 'bg-macula-600/30 text-surface-50 border-l-2 border-macula-400' : 'text-surface-300 hover:bg-surface-800 border-l-2 border-transparent'}"
 					onclick={() => cursorIndex = i}
 					ondblclick={() => goto(`/observer/stores/${storeId}/${encodeURIComponent(stream.stream_id)}`)}>
-					<span class="flex-1 truncate text-hecate-300">{stream.stream_id}</span>
+					<span class="flex-1 truncate text-macula-300">{stream.stream_id}</span>
 					<span class="w-12 text-right shrink-0 text-surface-500">v{stream.version}</span>
 					<span class="w-16 text-right shrink-0">{stream.event_count}</span>
 				</button>
 			{/each}
 			{#if streams.length === 0}
-				<div class="px-3 py-4 text-[11px] text-surface-600">No streams</div>
+				<div class="px-3 py-4 text-xs text-surface-600">No streams</div>
 			{/if}
 
 		<!-- SNAPSHOTS -->
@@ -256,15 +256,15 @@
 			</div>
 			{#each snapshots as snap, i}
 				<div data-cursor={i === cursorIndex ? 'true' : 'false'}
-					class="px-2 py-0.5 text-[10px] flex items-center gap-1.5 font-mono transition-colors
-						{i === cursorIndex ? 'bg-hecate-600/30 text-surface-50 border-l-2 border-hecate-400' : 'text-surface-300 border-l-2 border-transparent'}">
-					<span class="flex-1 truncate text-hecate-300">{snap.stream_id}</span>
+					class="px-2 py-0.5 text-xs flex items-center gap-1.5 font-mono transition-colors
+						{i === cursorIndex ? 'bg-macula-600/30 text-surface-50 border-l-2 border-macula-400' : 'text-surface-300 border-l-2 border-transparent'}">
+					<span class="flex-1 truncate text-macula-300">{snap.stream_id}</span>
 					<span class="w-12 text-right shrink-0 text-surface-500">v{snap.version}</span>
 					<span class="w-32 text-right shrink-0 text-surface-500">{snap.timestamp ? new Date(snap.timestamp).toLocaleString() : '\u2014'}</span>
 				</div>
 			{/each}
 			{#if snapshots.length === 0}
-				<div class="px-3 py-4 text-[11px] text-surface-600">No snapshots</div>
+				<div class="px-3 py-4 text-xs text-surface-600">No snapshots</div>
 			{/if}
 
 		<!-- SUBSCRIPTIONS -->
@@ -278,9 +278,9 @@
 			</div>
 			{#each storeSubs as sub, i}
 				<div data-cursor={i === cursorIndex ? 'true' : 'false'}
-					class="px-2 py-0.5 text-[10px] flex items-center gap-1.5 font-mono transition-colors
-						{i === cursorIndex ? 'bg-hecate-600/30 text-surface-50 border-l-2 border-hecate-400' : 'text-surface-300 border-l-2 border-transparent'}">
-					<span class="w-48 shrink-0 truncate text-hecate-300">{sub.subscription_name}</span>
+					class="px-2 py-0.5 text-xs flex items-center gap-1.5 font-mono transition-colors
+						{i === cursorIndex ? 'bg-macula-600/30 text-surface-50 border-l-2 border-macula-400' : 'text-surface-300 border-l-2 border-transparent'}">
+					<span class="w-48 shrink-0 truncate text-macula-300">{sub.subscription_name}</span>
 					<span class="w-16 shrink-0 text-surface-500">{sub.type}</span>
 					<span class="flex-1 truncate text-surface-400">{sub.selector}</span>
 					<span class="w-16 text-right shrink-0">{sub.checkpoint ?? '\u2014'}</span>
@@ -288,39 +288,39 @@
 				</div>
 			{/each}
 			{#if storeSubs.length === 0}
-				<div class="px-3 py-4 text-[11px] text-surface-600">No subscriptions</div>
+				<div class="px-3 py-4 text-xs text-surface-600">No subscriptions</div>
 			{/if}
 
 		<!-- EVENTS ($all) -->
 		{:else if activeTab === 'events'}
 			<div class="px-2 py-0.5 text-[9px] text-surface-500 uppercase tracking-wider flex items-center gap-2">
 				<span>$all Events</span>
-				{#if typeFilter}<span class="text-hecate-400">filter:{typeFilter}</span>{/if}
+				{#if typeFilter}<span class="text-macula-400">filter:{typeFilter}</span>{/if}
 				<span class="text-surface-600">offset:{eventOffset}</span>
 				<span class="text-surface-600">n:next p:prev</span>
 			</div>
 			{#each events as event, i}
 				<div data-cursor={i === cursorIndex ? 'true' : 'false'}
 					class="border-b border-surface-800/50 transition-colors
-						{i === cursorIndex ? 'bg-hecate-600/10' : ''}">
+						{i === cursorIndex ? 'bg-macula-600/10' : ''}">
 					<EventViewer {event} />
 				</div>
 			{/each}
 			{#if events.length === 0}
-				<div class="px-3 py-4 text-[11px] text-surface-600">No events — :filter &lt;type&gt; or press n/p to page</div>
+				<div class="px-3 py-4 text-xs text-surface-600">No events — :filter &lt;type&gt; or press n/p to page</div>
 			{/if}
 		{/if}
 	</div>
 
 	<!-- Status bar -->
-	<div class="border-t border-surface-700 bg-surface-800/80 px-3 py-1 shrink-0 flex items-center gap-2 text-[10px] min-h-[24px]">
+	<div class="border-t border-surface-700 bg-surface-800/80 px-3 py-1 shrink-0 flex items-center gap-2 text-xs min-h-[24px]">
 		{#if mode === 'command'}
-			<span class="text-hecate-400">:</span>
+			<span class="text-macula-400">:</span>
 			<input type="text" bind:value={commandInput} use:focusOnMount
 				onkeydown={(e) => { if (e.key === 'Enter') { e.preventDefault(); e.stopPropagation(); onCommandSubmit(); } else if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); mode = 'normal'; commandInput = ''; } }}
-				class="flex-1 bg-transparent border-none outline-none text-[10px] text-surface-100" placeholder="Command... (filter <type>, refresh, q)" />
+				class="flex-1 bg-transparent border-none outline-none text-xs text-surface-100" placeholder="Command... (filter <type>, refresh, q)" />
 		{:else if mode === 'search'}
-			<span class="text-hecate-400">/{searchQuery}<span class="animate-pulse">_</span></span>
+			<span class="text-macula-400">/{searchQuery}<span class="animate-pulse">_</span></span>
 		{:else}
 			{#if statusMsg}
 				<span class="text-amber-400 truncate flex-1">{statusMsg}</span>

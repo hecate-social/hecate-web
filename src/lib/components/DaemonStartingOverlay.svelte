@@ -35,15 +35,15 @@
 			<div class="flex flex-col gap-2.5 min-w-[260px]">
 				{#each steps as step (step.id)}
 					<div class="flex items-start gap-3">
-						<span class={`text-sm w-4 text-center mt-0.5 ${variantClass[step.variant]}`}>
+						<span class={`text-base w-4 text-center mt-0.5 ${variantClass[step.variant]}`}>
 							{iconChar[step.icon]}
 						</span>
 						<div class="flex flex-col gap-0.5">
-							<span class={`text-xs font-medium ${step.variant === 'ok' ? 'text-surface-300' : step.variant === 'warn' ? 'text-surface-100' : step.variant === 'err' ? 'text-red-400' : 'text-surface-600'}`}>
+							<span class={`text-sm font-medium ${step.variant === 'ok' ? 'text-surface-300' : step.variant === 'warn' ? 'text-surface-100' : step.variant === 'err' ? 'text-red-400' : 'text-surface-600'}`}>
 								{step.label}
 							</span>
 							{#if step.detail}
-								<span class="text-[10px] leading-tight {step.variant === 'warn' ? 'text-amber-400/70' : 'text-surface-500'}">
+								<span class="text-xs leading-tight {step.variant === 'warn' ? 'text-amber-400/70' : 'text-surface-500'}">
 									{step.detail}
 								</span>
 							{/if}
@@ -61,7 +61,7 @@
 			</div>
 
 			<!-- Elapsed time -->
-			<span class="text-[10px] text-surface-600">{elapsed}s</span>
+			<span class="text-xs text-surface-600">{elapsed}s</span>
 		</div>
 	</div>
 {/if}

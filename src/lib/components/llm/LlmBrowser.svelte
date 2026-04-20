@@ -50,7 +50,7 @@
 		>
 			LLM
 		</h2>
-		<p class="text-surface-400 text-xs text-center">
+		<p class="text-surface-400 text-sm text-center">
 			Chat with AI models across providers
 		</p>
 	</div>
@@ -58,8 +58,8 @@
 	{#if $models.length === 0}
 		<div class="text-center py-8">
 			<div class="text-2xl mb-2 text-surface-500">&#9670;</div>
-			<div class="text-xs text-surface-400">No models available</div>
-			<div class="text-[10px] text-surface-500 mt-1">Check daemon connection</div>
+			<div class="text-sm text-surface-400">No models available</div>
+			<div class="text-xs text-surface-500 mt-1">Check daemon connection</div>
 		</div>
 	{:else}
 		<div class="flex flex-col gap-3 max-w-2xl w-full">
@@ -68,24 +68,24 @@
 					type="text"
 					bind:value={searchText}
 					placeholder="Search models..."
-					class="w-full px-3 py-2 pl-8 text-xs rounded-lg
+					class="w-full px-3 py-2 pl-8 text-sm rounded-lg
 						bg-surface-800/80 border border-surface-600/50
 						text-surface-100 placeholder:text-surface-500
 						focus:outline-none focus:border-accent-500/50
 						transition-colors"
 				/>
-				<span class="absolute left-2.5 top-1/2 -translate-y-1/2 text-surface-500 text-xs">
+				<span class="absolute left-2.5 top-1/2 -translate-y-1/2 text-surface-500 text-sm">
 					&#128269;
 				</span>
 			</div>
 
 			{#if providers.length > 1}
 				<div class="flex flex-wrap gap-1.5">
-					<span class="text-[10px] text-surface-500 self-center mr-1">Provider</span>
+					<span class="text-xs text-surface-500 self-center mr-1">Provider</span>
 					{#each providers as provider}
 						<button
 							onclick={() => toggleProvider(provider)}
-							class="px-2.5 py-1 text-[11px] rounded-full border transition-colors cursor-pointer
+							class="px-2.5 py-1 text-xs rounded-full border transition-colors cursor-pointer
 								{selectedProvider === provider
 									? 'bg-accent-500/20 border-accent-500/50 text-accent-400'
 									: 'bg-surface-800/60 border-surface-600/50 text-surface-300 hover:border-surface-500 hover:text-surface-200'}"
@@ -97,13 +97,13 @@
 			{/if}
 
 			<div class="flex flex-wrap gap-1.5">
-				<span class="text-[10px] text-surface-500 self-center mr-1">Specialty</span>
+				<span class="text-xs text-surface-500 self-center mr-1">Specialty</span>
 				{#each SPECIALTIES as specialty}
 					<button
 						onclick={() => toggleSpecialty(specialty)}
-						class="px-2.5 py-1 text-[11px] rounded-full border transition-colors cursor-pointer
+						class="px-2.5 py-1 text-xs rounded-full border transition-colors cursor-pointer
 							{selectedSpecialty === specialty
-								? 'bg-hecate-500/20 border-hecate-500/50 text-hecate-400'
+								? 'bg-macula-500/20 border-macula-500/50 text-macula-400'
 								: 'bg-surface-800/60 border-surface-600/50 text-surface-300 hover:border-surface-500 hover:text-surface-200'}"
 					>
 						{specialty}
@@ -111,7 +111,7 @@
 				{/each}
 			</div>
 
-			<div class="flex items-center justify-between text-[10px] text-surface-500">
+			<div class="flex items-center justify-between text-xs text-surface-500">
 				<span>Showing {filteredModels.length} of {$models.length} models</span>
 				{#if hasActiveFilters}
 					<button
@@ -139,20 +139,20 @@
 					>
 						&#9670;
 					</span>
-					<span class="text-sm font-medium text-surface-100 group-hover:text-accent-400 transition-colors">
+					<span class="text-base font-medium text-surface-100 group-hover:text-accent-400 transition-colors">
 						{model.name}
 					</span>
 					<div class="flex flex-col items-center gap-1">
 						<div class="flex items-center gap-1.5">
-							<span class="text-[10px] px-1.5 py-0.5 rounded-full bg-surface-700 text-hecate-400">
+							<span class="text-xs px-1.5 py-0.5 rounded-full bg-surface-700 text-macula-400">
 								{model.provider}
 							</span>
-							<span class="text-[10px] text-amber-400/80" title="Estimated cost">
+							<span class="text-xs text-amber-400/80" title="Estimated cost">
 								{costOf(model)}
 							</span>
 						</div>
 						{#if model.parameter_size}
-							<span class="text-[10px] text-surface-400">{model.parameter_size}</span>
+							<span class="text-xs text-surface-400">{model.parameter_size}</span>
 						{/if}
 					</div>
 				</button>
@@ -161,10 +161,10 @@
 
 		{#if filteredModels.length === 0 && hasActiveFilters}
 			<div class="text-center py-4">
-				<div class="text-xs text-surface-400">No models match your filters</div>
+				<div class="text-sm text-surface-400">No models match your filters</div>
 				<button
 					onclick={clearFilters}
-					class="text-[11px] text-accent-400 hover:text-accent-300 mt-1 transition-colors cursor-pointer"
+					class="text-xs text-accent-400 hover:text-accent-300 mt-1 transition-colors cursor-pointer"
 				>
 					Clear all filters
 				</button>

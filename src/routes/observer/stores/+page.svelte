@@ -184,14 +184,14 @@
 
 <div class="flex flex-col h-full overflow-hidden bg-surface-900 text-surface-200 select-none">
 	<!-- Header -->
-	<div class="flex items-center gap-2 px-3 py-1 border-b border-surface-700 bg-surface-800/80 text-[11px] shrink-0">
+	<div class="flex items-center gap-2 px-3 py-1 border-b border-surface-700 bg-surface-800/80 text-xs shrink-0">
 		{#if level !== 'stores'}
-			<button onclick={goBack} class="text-surface-500 hover:text-hecate-400 transition-colors cursor-pointer text-[10px]">&#8592;</button>
+			<button onclick={goBack} class="text-surface-500 hover:text-macula-400 transition-colors cursor-pointer text-xs">&#8592;</button>
 			<span class="text-surface-700">|</span>
 		{/if}
-		<span class="text-hecate-400 uppercase tracking-wider text-[10px]">Event Stores</span>
-		<span class="text-surface-600 text-[10px] truncate">{breadcrumb}</span>
-		{#if searchQuery}<span class="text-hecate-400 text-[10px]">/{searchQuery}</span>{/if}
+		<span class="text-macula-400 uppercase tracking-wider text-xs">Event Stores</span>
+		<span class="text-surface-600 text-xs truncate">{breadcrumb}</span>
+		{#if searchQuery}<span class="text-macula-400 text-xs">/{searchQuery}</span>{/if}
 		{#if level === 'events'}
 			<div class="flex-1"></div>
 			<span class="text-[9px] text-surface-600">offset:{eventOffset} · n:next p:prev</span>
@@ -206,10 +206,10 @@
 			<div class="flex-1 overflow-y-auto py-1 min-w-0">
 				{#each events as event, i}
 					<button data-cursor={i === cursorIndex ? 'true' : 'false'}
-						class="w-full text-left px-2 py-0.5 text-[10px] flex items-center gap-1.5 cursor-pointer transition-colors font-mono
-							{i === cursorIndex ? 'bg-hecate-600/30 text-surface-50 border-l-2 border-hecate-400' : 'text-surface-300 hover:bg-surface-800 border-l-2 border-transparent'}"
+						class="w-full text-left px-2 py-0.5 text-xs flex items-center gap-1.5 cursor-pointer transition-colors font-mono
+							{i === cursorIndex ? 'bg-macula-600/30 text-surface-50 border-l-2 border-macula-400' : 'text-surface-300 hover:bg-surface-800 border-l-2 border-transparent'}"
 						onclick={() => cursorIndex = i}>
-						<span class="flex-1 truncate text-hecate-300">{event.event_type ?? 'event'}</span>
+						<span class="flex-1 truncate text-macula-300">{event.event_type ?? 'event'}</span>
 						<span class="text-[9px] text-surface-500 shrink-0">v{event.version ?? '?'}</span>
 						{#if event.timestamp}
 							<span class="text-[9px] text-surface-600 shrink-0 w-20 text-right">{new Date(event.timestamp).toLocaleTimeString()}</span>
@@ -217,7 +217,7 @@
 					</button>
 				{/each}
 				{#if events.length === 0}
-					<div class="px-3 py-4 text-[11px] text-surface-600">No events</div>
+					<div class="px-3 py-4 text-xs text-surface-600">No events</div>
 				{/if}
 			</div>
 
@@ -225,9 +225,9 @@
 			<div class="w-1/2 overflow-y-auto py-1 shrink-0 bg-surface-900/50">
 				{#if events[cursorIndex]}
 					{@const ev = events[cursorIndex]}
-					<div class="px-3 py-2 space-y-2 text-[10px]">
+					<div class="px-3 py-2 space-y-2 text-xs">
 						<!-- Payload first -->
-						<div class="text-[9px] text-hecate-400 uppercase tracking-wider">Data</div>
+						<div class="text-[9px] text-macula-400 uppercase tracking-wider">Data</div>
 						{#if ev.data && typeof ev.data === 'object' && Object.keys(ev.data).length > 0}
 							<pre class="text-[9px] text-surface-200 font-mono whitespace-pre-wrap break-all leading-relaxed">{JSON.stringify(ev.data, null, 2)}</pre>
 						{:else}
@@ -265,53 +265,53 @@
 		<!-- Stores / Streams: full-width list -->
 		<div class="flex-1 overflow-y-auto py-1">
 			{#if loading}
-				<div class="px-3 py-4 text-[11px] text-surface-500 animate-pulse">Loading...</div>
+				<div class="px-3 py-4 text-xs text-surface-500 animate-pulse">Loading...</div>
 			{:else if level === 'stores'}
 				{#each filteredStores as store, i}
 					<button data-cursor={i === cursorIndex ? 'true' : 'false'}
-						class="w-full text-left px-2 py-px text-[10px] flex items-center gap-1.5 cursor-pointer transition-colors font-mono
-							{i === cursorIndex ? 'bg-hecate-600/30 text-surface-50 border-l-2 border-hecate-400' : 'text-surface-300 hover:bg-surface-800 border-l-2 border-transparent'}"
+						class="w-full text-left px-2 py-px text-xs flex items-center gap-1.5 cursor-pointer transition-colors font-mono
+							{i === cursorIndex ? 'bg-macula-600/30 text-surface-50 border-l-2 border-macula-400' : 'text-surface-300 hover:bg-surface-800 border-l-2 border-transparent'}"
 						onclick={() => cursorIndex = i}
 						ondblclick={() => drillIntoStore(store.store_id)}>
 						<span class="text-[8px] shrink-0 {store.running ? 'text-success-400' : 'text-danger-400'}">{store.running ? '\u25CF' : '\u25CB'}</span>
-						<span class="flex-1 truncate text-hecate-300">{store.store_id}</span>
+						<span class="flex-1 truncate text-macula-300">{store.store_id}</span>
 						<span class="text-[9px] text-surface-500 shrink-0">{store.stream_count}s</span>
 						<span class="text-[9px] text-surface-600 shrink-0">&#9654;</span>
 					</button>
 				{/each}
 				{#if filteredStores.length === 0}
-					<div class="px-3 py-4 text-[11px] text-surface-600">{searchQuery ? 'No matches' : 'No stores'}</div>
+					<div class="px-3 py-4 text-xs text-surface-600">{searchQuery ? 'No matches' : 'No stores'}</div>
 				{/if}
 
 			{:else if level === 'streams'}
 				{#each filteredStreams as stream, i}
 					<button data-cursor={i === cursorIndex ? 'true' : 'false'}
-						class="w-full text-left px-2 py-px text-[10px] flex items-center gap-1.5 cursor-pointer transition-colors font-mono
-							{i === cursorIndex ? 'bg-hecate-600/30 text-surface-50 border-l-2 border-hecate-400' : 'text-surface-300 hover:bg-surface-800 border-l-2 border-transparent'}"
+						class="w-full text-left px-2 py-px text-xs flex items-center gap-1.5 cursor-pointer transition-colors font-mono
+							{i === cursorIndex ? 'bg-macula-600/30 text-surface-50 border-l-2 border-macula-400' : 'text-surface-300 hover:bg-surface-800 border-l-2 border-transparent'}"
 						onclick={() => cursorIndex = i}
 						ondblclick={() => drillIntoStream(stream.stream_id)}>
-						<span class="flex-1 truncate text-hecate-300">{stream.stream_id}</span>
+						<span class="flex-1 truncate text-macula-300">{stream.stream_id}</span>
 						<span class="text-[9px] text-surface-500 shrink-0">v{stream.version}</span>
 						<span class="text-[9px] text-surface-500 shrink-0">{stream.event_count}ev</span>
 						<span class="text-[9px] text-surface-600 shrink-0">&#9654;</span>
 					</button>
 				{/each}
 				{#if filteredStreams.length === 0}
-					<div class="px-3 py-4 text-[11px] text-surface-600">{searchQuery ? 'No matches' : 'No streams'}</div>
+					<div class="px-3 py-4 text-xs text-surface-600">{searchQuery ? 'No matches' : 'No streams'}</div>
 				{/if}
 			{/if}
 		</div>
 	{/if}
 
 	<!-- Status bar -->
-	<div class="border-t border-surface-700 bg-surface-800/80 px-3 py-1 shrink-0 flex items-center gap-2 text-[10px] min-h-[24px]">
+	<div class="border-t border-surface-700 bg-surface-800/80 px-3 py-1 shrink-0 flex items-center gap-2 text-xs min-h-[24px]">
 		{#if mode === 'command'}
-			<span class="text-hecate-400">:</span>
+			<span class="text-macula-400">:</span>
 			<input type="text" bind:value={commandInput} use:focusOnMount
 				onkeydown={(e) => { if (e.key === 'Enter') { e.preventDefault(); e.stopPropagation(); onCommandSubmit(); } else if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); mode = 'normal'; commandInput = ''; } }}
-				class="flex-1 bg-transparent border-none outline-none text-[10px] text-surface-100" placeholder="Command..." />
+				class="flex-1 bg-transparent border-none outline-none text-xs text-surface-100" placeholder="Command..." />
 		{:else if mode === 'search'}
-			<span class="text-hecate-400">/{searchQuery}<span class="animate-pulse">_</span></span>
+			<span class="text-macula-400">/{searchQuery}<span class="animate-pulse">_</span></span>
 			<span class="text-surface-600">{currentList.length} matches</span>
 		{:else}
 			{#if statusMsg}<span class="text-amber-400 truncate flex-1">{statusMsg}</span>

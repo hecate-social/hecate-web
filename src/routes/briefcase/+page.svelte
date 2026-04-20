@@ -624,13 +624,13 @@
 		<!-- Left pane: parent directory -->
 		<div class="w-1/4 overflow-y-auto py-1 shrink-0 bg-surface-900/50">
 			{#if !isAtRoot && parentEntries.length > 0}
-				<div class="px-2 py-0.5 text-[10px] text-surface-500 uppercase tracking-wider truncate">
+				<div class="px-2 py-0.5 text-xs text-surface-500 uppercase tracking-wider truncate">
 					{parentDirName()}
 				</div>
 				{#each parentEntries as entry (entry.path)}
 					{@const isCurrent = entry.path === $currentPath}
 					<button
-						class="w-full text-left px-2 py-px text-[11px] truncate flex items-center gap-1.5 cursor-pointer transition-colors
+						class="w-full text-left px-2 py-px text-xs truncate flex items-center gap-1.5 cursor-pointer transition-colors
 							{isCurrent ? 'bg-surface-700/80 text-surface-100' : 'text-surface-500 hover:text-surface-300 hover:bg-surface-800'}"
 						onclick={() => { navigateTo(entry.path).then(() => { cursorIndex = 0; refreshParent(); }); }}
 					>
@@ -639,11 +639,11 @@
 					</button>
 				{/each}
 			{:else if isAtRoot}
-				<div class="flex items-center justify-center h-full text-surface-600 text-[10px]">
+				<div class="flex items-center justify-center h-full text-surface-600 text-xs">
 					root
 				</div>
 			{:else}
-				<div class="flex items-center justify-center h-full text-surface-600 text-[10px]">
+				<div class="flex items-center justify-center h-full text-surface-600 text-xs">
 					...
 				</div>
 			{/if}
@@ -651,15 +651,15 @@
 
 		<!-- Center pane: current directory (main focus) -->
 		<div class="flex-1 overflow-y-auto py-1 min-w-0">
-			<div class="px-2 py-0.5 text-[10px] text-hecate-400 uppercase tracking-wider truncate flex items-center gap-1">
+			<div class="px-2 py-0.5 text-xs text-macula-400 uppercase tracking-wider truncate flex items-center gap-1">
 				<span>{currentDirName()}</span>
 				<span class="text-surface-600">({displayEntries.length})</span>
 			</div>
 
 			{#if $briefcaseLoading && displayEntries.length === 0}
-				<div class="px-2 py-4 text-[11px] text-surface-500 animate-pulse">Loading...</div>
+				<div class="px-2 py-4 text-xs text-surface-500 animate-pulse">Loading...</div>
 			{:else if displayEntries.length === 0}
-				<div class="px-2 py-4 text-[11px] text-surface-600">
+				<div class="px-2 py-4 text-xs text-surface-600">
 					{mode === 'search' ? 'No matches' : 'Empty directory -- :help for commands'}
 				</div>
 			{:else}
@@ -668,17 +668,17 @@
 					{@const starred = isStarred(entry.path, $meta)}
 					<button
 						data-cursor={isCursor ? 'true' : 'false'}
-						class="w-full text-left px-2 py-px text-[11px] flex items-center gap-1.5 cursor-pointer transition-colors
+						class="w-full text-left px-2 py-px text-xs flex items-center gap-1.5 cursor-pointer transition-colors
 							{isCursor
-								? 'bg-hecate-600/30 text-surface-50 border-l-2 border-hecate-400'
+								? 'bg-macula-600/30 text-surface-50 border-l-2 border-macula-400'
 								: 'text-surface-300 hover:bg-surface-800 border-l-2 border-transparent'}"
 						onclick={() => { cursorIndex = i; }}
 						ondblclick={() => openSelected()}
 					>
-						<span class="w-3 text-center shrink-0 {entry.isDir ? 'text-hecate-400' : 'text-surface-500'}">
+						<span class="w-3 text-center shrink-0 {entry.isDir ? 'text-macula-400' : 'text-surface-500'}">
 							{entry.isDir ? '/' : '.'}
 						</span>
-						<span class="truncate flex-1 {entry.isDir ? 'text-hecate-300' : ''}">{entry.name}</span>
+						<span class="truncate flex-1 {entry.isDir ? 'text-macula-300' : ''}">{entry.name}</span>
 						{#if starred}
 							<span class="text-amber-400 text-[9px] shrink-0">*</span>
 						{/if}
@@ -695,21 +695,21 @@
 			{#if showHelp}
 				<!-- Help content rendered in preview pane -->
 				<div class="px-3 py-2">
-					<div class="text-[10px] text-hecate-400 uppercase tracking-wider mb-2">Keybindings</div>
-					<div class="space-y-px text-[10px]">
+					<div class="text-xs text-macula-400 uppercase tracking-wider mb-2">Keybindings</div>
+					<div class="space-y-px text-xs">
 						{#each helpKeybindings as [key, desc]}
 							<div class="flex gap-2">
-								<span class="text-hecate-300 w-16 shrink-0 text-right">{key}</span>
+								<span class="text-macula-300 w-16 shrink-0 text-right">{key}</span>
 								<span class="text-surface-400">{desc}</span>
 							</div>
 						{/each}
 					</div>
 
-					<div class="text-[10px] text-hecate-400 uppercase tracking-wider mt-4 mb-2">Commands</div>
-					<div class="space-y-px text-[10px]">
+					<div class="text-xs text-macula-400 uppercase tracking-wider mt-4 mb-2">Commands</div>
+					<div class="space-y-px text-xs">
 						{#each commands as cmd}
 							<div class="flex gap-2">
-								<span class="text-hecate-300 w-16 shrink-0 text-right">:{cmd.name}</span>
+								<span class="text-macula-300 w-16 shrink-0 text-right">:{cmd.name}</span>
 								<span class="text-surface-500">{cmd.args}</span>
 								<span class="text-surface-400 truncate">{cmd.description}</span>
 							</div>
@@ -722,40 +722,40 @@
 						{/each}
 					</div>
 
-					<div class="text-[10px] text-surface-600 mt-4">
+					<div class="text-xs text-surface-600 mt-4">
 						Tab completes commands and filenames.
 						Up/Down navigates command history.
 					</div>
 				</div>
 			{:else if !selectedEntry}
-				<div class="flex items-center justify-center h-full text-surface-600 text-[10px]">
+				<div class="flex items-center justify-center h-full text-surface-600 text-xs">
 					No selection
 				</div>
 			{:else if previewLoading}
-				<div class="px-2 py-4 text-[11px] text-surface-500 animate-pulse">Loading...</div>
+				<div class="px-2 py-4 text-xs text-surface-500 animate-pulse">Loading...</div>
 			{:else if selectedEntry.isDir && previewChildEntries.length > 0}
-				<div class="px-2 py-0.5 text-[10px] text-surface-500 uppercase tracking-wider truncate">
+				<div class="px-2 py-0.5 text-xs text-surface-500 uppercase tracking-wider truncate">
 					{selectedEntry.name}/
 				</div>
 				{#each previewChildEntries as child (child.path)}
-					<div class="px-2 py-px text-[11px] text-surface-500 truncate flex items-center gap-1.5">
+					<div class="px-2 py-px text-xs text-surface-500 truncate flex items-center gap-1.5">
 						<span class="text-surface-600 w-3 text-center shrink-0">{child.isDir ? '/' : ' '}</span>
 						<span class="truncate">{child.name}</span>
 					</div>
 				{/each}
 			{:else if selectedEntry.isDir}
-				<div class="flex items-center justify-center h-full text-surface-600 text-[10px]">
+				<div class="flex items-center justify-center h-full text-surface-600 text-xs">
 					Empty directory
 				</div>
 			{:else if previewText}
-				<div class="px-2 py-0.5 text-[10px] text-surface-500 uppercase tracking-wider truncate">
+				<div class="px-2 py-0.5 text-xs text-surface-500 uppercase tracking-wider truncate">
 					{selectedEntry.name}
 				</div>
-				<pre class="px-2 text-[10px] text-surface-400 whitespace-pre-wrap break-all leading-relaxed">{previewText}</pre>
+				<pre class="px-2 text-xs text-surface-400 whitespace-pre-wrap break-all leading-relaxed">{previewText}</pre>
 			{:else}
 				<div class="px-2 py-2">
-					<div class="text-[10px] text-surface-500 uppercase tracking-wider mb-2">{selectedEntry.name}</div>
-					<div class="space-y-1 text-[10px] text-surface-500">
+					<div class="text-xs text-surface-500 uppercase tracking-wider mb-2">{selectedEntry.name}</div>
+					<div class="space-y-1 text-xs text-surface-500">
 						<div>Type: {selectedEntry.extension ?? 'unknown'}</div>
 						<div>Size: {formatFileSize(selectedEntry.size) || '0 B'}</div>
 						{#if selectedEntry.modifiedAt}
@@ -771,9 +771,9 @@
 	</div>
 
 	<!-- Status bar / command line -->
-	<div class="border-t border-surface-700 bg-surface-800/80 px-3 py-1 shrink-0 flex items-center gap-2 text-[10px] min-h-[24px]">
+	<div class="border-t border-surface-700 bg-surface-800/80 px-3 py-1 shrink-0 flex items-center gap-2 text-xs min-h-[24px]">
 		{#if mode === 'command'}
-			<span class="text-hecate-400">:</span>
+			<span class="text-macula-400">:</span>
 			<input
 				type="text" bind:value={commandInput}
 				use:focusOnMount
@@ -782,14 +782,14 @@
 					else if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); mode = 'normal'; commandInput = ''; completionCandidates = []; }
 				}}
 				oninput={() => { completionCandidates = []; completionIndex = -1; }}
-				class="flex-1 bg-transparent border-none outline-none text-[10px] text-surface-100"
+				class="flex-1 bg-transparent border-none outline-none text-xs text-surface-100"
 				placeholder="Type a command... (Tab to complete)"
 			/>
 			{#if completionCandidates.length > 1}
 				<span class="text-surface-600 truncate">{completionCandidates.join('  ')}</span>
 			{/if}
 		{:else if mode === 'search'}
-			<span class="text-hecate-400">/{searchQuery}<span class="animate-pulse">_</span></span>
+			<span class="text-macula-400">/{searchQuery}<span class="animate-pulse">_</span></span>
 			<span class="text-surface-600">{filteredEntries.length} matches</span>
 		{:else if mode === 'confirm'}
 			<span class="text-danger-400">{confirmPrompt}</span>

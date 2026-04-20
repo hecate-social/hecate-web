@@ -150,8 +150,8 @@
 			<div class="flex items-center gap-3">
 				<span class="text-lg text-red-400">&#x2715;</span>
 				<div>
-					<div class="text-sm font-semibold text-surface-100">{machine.hostname}</div>
-					<div class="text-xs text-surface-500 font-mono">{machine.ip} · hecate v{machine.hecate?.version ?? '?'}</div>
+					<div class="text-base font-semibold text-surface-100">{machine.hostname}</div>
+					<div class="text-sm text-surface-500 font-mono">{machine.ip} · hecate v{machine.hecate?.version ?? '?'}</div>
 				</div>
 			</div>
 			<button class="text-surface-500 hover:text-surface-200 text-lg px-2 cursor-pointer" onclick={onClose}>&times;</button>
@@ -164,46 +164,46 @@
 			{#if phase === 'confirm'}
 				<div class="p-6 space-y-5">
 					<div class="bg-red-900/20 border border-red-800/40 rounded-lg p-4 space-y-2">
-						<div class="text-sm font-semibold text-red-300">Uninstall Hecate</div>
-						<div class="text-xs text-surface-400">
+						<div class="text-base font-semibold text-red-300">Uninstall Hecate</div>
+						<div class="text-sm text-surface-400">
 							This will stop and remove the hecate daemon, reconciler, containers, images, and all data from <span class="text-surface-200 font-mono">{machine.hostname}</span>. This action cannot be undone.
 						</div>
 					</div>
 
 					<div class="grid grid-cols-2 gap-3">
 						<div class="space-y-1">
-							<label class="text-xs text-surface-500 uppercase tracking-wider" for="ssh-user-uninstall">SSH User</label>
+							<label class="text-sm text-surface-500 uppercase tracking-wider" for="ssh-user-uninstall">SSH User</label>
 							<input id="ssh-user-uninstall" type="text" bind:value={sshUser} bind:this={sshUserInput}
-								class="w-full bg-surface-800 border border-surface-700 rounded px-3 py-2 text-sm text-surface-100 font-mono focus:outline-none focus:border-red-500"
+								class="w-full bg-surface-800 border border-surface-700 rounded px-3 py-2 text-base text-surface-100 font-mono focus:outline-none focus:border-red-500"
 								placeholder="username"
 								onkeydown={(e) => { if (e.key === 'Enter') startUninstall(); }}
 							/>
 						</div>
 						<div class="space-y-1">
-							<label class="text-xs text-surface-500 uppercase tracking-wider" for="ssh-pass-uninstall">Password <span class="normal-case text-surface-600">(optional)</span></label>
+							<label class="text-sm text-surface-500 uppercase tracking-wider" for="ssh-pass-uninstall">Password <span class="normal-case text-surface-600">(optional)</span></label>
 							<input id="ssh-pass-uninstall" type="password" bind:value={sshPassword}
-								class="w-full bg-surface-800 border border-surface-700 rounded px-3 py-2 text-sm text-surface-100 font-mono focus:outline-none focus:border-red-500"
+								class="w-full bg-surface-800 border border-surface-700 rounded px-3 py-2 text-base text-surface-100 font-mono focus:outline-none focus:border-red-500"
 								placeholder="for key auth leave empty"
 								onkeydown={(e) => { if (e.key === 'Enter') startUninstall(); }}
 							/>
 						</div>
 					</div>
 
-					<div class="bg-surface-800/50 rounded p-3 text-xs text-surface-500">
+					<div class="bg-surface-800/50 rounded p-3 text-sm text-surface-500">
 						The uninstall script may ask for <span class="text-amber-400/80">sudo</span> to remove Ollama and clean up system files. You can type into the terminal when prompted.
 					</div>
 
 					{#if errorMsg}
-						<div class="text-sm text-red-400">{errorMsg}</div>
+						<div class="text-base text-red-400">{errorMsg}</div>
 					{/if}
 
 					<div class="flex gap-3">
 						<button
-							class="flex-1 py-2.5 bg-surface-700 hover:bg-surface-600 text-surface-200 text-sm font-medium rounded transition-colors cursor-pointer"
+							class="flex-1 py-2.5 bg-surface-700 hover:bg-surface-600 text-surface-200 text-base font-medium rounded transition-colors cursor-pointer"
 							onclick={onClose}
 						>Cancel</button>
 						<button
-							class="flex-1 py-2.5 bg-red-600 hover:bg-red-500 text-white text-sm font-medium rounded transition-colors cursor-pointer"
+							class="flex-1 py-2.5 bg-red-600 hover:bg-red-500 text-white text-base font-medium rounded transition-colors cursor-pointer"
 							onclick={startUninstall}
 						>Uninstall</button>
 					</div>
@@ -214,11 +214,11 @@
 				<div bind:this={terminalEl} class="flex-1 min-h-[400px]" style="background: #1a1a2e;"></div>
 				{#if exitCode !== null}
 					<div class="px-4 py-2 border-t border-surface-700 flex items-center justify-between shrink-0">
-						<span class="text-xs {exitCode === 0 ? 'text-emerald-400' : 'text-red-400'}">
+						<span class="text-sm {exitCode === 0 ? 'text-emerald-400' : 'text-red-400'}">
 							{exitCode === 0 ? 'Uninstall complete' : `Exited ${exitCode}`}
 						</span>
 						<button
-							class="px-4 py-1.5 bg-surface-700 hover:bg-surface-600 text-surface-200 text-sm rounded transition-colors cursor-pointer"
+							class="px-4 py-1.5 bg-surface-700 hover:bg-surface-600 text-surface-200 text-base rounded transition-colors cursor-pointer"
 							onclick={onClose}
 						>Close</button>
 					</div>

@@ -1,5 +1,7 @@
 // Keyboard store — overlay stack, shortcut registry, global dispatch
 import { writable, get } from 'svelte/store';
+import { mode } from './mode';
+import { vimMode, setVimMode } from './vim';
 
 // --- Overlay Stack ---
 
@@ -72,7 +74,9 @@ function matchesModifiers(e: KeyboardEvent, mods: Modifier[]): boolean {
 }
 
 export function dispatchKeydown(e: KeyboardEvent): void {
-	// 1. Escape → pop top overlay
+	const zen = get(mode) === 'zen';
+
+	// 1. Escape → pop top overlay, then reset vim mode to normal (zen)
 	if (e.key === 'Escape') {
 		const stack = get(overlayStack);
 		if (stack.length > 0) {
@@ -81,6 +85,14 @@ export function dispatchKeydown(e: KeyboardEvent): void {
 			const top = stack[stack.length - 1];
 			top.onClose();
 			popOverlay(top.id);
+			if (zen) setVimMode('normal');
+			return;
+		}
+		if (zen && get(vimMode) !== 'normal') {
+			setVimMode('normal');
+			// Blur any focused input so the user returns to nav state
+			const el = document.activeElement as HTMLElement | null;
+			if (el && el.blur) el.blur();
 			return;
 		}
 	}
@@ -99,4 +111,21 @@ export function dispatchKeydown(e: KeyboardEvent): void {
 		s.handler();
 		return;
 	}
+}
+
+// Track vim mode based on focus: focusing an input in zen mode → INSERT.
+// Blurring → NORMAL. Only meaningful when mode === 'zen'.
+if (typeof document !== 'undefined') {
+	document.addEventListener('focusin', (e) => {
+		if (get(mode) !== 'zen') return;
+		const t = e.target as HTMLElement;
+		const tag = t?.tagName;
+		if (tag === 'INPUT' || tag === 'TEXTAREA' || t?.isContentEditable) {
+			setVimMode('insert');
+		}
+	});
+	document.addEventListener('focusout', () => {
+		if (get(mode) !== 'zen') return;
+		setVimMode('normal');
+	});
 }

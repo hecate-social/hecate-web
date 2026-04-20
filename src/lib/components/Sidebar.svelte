@@ -292,7 +292,7 @@
 	bind:this={asideEl}
 	tabindex="0"
 	onkeydown={handleSidebarKeydown}
-	class="flex flex-col bg-surface-800 border-r border-surface-600 shrink-0 overflow-y-auto overflow-x-hidden transition-[width] duration-200 outline-none focus:ring-1 focus:ring-hecate-500/30
+	class="flex flex-col bg-surface-800 border-r border-surface-600 shrink-0 overflow-y-auto overflow-x-hidden transition-[width] duration-200 outline-none focus:ring-1 focus:ring-macula-500/30
 		{$sidebarCollapsed ? 'w-12' : 'w-52'}"
 >
 	<!-- Groups -->
@@ -300,7 +300,7 @@
 		{@const apps = group.appIds.map(tabOrPlaceholder)}
 		<div
 			class="border-b border-surface-700/50
-				{dragOverGroupId === group.id ? 'bg-hecate-900/20' : ''}"
+				{dragOverGroupId === group.id ? 'bg-macula-900/20' : ''}"
 			ondragover={(e) => onDragOverGroup(e, group.id)}
 			ondragleave={onDragLeave}
 			ondrop={(e) => onDropOnGroup(e, group.id)}
@@ -308,14 +308,14 @@
 		>
 			<!-- Group header -->
 			<button
-				class="flex items-center gap-1 w-full h-7 text-[10px] uppercase tracking-wider text-surface-400 hover:text-surface-200 cursor-pointer select-none
+				class="flex items-center gap-1 w-full h-7 text-xs uppercase tracking-wider text-surface-400 hover:text-surface-200 cursor-pointer select-none
 					{$sidebarCollapsed ? 'justify-center px-0' : 'px-2'}"
 				onclick={() => toggleGroupCollapsed(group.id)}
 				oncontextmenu={(e) => onContextMenu(e, 'group', group.id)}
 			>
 				{#if $sidebarCollapsed}
 					<span
-						class="text-sm cursor-pointer leading-none"
+						class="text-base cursor-pointer leading-none"
 						onclick={(e) => onIconClick(e, group.id)}
 					>{resolveEmoji(group.icon, '\uD83D\uDCC1')}</span>
 				{:else}
@@ -323,7 +323,7 @@
 						{'\u25B6'}
 					</span>
 					<span
-						class="text-sm cursor-pointer hover:scale-110 transition-transform leading-none"
+						class="text-base cursor-pointer hover:scale-110 transition-transform leading-none"
 						onclick={(e) => onIconClick(e, group.id)}
 						title="Change icon"
 					>{resolveEmoji(group.icon, '\uD83D\uDCC1')}</span>
@@ -338,7 +338,7 @@
 							}}
 							onblur={commitRename}
 							autofocus
-							class="bg-surface-700 text-surface-100 text-[10px] uppercase tracking-wider px-1 rounded w-full outline-none border border-hecate-500/50"
+							class="bg-surface-700 text-surface-100 text-xs uppercase tracking-wider px-1 rounded w-full outline-none border border-macula-500/50"
 							onclick={(e) => e.stopPropagation()}
 						/>
 					{:else}
@@ -360,17 +360,17 @@
 						class="flex items-center gap-2 w-full h-8 cursor-pointer transition-colors
 							{$sidebarCollapsed ? 'justify-center px-0' : 'px-3'}
 							{isActive(tab.id)
-								? 'bg-surface-700 text-surface-50 border-l-2 border-hecate-500'
+								? 'bg-surface-700 text-surface-50 border-l-2 border-macula-500'
 								: 'text-surface-300 hover:text-surface-100 hover:bg-surface-700/50 border-l-2 border-transparent'}
 							{tab.isPlugin && indicator === 'offline' ? 'opacity-60' : ''}
-							{visibleIndex(tab.id) === focusedIndex ? 'ring-1 ring-hecate-500/50' : ''}"
+							{visibleIndex(tab.id) === focusedIndex ? 'ring-1 ring-macula-500/50' : ''}"
 						onclick={() => navigateToApp(tab)}
 						onfocus={() => (focusedIndex = visibleIndex(tab.id))}
 						oncontextmenu={(e) => onContextMenu(e, 'app', tab.id)}
 					>
-						<span class="text-sm shrink-0">{tab.icon}</span>
+						<span class="text-base shrink-0">{tab.icon}</span>
 						{#if !$sidebarCollapsed}
-							<span class="text-xs truncate flex-1 text-left">{tab.name}</span>
+							<span class="text-sm truncate flex-1 text-left">{tab.name}</span>
 							{#if tab.isPlugin}
 									{#if indicator === 'online'}
 										<span class="text-[8px] text-health-ok">{'\u25CF'}</span>
@@ -382,7 +382,7 @@
 							{/if}
 							{#if tab.isPlugin && $hasPluginUpdate(tab.id)}
 								<button
-									class="px-1 py-0.5 rounded text-[8px] font-semibold bg-hecate-600 hover:bg-hecate-500 text-white cursor-pointer"
+									class="px-1 py-0.5 rounded text-[8px] font-semibold bg-macula-600 hover:bg-macula-500 text-white cursor-pointer"
 									onclick={(e) => { e.stopPropagation(); showPluginUpdateModal.set(tab.id); }}
 								>
 									v{$pluginUpdateVersion(tab.id)}
@@ -400,14 +400,14 @@
 		{@const ungrouped = $ungroupedApps}
 		<div
 			class="border-b border-surface-700/50
-				{dragOverUngrouped ? 'bg-hecate-900/20' : ''}"
+				{dragOverUngrouped ? 'bg-macula-900/20' : ''}"
 			ondragover={onDragOverUngrouped}
 			ondragleave={onDragLeave}
 			ondrop={onDropOnUngrouped}
 			role="list"
 		>
 			{#if !$sidebarCollapsed}
-				<div class="flex items-center gap-1 px-2 h-7 text-[10px] uppercase tracking-wider text-surface-500">
+				<div class="flex items-center gap-1 px-2 h-7 text-xs uppercase tracking-wider text-surface-500">
 					<span>Ungrouped</span>
 				</div>
 			{/if}
@@ -423,17 +423,17 @@
 					class="flex items-center gap-2 w-full h-8 cursor-pointer transition-colors
 						{$sidebarCollapsed ? 'justify-center px-0' : 'px-3'}
 						{isActive(tab.id)
-							? 'bg-surface-700 text-surface-50 border-l-2 border-hecate-500'
+							? 'bg-surface-700 text-surface-50 border-l-2 border-macula-500'
 							: 'text-surface-300 hover:text-surface-100 hover:bg-surface-700/50 border-l-2 border-transparent'}
 						{tab.isPlugin && indicator === 'offline' ? 'opacity-60' : ''}
-						{visibleIndex(tab.id) === focusedIndex ? 'ring-1 ring-hecate-500/50' : ''}"
+						{visibleIndex(tab.id) === focusedIndex ? 'ring-1 ring-macula-500/50' : ''}"
 					onclick={() => navigateToApp(tab)}
 					onfocus={() => (focusedIndex = visibleIndex(tab.id))}
 					oncontextmenu={(e) => onContextMenu(e, 'app', tab.id)}
 				>
-					<span class="text-sm shrink-0">{tab.icon}</span>
+					<span class="text-base shrink-0">{tab.icon}</span>
 					{#if !$sidebarCollapsed}
-						<span class="text-xs truncate flex-1 text-left">{tab.name}</span>
+						<span class="text-sm truncate flex-1 text-left">{tab.name}</span>
 						{#if tab.isPlugin}
 							{#if indicator === 'online'}
 								<span class="text-[8px] text-health-ok">{'\u25CF'}</span>
@@ -445,7 +445,7 @@
 						{/if}
 						{#if tab.isPlugin && $hasPluginUpdate(tab.id)}
 							<button
-								class="px-1 py-0.5 rounded text-[8px] font-semibold bg-hecate-600 hover:bg-hecate-500 text-white cursor-pointer"
+								class="px-1 py-0.5 rounded text-[8px] font-semibold bg-macula-600 hover:bg-macula-500 text-white cursor-pointer"
 								onclick={(e) => { e.stopPropagation(); showPluginUpdateModal.set(tab.id); }}
 							>
 								v{$pluginUpdateVersion(tab.id)}
@@ -475,12 +475,12 @@
 					onblur={commitNewGroup}
 					autofocus
 					placeholder="Group name..."
-					class="w-full bg-surface-700 text-surface-100 text-[10px] px-2 py-1 rounded outline-none border border-hecate-500/50 placeholder:text-surface-500"
+					class="w-full bg-surface-700 text-surface-100 text-xs px-2 py-1 rounded outline-none border border-macula-500/50 placeholder:text-surface-500"
 				/>
 			{:else}
 				<button
 					onclick={() => (showNewGroup = true)}
-					class="w-full text-[10px] text-surface-500 hover:text-surface-300 py-1 rounded hover:bg-surface-700/50 transition-colors cursor-pointer"
+					class="w-full text-xs text-surface-500 hover:text-surface-300 py-1 rounded hover:bg-surface-700/50 transition-colors cursor-pointer"
 				>
 					+ New Group
 				</button>
@@ -498,26 +498,26 @@
 	>
 		{#if contextMenu.type === 'group'}
 			<button
-				class="w-full text-left px-3 py-1.5 text-xs text-surface-200 hover:bg-surface-600 cursor-pointer"
+				class="w-full text-left px-3 py-1.5 text-sm text-surface-200 hover:bg-surface-600 cursor-pointer"
 				onclick={() => handleContextAction('rename')}
 			>
 				Rename
 			</button>
 			<button
-				class="w-full text-left px-3 py-1.5 text-xs text-surface-200 hover:bg-surface-600 cursor-pointer"
+				class="w-full text-left px-3 py-1.5 text-sm text-surface-200 hover:bg-surface-600 cursor-pointer"
 				onclick={() => handleContextAction('change-icon')}
 			>
 				Change Icon
 			</button>
 			<button
-				class="w-full text-left px-3 py-1.5 text-xs text-danger-400 hover:bg-surface-600 cursor-pointer"
+				class="w-full text-left px-3 py-1.5 text-sm text-danger-400 hover:bg-surface-600 cursor-pointer"
 				onclick={() => handleContextAction('delete')}
 			>
 				Delete Group
 			</button>
 		{:else if contextMenu.type === 'app'}
 			<button
-				class="w-full text-left px-3 py-1.5 text-xs text-surface-200 hover:bg-surface-600 cursor-pointer"
+				class="w-full text-left px-3 py-1.5 text-sm text-surface-200 hover:bg-surface-600 cursor-pointer"
 				onclick={() => handleContextAction('ungroup')}
 			>
 				Move to Ungrouped

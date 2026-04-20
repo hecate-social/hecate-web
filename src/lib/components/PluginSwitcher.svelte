@@ -104,7 +104,7 @@
 			rounded-xl shadow-2xl overflow-hidden"
 	>
 		<div class="px-4 py-2.5 border-b border-surface-700">
-			<div class="text-xs text-surface-400">Quick Switch</div>
+			<div class="text-sm text-surface-400">Quick Switch</div>
 		</div>
 
 		<div class="max-h-[360px] overflow-y-auto py-1">
@@ -113,13 +113,13 @@
 				<button
 					class="w-full flex items-center gap-3 px-4 py-2.5 text-left transition-colors cursor-pointer
 						{i === selectedIndex
-							? 'bg-hecate-500/15 border-l-2 border-hecate-500 text-surface-50'
+							? 'bg-macula-500/15 border-l-2 border-macula-500 text-surface-50'
 							: 'border-l-2 border-transparent text-surface-300 hover:bg-surface-700/50'}"
 					onclick={() => { selectedIndex = i; confirm(); }}
 					onmouseenter={() => (selectedIndex = i)}
 				>
-					<span class="text-sm shrink-0">{tab.icon}</span>
-					<span class="text-xs flex-1 truncate">{tab.name}</span>
+					<span class="text-base shrink-0">{tab.icon}</span>
+					<span class="text-sm flex-1 truncate">{tab.name}</span>
 					{#if isCurrent}
 						<span class="text-[9px] text-surface-500">current</span>
 					{/if}

@@ -10,7 +10,7 @@ export const variantClass: Record<string, string> = {
 	ok: 'text-health-ok',
 	warn: 'text-amber-400 animate-pulse',
 	err: 'text-health-err',
-	accent: 'text-hecate-400',
+	accent: 'text-macula-400',
 	dim: 'text-surface-600',
 };
 

@@ -353,21 +353,21 @@
 
 			<!-- Header -->
 			<div class="space-y-1">
-				<div class="text-lg font-bold text-hecate-400 tracking-wide">Site</div>
+				<div class="text-lg font-bold text-macula-400 tracking-wide">Site</div>
 				{#if $site}
-					<div class="text-sm text-surface-400 font-mono">{$site.site_id}</div>
+					<div class="text-base text-surface-400 font-mono">{$site.site_id}</div>
 				{/if}
 			</div>
 
 			<!-- Content -->
 			{#if $siteLoading && !$site}
-				<div class="text-sm text-surface-500 animate-pulse py-4">Loading site info...</div>
+				<div class="text-base text-surface-500 animate-pulse py-4">Loading site info...</div>
 			{:else if $siteError && !$site}
-				<div class="text-sm text-red-400 py-4">{$siteError}</div>
+				<div class="text-base text-red-400 py-4">{$siteError}</div>
 			{:else}
 				{#each sections as [sectionName, sectionRows]}
 					<div class="space-y-1">
-						<div class="text-xs text-surface-500 uppercase tracking-widest font-semibold pb-1 border-b border-surface-800">
+						<div class="text-sm text-surface-500 uppercase tracking-widest font-semibold pb-1 border-b border-surface-800">
 							{sectionName}
 						</div>
 						<div class="space-y-0">
@@ -378,7 +378,7 @@
 									data-cursor={isCursor ? 'true' : 'false'}
 									class="w-full text-left px-3 py-2 flex items-center gap-4 rounded transition-all duration-100
 										{isCursor
-											? 'bg-hecate-600/20 ring-1 ring-hecate-500/40'
+											? 'bg-macula-600/20 ring-1 ring-macula-500/40'
 											: 'hover:bg-surface-800/50'}"
 									onclick={() => { cursorIndex = idx; }}
 								>
@@ -389,14 +389,14 @@
 									{/if}
 
 									<!-- Label -->
-									<span class="shrink-0 text-xs tracking-wider truncate
+									<span class="shrink-0 text-sm tracking-wider truncate
 										{row.status ? 'w-36' : 'w-40'}
 										{row.section === 'LAN' ? 'uppercase' : ''}
-										{isCursor ? 'text-hecate-300' : 'text-surface-500'}"
+										{isCursor ? 'text-macula-300' : 'text-surface-500'}"
 									>{row.label}</span>
 
 									<!-- Value -->
-									<span class="flex-1 truncate font-mono text-sm
+									<span class="flex-1 truncate font-mono text-base
 										{row.key === 'no-site' || row.key === 'no-nodes' || row.key === 'lan-empty' || row.key === 'lan-scanning'
 											? 'text-surface-600 italic'
 											: row.key.startsWith('lan-') && row.value.includes('hecate v')
@@ -410,14 +410,14 @@
 
 									<!-- Actions (right side) -->
 									{#if copyFeedback === row.label}
-										<span class="text-xs text-emerald-400 font-medium shrink-0">copied!</span>
+										<span class="text-sm text-emerald-400 font-medium shrink-0">copied!</span>
 									{:else if isCursor}
 										<span class="flex items-center gap-2 shrink-0">
 											{#if row.copyable}
-												<span class="text-xs text-surface-600 bg-surface-800 px-1.5 py-0.5 rounded">y</span>
+												<span class="text-sm text-surface-600 bg-surface-800 px-1.5 py-0.5 rounded">y</span>
 											{/if}
 											{#if row.action}
-												<span class="text-xs text-surface-600 bg-surface-800 px-1.5 py-0.5 rounded">{row.action}</span>
+												<span class="text-sm text-surface-600 bg-surface-800 px-1.5 py-0.5 rounded">{row.action}</span>
 											{/if}
 										</span>
 									{/if}
@@ -432,9 +432,9 @@
 	</div>
 
 	<!-- Command bar -->
-	<div class="border-t border-surface-700/50 bg-surface-850 px-4 py-1.5 shrink-0 flex items-center gap-3 text-xs min-h-[32px]">
+	<div class="border-t border-surface-700/50 bg-surface-850 px-4 py-1.5 shrink-0 flex items-center gap-3 text-sm min-h-[32px]">
 		{#if mode === 'command'}
-			<span class="text-hecate-400 font-bold">:</span>
+			<span class="text-macula-400 font-bold">:</span>
 			<input
 				type="text" bind:value={commandInput}
 				use:focusOnMount
@@ -442,12 +442,12 @@
 					if (e.key === 'Enter') { e.preventDefault(); e.stopPropagation(); onCommandSubmit(); }
 					else if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); mode = 'normal'; commandInput = ''; }
 				}}
-				class="flex-1 bg-transparent border-none outline-none text-sm text-surface-100 font-mono"
+				class="flex-1 bg-transparent border-none outline-none text-base text-surface-100 font-mono"
 				placeholder="command..."
 			/>
 		{:else if mode === 'confirm'}
 			<span class="text-amber-400 font-medium">{confirmPrompt}</span>
-			<span class="text-surface-500 text-xs">(y/N)</span>
+			<span class="text-surface-500 text-sm">(y/N)</span>
 		{:else}
 			{#if statusMsg}
 				<span class="text-amber-400 truncate flex-1">{statusMsg}</span>

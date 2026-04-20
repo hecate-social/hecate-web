@@ -64,7 +64,7 @@
 			rounded-xl shadow-2xl overflow-hidden"
 	>
 		<div class="flex items-center justify-between px-5 py-3 border-b border-surface-700">
-			<h2 class="text-sm font-semibold text-surface-100">Keyboard Shortcuts</h2>
+			<h2 class="text-base font-semibold text-surface-100">Keyboard Shortcuts</h2>
 			<button
 				onclick={hide}
 				class="text-surface-500 hover:text-surface-300 transition-colors cursor-pointer"
@@ -79,12 +79,12 @@
 		<div class="max-h-[400px] overflow-y-auto p-5 space-y-5">
 			{#each [...grouped] as [category, items]}
 				<div>
-					<h3 class="text-[10px] uppercase tracking-wider text-surface-500 mb-2">{category}</h3>
+					<h3 class="text-xs uppercase tracking-wider text-surface-500 mb-2">{category}</h3>
 					<div class="space-y-1.5">
 						{#each items as item}
 							<div class="flex items-center justify-between">
-								<span class="text-xs text-surface-300">{item.label}</span>
-								<kbd class="text-[10px] font-mono text-surface-400 bg-surface-700 border border-surface-600 px-2 py-0.5 rounded">
+								<span class="text-sm text-surface-300">{item.label}</span>
+								<kbd class="text-xs font-mono text-surface-400 bg-surface-700 border border-surface-600 px-2 py-0.5 rounded">
 									{formatKey(item)}
 								</kbd>
 							</div>
@@ -94,7 +94,7 @@
 			{/each}
 
 			{#if grouped.size === 0}
-				<div class="text-center text-xs text-surface-500 py-4">No shortcuts registered</div>
+				<div class="text-center text-sm text-surface-500 py-4">No shortcuts registered</div>
 			{/if}
 		</div>
 	</div>

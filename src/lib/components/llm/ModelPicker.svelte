@@ -84,13 +84,13 @@
 				type="text"
 				bind:value={searchText}
 				placeholder="Search models..."
-				class="w-full px-3 py-1.5 pl-7 text-xs rounded
+				class="w-full px-3 py-1.5 pl-7 text-sm rounded
 					bg-surface-700 border border-surface-600
 					text-surface-100 placeholder:text-surface-500
-					focus:outline-none focus:border-hecate-500
+					focus:outline-none focus:border-macula-500
 					transition-colors"
 			/>
-			<span class="absolute left-2 top-1/2 -translate-y-1/2 text-surface-500 text-[10px]">
+			<span class="absolute left-2 top-1/2 -translate-y-1/2 text-surface-500 text-xs">
 				&#128269;
 			</span>
 		</div>
@@ -104,7 +104,7 @@
 				{#each providers as provider}
 					<button
 						onclick={() => toggleProvider(provider)}
-						class="px-2 py-0.5 text-[10px] rounded-full border transition-colors cursor-pointer
+						class="px-2 py-0.5 text-xs rounded-full border transition-colors cursor-pointer
 							{selectedProvider === provider
 								? 'bg-accent-500/20 border-accent-500/50 text-accent-400'
 								: 'bg-surface-800/60 border-surface-600/50 text-surface-400 hover:border-surface-500 hover:text-surface-300'}"
@@ -120,9 +120,9 @@
 			{#each SPECIALTIES as specialty}
 				<button
 					onclick={() => toggleSpecialty(specialty)}
-					class="px-2 py-0.5 text-[10px] rounded-full border transition-colors cursor-pointer
+					class="px-2 py-0.5 text-xs rounded-full border transition-colors cursor-pointer
 						{selectedSpecialty === specialty
-							? 'bg-hecate-500/20 border-hecate-500/50 text-hecate-400'
+							? 'bg-macula-500/20 border-macula-500/50 text-macula-400'
 							: 'bg-surface-800/60 border-surface-600/50 text-surface-400 hover:border-surface-500 hover:text-surface-300'}"
 				>
 					{specialty}
@@ -152,13 +152,13 @@
 				class="w-full flex items-center gap-2 px-3 py-2 text-left transition-colors cursor-pointer
 					hover:bg-surface-700/80
 					{model.name === currentModel
-						? 'bg-hecate-500/10 border-l-2 border-l-hecate-500'
+						? 'bg-macula-500/10 border-l-2 border-l-macula-500'
 						: 'border-l-2 border-l-transparent'}"
 			>
 				<div class="flex-1 min-w-0">
-					<div class="text-xs text-surface-100 truncate">{model.name}</div>
+					<div class="text-sm text-surface-100 truncate">{model.name}</div>
 				</div>
-				<span class="text-[9px] px-1.5 py-0.5 rounded-full bg-surface-700 text-hecate-400 shrink-0">
+				<span class="text-[9px] px-1.5 py-0.5 rounded-full bg-surface-700 text-macula-400 shrink-0">
 					{model.provider}
 				</span>
 				<span class="text-[9px] text-amber-400/80 shrink-0" title="Estimated cost">
@@ -172,11 +172,11 @@
 
 		{#if filtered.length === 0}
 			<div class="text-center py-4">
-				<div class="text-[11px] text-surface-400">No models match</div>
+				<div class="text-xs text-surface-400">No models match</div>
 				{#if hasActiveFilters}
 					<button
 						onclick={clearFilters}
-						class="text-[10px] text-accent-400 hover:text-accent-300 mt-1 transition-colors cursor-pointer"
+						class="text-xs text-accent-400 hover:text-accent-300 mt-1 transition-colors cursor-pointer"
 					>
 						Clear filters
 					</button>

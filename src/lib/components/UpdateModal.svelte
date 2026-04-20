@@ -52,14 +52,14 @@
 			<FocusTrap active={isOpen}>
 				<h2 class="text-lg font-semibold text-surface-100">Update Available</h2>
 
-				<p class="text-sm text-surface-300 mt-2">
-					Hecate <span class="font-mono text-hecate-400">v{$availableUpdate?.version}</span> is
+				<p class="text-base text-surface-300 mt-2">
+					Hecate <span class="font-mono text-macula-400">v{$availableUpdate?.version}</span> is
 					ready to install.
 				</p>
 
 				{#if $availableUpdate?.body}
 					<div
-						class="mt-3 max-h-32 overflow-y-auto text-xs text-surface-400 bg-surface-900 rounded p-3 whitespace-pre-wrap"
+						class="mt-3 max-h-32 overflow-y-auto text-sm text-surface-400 bg-surface-900 rounded p-3 whitespace-pre-wrap"
 					>
 						{$availableUpdate.body}
 					</div>
@@ -69,11 +69,11 @@
 					<div class="mt-4">
 						<div class="w-full bg-surface-700 rounded-full h-2 overflow-hidden">
 							<div
-								class="bg-hecate-500 h-2 rounded-full transition-all duration-300"
+								class="bg-macula-500 h-2 rounded-full transition-all duration-300"
 								style="width: {progress}%"
 							></div>
 						</div>
-						<p class="text-xs text-surface-400 mt-1.5">
+						<p class="text-sm text-surface-400 mt-1.5">
 							Downloading... {formatBytes($downloadProgress.downloaded)}
 							{#if $downloadProgress.total}
 								/ {formatBytes($downloadProgress.total)}
@@ -83,27 +83,27 @@
 				{:else if $updateState === 'installing'}
 					<div class="mt-4 flex items-center gap-2">
 						<div
-							class="w-4 h-4 border-2 border-hecate-500 border-t-transparent rounded-full animate-spin"
+							class="w-4 h-4 border-2 border-macula-500 border-t-transparent rounded-full animate-spin"
 						></div>
-						<span class="text-sm text-hecate-400">Installing...</span>
+						<span class="text-base text-macula-400">Installing...</span>
 					</div>
 				{:else if $updateState === 'restarting'}
 					<div class="mt-4 flex items-center gap-2">
 						<div
-							class="w-4 h-4 border-2 border-hecate-500 border-t-transparent rounded-full animate-spin"
+							class="w-4 h-4 border-2 border-macula-500 border-t-transparent rounded-full animate-spin"
 						></div>
-						<span class="text-sm text-hecate-400">Restarting...</span>
+						<span class="text-base text-macula-400">Restarting...</span>
 					</div>
 				{:else}
 					<div class="mt-5 flex gap-3 justify-end">
 						<button
-							class="px-3 py-1.5 text-sm text-surface-400 hover:text-surface-200 transition-colors cursor-pointer"
+							class="px-3 py-1.5 text-base text-surface-400 hover:text-surface-200 transition-colors cursor-pointer"
 							onclick={close}
 						>
 							Later
 						</button>
 						<button
-							class="px-4 py-1.5 text-sm bg-hecate-600 hover:bg-hecate-500 text-white rounded transition-colors cursor-pointer"
+							class="px-4 py-1.5 text-base bg-macula-600 hover:bg-macula-500 text-white rounded transition-colors cursor-pointer"
 							onclick={() => startUpdate()}
 						>
 							Update Now

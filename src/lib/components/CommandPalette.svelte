@@ -123,35 +123,35 @@
 	>
 		<!-- Search input -->
 		<div class="flex items-center gap-2 px-4 py-3 border-b border-surface-700">
-			<span class="text-surface-500 text-sm">&#128269;</span>
+			<span class="text-surface-500 text-base">&#128269;</span>
 			<input
 				bind:this={inputEl}
 				type="text"
 				bind:value={query}
 				placeholder="Search pages, plugins, actions..."
-				class="flex-1 bg-transparent text-sm text-surface-100 placeholder:text-surface-500 outline-none"
+				class="flex-1 bg-transparent text-base text-surface-100 placeholder:text-surface-500 outline-none"
 			/>
-			<kbd class="text-[10px] text-surface-500 bg-surface-700 border border-surface-600 px-1.5 py-0.5 rounded font-mono">Esc</kbd>
+			<kbd class="text-xs text-surface-500 bg-surface-700 border border-surface-600 px-1.5 py-0.5 rounded font-mono">Esc</kbd>
 		</div>
 
 		<!-- Results -->
 		<div class="max-h-[320px] overflow-y-auto py-1">
 			{#if items.length === 0}
-				<div class="px-4 py-6 text-center text-xs text-surface-500">No results</div>
+				<div class="px-4 py-6 text-center text-sm text-surface-500">No results</div>
 			{:else}
 				{@const categories = [...new Set(items.map((i) => i.category))]}
 				{#each categories as cat}
-					<div class="px-3 pt-2 pb-1 text-[10px] uppercase tracking-wider text-surface-500">{cat}</div>
+					<div class="px-3 pt-2 pb-1 text-xs uppercase tracking-wider text-surface-500">{cat}</div>
 					{#each items.filter((i) => i.category === cat) as item, i}
 						{@const globalIdx = items.indexOf(item)}
 						<button
 							class="w-full flex items-center gap-3 px-4 py-2 text-left transition-colors cursor-pointer
-								{globalIdx === selectedIndex ? 'bg-hecate-500/10 text-surface-50' : 'text-surface-300 hover:bg-surface-700/50'}"
+								{globalIdx === selectedIndex ? 'bg-macula-500/10 text-surface-50' : 'text-surface-300 hover:bg-surface-700/50'}"
 							onclick={() => execute(item)}
 							onmouseenter={() => (selectedIndex = globalIdx)}
 						>
-							<span class="text-sm shrink-0">{item.icon}</span>
-							<span class="text-xs flex-1 truncate">{item.label}</span>
+							<span class="text-base shrink-0">{item.icon}</span>
+							<span class="text-sm flex-1 truncate">{item.label}</span>
 							{#if item.shortcut}
 								<kbd class="text-[9px] text-surface-500 bg-surface-700 border border-surface-600 px-1.5 py-0.5 rounded font-mono shrink-0">
 									{item.shortcut}

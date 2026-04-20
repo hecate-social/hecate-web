@@ -184,8 +184,8 @@
 			<div class="flex items-center gap-3">
 				<span class="text-lg">{machine.ssh ? '\uD83D\uDD27' : '\u26AA'}</span>
 				<div>
-					<div class="text-sm font-semibold text-surface-100">{machine.hostname}</div>
-					<div class="text-xs text-surface-500 font-mono">{machine.ip}</div>
+					<div class="text-base font-semibold text-surface-100">{machine.hostname}</div>
+					<div class="text-sm text-surface-500 font-mono">{machine.ip}</div>
 				</div>
 			</div>
 			<button class="text-surface-500 hover:text-surface-200 text-lg px-2 cursor-pointer" onclick={onClose}>&times;</button>
@@ -200,75 +200,75 @@
 					<!-- Install type toggle -->
 					<div class="flex gap-2">
 						<button
-							class="flex-1 py-2 px-3 rounded text-xs font-medium transition-all cursor-pointer
+							class="flex-1 py-2 px-3 rounded text-sm font-medium transition-all cursor-pointer
 								{installType === 'hecate-node'
-									? 'bg-hecate-600/20 text-hecate-300 ring-1 ring-hecate-500/40'
+									? 'bg-macula-600/20 text-macula-300 ring-1 ring-macula-500/40'
 									: 'bg-surface-800 text-surface-500 hover:text-surface-300'}"
 							onclick={() => selectType('hecate-node')}
 						>Hecate Node</button>
 						<button
-							class="flex-1 py-2 px-3 rounded text-xs font-medium transition-all cursor-not-allowed
+							class="flex-1 py-2 px-3 rounded text-sm font-medium transition-all cursor-not-allowed
 								bg-surface-800/50 text-surface-600 opacity-50"
 							disabled
-						>Ollama Host <span class="text-[10px] ml-1 opacity-70">soon</span></button>
+						>Ollama Host <span class="text-xs ml-1 opacity-70">soon</span></button>
 					</div>
 
 					<!-- Node name -->
 					<div class="space-y-1">
-						<label class="text-xs text-surface-500 uppercase tracking-wider" for="node-name">Node Name</label>
+						<label class="text-sm text-surface-500 uppercase tracking-wider" for="node-name">Node Name</label>
 						<input id="node-name" type="text" bind:value={nodeName}
-							class="w-full bg-surface-800 border border-surface-700 rounded px-3 py-2 text-sm text-surface-100 font-mono focus:outline-none focus:border-hecate-500"
+							class="w-full bg-surface-800 border border-surface-700 rounded px-3 py-2 text-base text-surface-100 font-mono focus:outline-none focus:border-macula-500"
 						/>
 					</div>
 
 					<!-- SSH credentials -->
 					<div class="grid grid-cols-2 gap-3">
 						<div class="space-y-1">
-							<label class="text-xs text-surface-500 uppercase tracking-wider" for="ssh-user">SSH User</label>
+							<label class="text-sm text-surface-500 uppercase tracking-wider" for="ssh-user">SSH User</label>
 							<input id="ssh-user" type="text" bind:value={sshUser} bind:this={sshUserInput}
-								class="w-full bg-surface-800 border border-surface-700 rounded px-3 py-2 text-sm text-surface-100 font-mono focus:outline-none focus:border-hecate-500"
+								class="w-full bg-surface-800 border border-surface-700 rounded px-3 py-2 text-base text-surface-100 font-mono focus:outline-none focus:border-macula-500"
 								placeholder="username"
 								onkeydown={(e) => { if (e.key === 'Enter') startInstall(); }}
 							/>
 						</div>
 						<div class="space-y-1">
-							<label class="text-xs text-surface-500 uppercase tracking-wider" for="ssh-pass">Password <span class="normal-case text-surface-600">(optional)</span></label>
+							<label class="text-sm text-surface-500 uppercase tracking-wider" for="ssh-pass">Password <span class="normal-case text-surface-600">(optional)</span></label>
 							<input id="ssh-pass" type="password" bind:value={sshPassword}
-								class="w-full bg-surface-800 border border-surface-700 rounded px-3 py-2 text-sm text-surface-100 font-mono focus:outline-none focus:border-hecate-500"
+								class="w-full bg-surface-800 border border-surface-700 rounded px-3 py-2 text-base text-surface-100 font-mono focus:outline-none focus:border-macula-500"
 								placeholder="key auth"
 								onkeydown={(e) => { if (e.key === 'Enter') startInstall(); }}
 							/>
 						</div>
 					</div>
 
-					<div class="text-xs text-surface-600">
+					<div class="text-sm text-surface-600">
 						May prompt for <span class="text-amber-400/70">sudo</span> — type in the terminal when asked.
 					</div>
 
 					{#if errorMsg}
-						<div class="text-sm text-red-400">{errorMsg}</div>
+						<div class="text-base text-red-400">{errorMsg}</div>
 					{/if}
 
 					<button
-						class="w-full py-2.5 bg-hecate-600 hover:bg-hecate-500 text-white text-sm font-medium rounded transition-colors cursor-pointer"
+						class="w-full py-2.5 bg-macula-600 hover:bg-macula-500 text-white text-base font-medium rounded transition-colors cursor-pointer"
 						onclick={startInstall}
 					>Install</button>
 				</div>
 
 			<!-- Phase: Generating token -->
 			{:else if phase === 'generate'}
-				<div class="p-6 text-center text-surface-400 text-sm animate-pulse">Generating join token...</div>
+				<div class="p-6 text-center text-surface-400 text-base animate-pulse">Generating join token...</div>
 
 			<!-- Phase: Running -->
 			{:else if phase === 'running'}
 				<div bind:this={terminalEl} class="flex-1 min-h-[400px]" style="background: #1a1a2e;"></div>
 				{#if exitCode !== null}
 					<div class="px-4 py-2 border-t border-surface-700 flex items-center justify-between shrink-0">
-						<span class="text-xs {exitCode === 0 ? 'text-emerald-400' : 'text-red-400'}">
+						<span class="text-sm {exitCode === 0 ? 'text-emerald-400' : 'text-red-400'}">
 							{exitCode === 0 ? 'Completed' : `Exited ${exitCode}`}
 						</span>
 						<button
-							class="px-4 py-1.5 bg-hecate-600 hover:bg-hecate-500 text-white text-sm rounded transition-colors cursor-pointer"
+							class="px-4 py-1.5 bg-macula-600 hover:bg-macula-500 text-white text-base rounded transition-colors cursor-pointer"
 							onclick={onClose}
 						>Close</button>
 					</div>
@@ -277,8 +277,8 @@
 			<!-- Phase: Error -->
 			{:else if phase === 'error'}
 				<div class="p-6 text-center space-y-4">
-					<div class="text-sm text-red-400">{errorMsg}</div>
-					<button class="px-6 py-2 bg-surface-700 hover:bg-surface-600 text-surface-200 text-sm rounded transition-colors cursor-pointer"
+					<div class="text-base text-red-400">{errorMsg}</div>
+					<button class="px-6 py-2 bg-surface-700 hover:bg-surface-600 text-surface-200 text-base rounded transition-colors cursor-pointer"
 						onclick={() => { phase = 'ready'; errorMsg = ''; }}>Back</button>
 				</div>
 			{/if}

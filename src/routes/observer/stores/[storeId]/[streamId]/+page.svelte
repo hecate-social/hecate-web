@@ -78,23 +78,23 @@
 
 <div class="flex flex-col h-full overflow-hidden bg-surface-900 text-surface-200 select-none">
 	<!-- Observer nav -->
-	<div class="flex items-center gap-2 px-3 py-0.5 border-b border-surface-700/50 bg-surface-800/60 text-[10px] shrink-0">
-		<span class="text-hecate-400 uppercase tracking-wider text-[9px]">Observer</span>
+	<div class="flex items-center gap-2 px-3 py-0.5 border-b border-surface-700/50 bg-surface-800/60 text-xs shrink-0">
+		<span class="text-macula-400 uppercase tracking-wider text-[9px]">Observer</span>
 		<div class="flex-1"></div>
 		{#each ['system', 'processes', 'ets', 'supervision', 'plugins', 'stores', 'subscriptions'] as v}
 			<button
 				class="px-1.5 py-0.5 rounded cursor-pointer transition-colors
-					{v === 'stores' ? 'text-hecate-400 bg-hecate-600/20' : 'text-surface-600 hover:text-surface-400'}"
+					{v === 'stores' ? 'text-macula-400 bg-macula-600/20' : 'text-surface-600 hover:text-surface-400'}"
 				onclick={() => { if (v !== 'stores') goto('/observer'); }}
 			>{v}</button>
 		{/each}
 	</div>
 
 	<!-- Stream header -->
-	<div class="flex items-center gap-2 px-3 py-1 border-b border-surface-700 bg-surface-800/80 text-[11px] shrink-0">
-		<button onclick={() => goto(`/observer/stores/${storeId}`)} class="text-surface-500 hover:text-hecate-400 transition-colors cursor-pointer text-[10px]">&#8592; {storeId}</button>
+	<div class="flex items-center gap-2 px-3 py-1 border-b border-surface-700 bg-surface-800/80 text-xs shrink-0">
+		<button onclick={() => goto(`/observer/stores/${storeId}`)} class="text-surface-500 hover:text-macula-400 transition-colors cursor-pointer text-xs">&#8592; {storeId}</button>
 		<span class="text-surface-700">|</span>
-		<span class="text-hecate-300 font-mono text-[10px] truncate">{streamId}</span>
+		<span class="text-macula-300 font-mono text-xs truncate">{streamId}</span>
 		<div class="flex-1"></div>
 		<span class="text-[9px] text-surface-600">{direction}</span>
 		<span class="text-[9px] text-surface-600">offset:{offset}</span>
@@ -103,15 +103,15 @@
 	<!-- Events -->
 	<div class="flex-1 overflow-y-auto py-1 min-h-0">
 		{#if loading && events.length === 0}
-			<div class="px-3 py-4 text-[11px] text-surface-500 animate-pulse">Loading...</div>
+			<div class="px-3 py-4 text-xs text-surface-500 animate-pulse">Loading...</div>
 		{:else if error}
-			<div class="px-3 py-4 text-[11px] text-danger-400">{error}</div>
+			<div class="px-3 py-4 text-xs text-danger-400">{error}</div>
 		{:else if events.length === 0}
-			<div class="px-3 py-4 text-[11px] text-surface-600">No events in this stream</div>
+			<div class="px-3 py-4 text-xs text-surface-600">No events in this stream</div>
 		{:else}
 			{#each events as event, i}
 				<div data-cursor={i === cursorIndex ? 'true' : 'false'}
-					class="border-b border-surface-800/50 transition-colors {i === cursorIndex ? 'bg-hecate-600/10' : ''}">
+					class="border-b border-surface-800/50 transition-colors {i === cursorIndex ? 'bg-macula-600/10' : ''}">
 					<EventViewer {event} />
 				</div>
 			{/each}
@@ -119,12 +119,12 @@
 	</div>
 
 	<!-- Status bar -->
-	<div class="border-t border-surface-700 bg-surface-800/80 px-3 py-1 shrink-0 flex items-center gap-2 text-[10px] min-h-[24px]">
+	<div class="border-t border-surface-700 bg-surface-800/80 px-3 py-1 shrink-0 flex items-center gap-2 text-xs min-h-[24px]">
 		{#if mode === 'command'}
-			<span class="text-hecate-400">:</span>
+			<span class="text-macula-400">:</span>
 			<input type="text" bind:value={commandInput} use:focusOnMount
 				onkeydown={(e) => { if (e.key === 'Enter') { e.preventDefault(); e.stopPropagation(); onCommandSubmit(); } else if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); mode = 'normal'; commandInput = ''; } }}
-				class="flex-1 bg-transparent border-none outline-none text-[10px] text-surface-100" placeholder="Command..." />
+				class="flex-1 bg-transparent border-none outline-none text-xs text-surface-100" placeholder="Command..." />
 		{:else}
 			{#if statusMsg}
 				<span class="text-amber-400 truncate flex-1">{statusMsg}</span>

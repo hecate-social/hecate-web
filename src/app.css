@@ -1,83 +1,97 @@
 @import 'tailwindcss';
 
 @theme {
-	/* Hecate purple palette */
-	--color-hecate-50: #f5f0ff;
-	--color-hecate-100: #ede5ff;
-	--color-hecate-200: #ddd0ff;
-	--color-hecate-300: #c4a8ff;
-	--color-hecate-400: #a875ff;
-	--color-hecate-500: #8b47ff;
-	--color-hecate-600: #7c22ff;
-	--color-hecate-700: #6e10ef;
-	--color-hecate-800: #5c0ec8;
-	--color-hecate-900: #4c0fa3;
-	--color-hecate-950: #2d0070;
+	/* ─────────────────────────────────────────────────────────────
+	   Macula primary — sky blue (the mesh).
+	   The same hue used in macula-artwork SVGs and macula-realm UI.
+	   ─────────────────────────────────────────────────────────── */
+	--color-macula-50:  #f0f9ff;
+	--color-macula-100: #e0f2fe;
+	--color-macula-200: #bae6fd;
+	--color-macula-300: #7dd3fc;
+	--color-macula-400: #38bdf8; /* macula brand primary (dark theme) */
+	--color-macula-500: #0ea5e9; /* macula brand primary (light theme) */
+	--color-macula-600: #0284c7;
+	--color-macula-700: #0369a1;
+	--color-macula-800: #075985;
+	--color-macula-900: #0c4a6e;
+	--color-macula-950: #082f49;
 
-	/* Surface colors (Vivid — high contrast default) */
-	--color-surface-900: #0c0c10;
-	--color-surface-800: #14141b;
-	--color-surface-700: #1e1e28;
-	--color-surface-600: #3a3a50;
-	--color-surface-500: #6868a0;
-	--color-surface-400: #9898b8;
-	--color-surface-300: #b8b8d4;
-	--color-surface-200: #d0d0e8;
-	--color-surface-100: #eaeaf8;
-	--color-surface-50: #ffffff;
+	/* ─────────────────────────────────────────────────────────────
+	   Surface — slate (the substrate).
+	   Vivid theme: high contrast, near-black bg → white text.
+	   ─────────────────────────────────────────────────────────── */
+	--color-surface-900: #020617; /* deep slate, body background */
+	--color-surface-800: #0f172a; /* panels */
+	--color-surface-700: #1e293b; /* macula slate (cards, hovers) */
+	--color-surface-600: #334155; /* dividers, subtle borders */
+	--color-surface-500: #64748b; /* muted text */
+	--color-surface-400: #94a3b8; /* secondary text */
+	--color-surface-300: #cbd5e1;
+	--color-surface-200: #e2e8f0;
+	--color-surface-100: #f1f5f9;
+	--color-surface-50:  #ffffff; /* primary text */
 
-	/* Semantic color tokens */
-	--color-accent-400: #fbbf24;
-	--color-accent-500: #f59e0b;
-	--color-accent-600: #d97706;
+	/* ─────────────────────────────────────────────────────────────
+	   Accent — orange (the active connection).
+	   Macula uses orange to mark active links/state in the mesh.
+	   ─────────────────────────────────────────────────────────── */
+	--color-accent-400: #fb923c; /* macula brand accent (dark theme) */
+	--color-accent-500: #f97316; /* macula brand accent (light theme) */
+	--color-accent-600: #ea580c;
+
+	/* Semantic */
 	--color-danger-400: #f87171;
 	--color-danger-600: #dc2626;
 	--color-success-400: #34d399;
 	--color-success-500: #10b981;
 
-	/* Status colors */
-	--color-health-ok: #22c55e;
-	--color-health-warn: #eab308;
-	--color-health-err: #ef4444;
-	--color-health-loading: #60a5fa;
+	/* Status */
+	--color-health-ok:      #22c55e;
+	--color-health-warn:    #eab308;
+	--color-health-err:     #ef4444;
+	--color-health-loading: #38bdf8; /* macula primary — "in motion" */
 
-	/* Event Storming sticky note colors */
-	--color-es-event: #f97316;
-	--color-es-command: #3b82f6;
-	--color-es-aggregate: #eab308;
+	/* Event Storming sticky note colors (unchanged — domain semantic) */
+	--color-es-event:      #f97316;
+	--color-es-command:    #3b82f6;
+	--color-es-aggregate:  #eab308;
 	--color-es-read-model: #22c55e;
-	--color-es-policy: #6b7280;
-	--color-es-hotspot: #ef4444;
+	--color-es-policy:     #6b7280;
+	--color-es-hotspot:    #ef4444;
 
-	/* Phase colors */
+	/* Phase colors (unchanged — domain semantic) */
 	--color-phase-dna: #a78bfa;
 	--color-phase-anp: #60a5fa;
 	--color-phase-tni: #34d399;
 	--color-phase-dno: #fbbf24;
 }
 
-/* Subtle theme — original muted palette */
+/* ─────────────────────────────────────────────────────────────────
+   Subtle theme — muted variant of the same Macula palette.
+   Lower contrast for long sessions / dim environments.
+   ───────────────────────────────────────────────────────────────── */
 [data-theme='subtle'] {
-	--color-surface-900: #0f0f14;
-	--color-surface-800: #16161d;
-	--color-surface-700: #1e1e28;
-	--color-surface-600: #303040;
-	--color-surface-500: #44445a;
-	--color-surface-400: #70708a;
-	--color-surface-300: #9494ae;
-	--color-surface-200: #b4b4cc;
-	--color-surface-100: #d8d8e8;
-	--color-surface-50: #f0f0f8;
-	--color-accent-400: #d4a017;
-	--color-accent-500: #b8860b;
-	--color-accent-600: #9a7209;
-	--color-danger-400: #d06060;
-	--color-danger-600: #b03030;
-	--color-success-400: #2aaa7e;
-	--color-success-500: #0d9468;
+	--color-surface-900: #0a1322;
+	--color-surface-800: #131e30;
+	--color-surface-700: #1e293b;
+	--color-surface-600: #2d3a4f;
+	--color-surface-500: #4a5872;
+	--color-surface-400: #74829c;
+	--color-surface-300: #9aa6bf;
+	--color-surface-200: #b8c2d5;
+	--color-surface-100: #d8dee9;
+	--color-surface-50:  #e8eef7;
+
+	--color-macula-400: #5dc8f5; /* slightly desaturated */
+	--color-macula-500: #2196d4;
+
+	--color-accent-400: #e5944a;
+	--color-accent-500: #d97706;
+	--color-accent-600: #b85e10;
 }
 
-/* Base dark theme */
+/* Base */
 :root {
 	color-scheme: dark;
 }
@@ -91,7 +105,40 @@ body {
 	-webkit-user-select: none;
 }
 
-/* Scrollbar styling */
+/* ─────────────────────────────────────────────────────────────────
+   ZEN MODE — keyboard-driven, terminal aesthetic.
+   Applied on <html data-mode="zen">.
+   - No animations (snappy, deliberate motion only when the user acts)
+   - Monochrome accent palette (macula sky only)
+   - Block cursor
+   - Tighter chrome
+   ───────────────────────────────────────────────────────────────── */
+[data-mode='zen'] *,
+[data-mode='zen'] *::before,
+[data-mode='zen'] *::after {
+	transition-property: none !important;
+	animation: none !important;
+}
+
+[data-mode='zen'] {
+	/* Fold the orange accent into the sky palette — single color feel */
+	--color-accent-400: #7dd3fc; /* macula-300 */
+	--color-accent-500: #38bdf8; /* macula-400 */
+	--color-accent-600: #0ea5e9; /* macula-500 */
+}
+
+[data-mode='zen'] input,
+[data-mode='zen'] textarea {
+	caret-shape: block;
+	caret-color: var(--color-macula-400);
+}
+
+/* Zen mode: hide decorative elements marked with data-zen-hide */
+[data-mode='zen'] [data-zen-hide] {
+	display: none !important;
+}
+
+/* Scrollbar */
 ::-webkit-scrollbar {
 	width: 6px;
 }
@@ -106,5 +153,5 @@ body {
 }
 
 ::-webkit-scrollbar-thumb:hover {
-	background: var(--color-surface-400);
+	background: var(--color-macula-500);
 }
