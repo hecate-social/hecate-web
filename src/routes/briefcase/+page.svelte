@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { onMount, onDestroy, tick } from 'svelte';
 	import { goto } from '$app/navigation';
+	import { page } from '$app/stores';
 	import {
 		entries, currentPath, briefcaseRoot, meta, briefcaseLoading,
 		creatableFileTypes, fileTypeRegistry, resolveFileType,
@@ -12,6 +13,22 @@
 		type BriefcaseEntry, type FileTypeHandler
 	} from '$lib/stores/briefcase';
 	import { toastSuccess, toastError } from '$lib/stores/toasts';
+	import BriefcaseRealm from '$lib/components/BriefcaseRealm.svelte';
+
+	// --- Tabs ---
+	// 'realm' = mesh-synced Briefcase (default, ships killer-app UX)
+	// 'local' = Tauri-FS local scratch (the original /briefcase content)
+	// Initial tab: ?tab=local overrides the default; otherwise 'realm'.
+	let activeTab: 'realm' | 'local' =
+		$page.url.searchParams.get('tab') === 'local' ? 'local' : 'realm';
+
+	function setTab(t: 'realm' | 'local') {
+		activeTab = t;
+		const u = new URL(window.location.href);
+		if (t === 'realm') u.searchParams.delete('tab');
+		else u.searchParams.set('tab', 'local');
+		history.replaceState({}, '', u);
+	}
 
 	// --- Command registry ---
 	interface Command {
@@ -615,10 +632,38 @@
 	];
 </script>
 
-<svelte:window onkeydown={onKeyDown} />
+<svelte:window onkeydown={activeTab === 'local' ? onKeyDown : undefined} />
 
 <div class="flex flex-col h-full overflow-hidden bg-surface-900 text-surface-200 select-none">
-	<!-- Three-pane body -->
+	<!-- Tab bar: Realm Synced (default) / Local Scratch -->
+	<div class="flex items-center border-b border-surface-700/50 bg-surface-900/70 px-3 py-1 gap-1 shrink-0">
+		<button
+			class="px-3 py-1 text-sm rounded transition-colors {activeTab === 'realm' ? 'bg-primary/15 text-primary font-medium' : 'text-surface-400 hover:text-surface-200'}"
+			onclick={() => setTab('realm')}
+		>
+			Realm Synced
+		</button>
+		<button
+			class="px-3 py-1 text-sm rounded transition-colors {activeTab === 'local' ? 'bg-primary/15 text-primary font-medium' : 'text-surface-400 hover:text-surface-200'}"
+			onclick={() => setTab('local')}
+		>
+			Local Scratch
+		</button>
+		<span class="ml-auto text-xs text-surface-500">
+			{#if activeTab === 'realm'}
+				Files sync across every peer in your realm
+			{:else}
+				Local-only, stored in ~/.hecate/briefcase/
+			{/if}
+		</span>
+	</div>
+
+{#if activeTab === 'realm'}
+	<div class="flex-1 overflow-y-auto">
+		<BriefcaseRealm />
+	</div>
+{:else}
+	<!-- Three-pane body (Local Scratch) -->
 	<div class="flex flex-1 min-h-0 divide-x divide-surface-700/50">
 
 		<!-- Left pane: parent directory -->
@@ -819,4 +864,5 @@
 			{/if}
 		{/if}
 	</div>
+{/if}
 </div>
