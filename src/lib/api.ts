@@ -90,3 +90,20 @@ export async function patch<T>(path: string, body: unknown): Promise<T> {
 	});
 	return handleResponse<T>(resp);
 }
+
+export async function postFormData<T>(path: string, formData: FormData): Promise<T> {
+	// Do NOT set Content-Type — the browser generates the correct
+	// multipart boundary header automatically.
+	const resp = await fetch(`${BASE}${path}`, {
+		method: 'POST',
+		headers: authHeaders(),
+		body: formData
+	});
+	return handleResponse<T>(resp);
+}
+
+export function contentUrl(path: string): string {
+	// For <a href="…" download> or <img src="…">. Uses the same BASE
+	// as the other helpers so it works in Tauri prod and Vite dev.
+	return `${BASE}${path}`;
+}
