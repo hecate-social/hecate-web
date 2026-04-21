@@ -4,13 +4,14 @@
 		realmFiles, realmLoading, realmError,
 		loadRealmFiles, uploadRealmFile, shareRealmFile, unshareRealmFile,
 		fileContentUrl, formatSize,
-		type RealmFile, type Privacy
+		type RealmFile
 	} from '$lib/stores/briefcase-realm';
 	import { toastSuccess, toastError } from '$lib/stores/toasts';
 	import { isTauri } from '$lib/tauri';
 
-	// Filter chips
-	type Filter = 'all' | 'private' | 'shared';
+	// Filter chips — presence and privacy combined into one chip row.
+	// 'mine' = local files (any privacy). 'remote' = peer-announced files.
+	type Filter = 'all' | 'mine' | 'remote' | 'private' | 'shared';
 	let filter = $state<Filter>('all');
 
 	let dragOver = $state(false);
@@ -23,14 +24,18 @@
 
 	let filteredFiles = $derived.by(() => {
 		if (filter === 'all') return $realmFiles;
+		if (filter === 'mine')   return $realmFiles.filter((f) => f.presence === 'local');
+		if (filter === 'remote') return $realmFiles.filter((f) => f.presence === 'remote');
 		return $realmFiles.filter((f) => f.privacy === filter);
 	});
 
 	let counts = $derived.by(() => {
 		const all = $realmFiles.length;
+		const mine = $realmFiles.filter((f) => f.presence === 'local').length;
+		const remote = $realmFiles.filter((f) => f.presence === 'remote').length;
 		const priv = $realmFiles.filter((f) => f.privacy === 'private').length;
 		const shared = $realmFiles.filter((f) => f.privacy === 'shared').length;
-		return { all, private: priv, shared };
+		return { all, mine, remote, private: priv, shared };
 	});
 
 	async function handleFiles(files: FileList | File[]) {
@@ -120,11 +125,14 @@
 		}
 	}
 
-	function privacyLabel(p: Privacy): string {
-		return p === 'shared' ? 'Shared' : 'Private';
+	function stateLabel(f: RealmFile): string {
+		if (f.presence === 'remote') return 'From realm';
+		return f.privacy === 'shared' ? 'Shared' : 'Private';
 	}
-	function privacyClass(p: Privacy): string {
-		return p === 'shared'
+	function stateClass(f: RealmFile): string {
+		if (f.presence === 'remote')
+			return 'bg-amber-500/10 text-amber-300 border-amber-600/40';
+		return f.privacy === 'shared'
 			? 'bg-macula-600/20 text-macula-300 border-macula-600/40'
 			: 'bg-surface-700/50 text-surface-400 border-surface-600';
 	}
@@ -150,9 +158,11 @@
 	<!-- Filter chips -->
 	<div class="flex items-center gap-1 mb-4">
 		{#each [
-			{ id: 'all', label: `All (${counts.all})` },
-			{ id: 'private', label: `Private (${counts.private})` },
-			{ id: 'shared', label: `Shared (${counts.shared})` }
+			{ id: 'all',     label: `All (${counts.all})` },
+			{ id: 'mine',    label: `Mine (${counts.mine})` },
+			{ id: 'remote',  label: `From realm (${counts.remote})` },
+			{ id: 'shared',  label: `Shared (${counts.shared})` },
+			{ id: 'private', label: `Private (${counts.private})` }
 		] as chip}
 			<button
 				class="px-3 py-1 text-xs rounded-full border transition-colors
@@ -231,8 +241,8 @@
 							<tr>
 								<td class="font-mono text-sm">{f.path}</td>
 								<td>
-									<span class="px-2 py-0.5 text-xs rounded-full border {privacyClass(f.privacy)}">
-										{privacyLabel(f.privacy)}
+									<span class="px-2 py-0.5 text-xs rounded-full border {stateClass(f)}">
+										{stateLabel(f)}
 									</span>
 								</td>
 								<td class="text-xs opacity-70">{f.mime_type || '—'}</td>
@@ -241,7 +251,15 @@
 									{new Date(f.uploaded_at).toLocaleString()}
 								</td>
 								<td class="text-right space-x-1">
-									{#if f.privacy === 'private'}
+									{#if f.presence === 'remote'}
+										<button
+											class="btn btn-xs btn-ghost"
+											disabled
+											title="Content fetch lands in Phase E"
+										>
+											Download (soon)
+										</button>
+									{:else if f.privacy === 'private'}
 										<button
 											class="btn btn-xs btn-ghost"
 											onclick={() => onShare(f)}
@@ -249,6 +267,13 @@
 										>
 											Share
 										</button>
+										<a
+											class="btn btn-xs btn-ghost"
+											href={fileContentUrl(f.file_id)}
+											download={f.path}
+										>
+											Download
+										</a>
 									{:else}
 										<button
 											class="btn btn-xs btn-ghost"
@@ -257,14 +282,14 @@
 										>
 											Unshare
 										</button>
+										<a
+											class="btn btn-xs btn-ghost"
+											href={fileContentUrl(f.file_id)}
+											download={f.path}
+										>
+											Download
+										</a>
 									{/if}
-									<a
-										class="btn btn-xs btn-ghost"
-										href={fileContentUrl(f.file_id)}
-										download={f.path}
-									>
-										Download
-									</a>
 								</td>
 							</tr>
 						{/each}
