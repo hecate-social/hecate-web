@@ -1,17 +1,18 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import {
-		realmFiles, realmLoading, realmError,
-		loadRealmFiles, uploadRealmFile, shareRealmFile, unshareRealmFile,
-		fileContentUrl, formatSize,
-		type RealmFile
-	} from '$lib/stores/briefcase-realm';
+		fileViews,
+		viewLoading,
+		viewError,
+		loadFileViews
+	} from '$lib/stores/briefcase-viewstate';
+	import { uploadRealmFile } from '$lib/stores/briefcase-realm';
+	import BriefcaseRow from '$lib/components/briefcase/BriefcaseRow.svelte';
 	import { toastSuccess, toastError } from '$lib/stores/toasts';
 	import { isTauri } from '$lib/tauri';
 
-	// Filter chips — presence and privacy combined into one chip row.
-	// 'mine' = local files (any privacy). 'remote' = peer-announced files.
-	type Filter = 'all' | 'mine' | 'remote' | 'private' | 'shared';
+	// Filter chips driven by viewstate `presence`.
+	type Filter = 'all' | 'mine' | 'remote' | 'downloading' | 'cached';
 	let filter = $state<Filter>('all');
 
 	let dragOver = $state(false);
@@ -19,23 +20,28 @@
 	let fileInput: HTMLInputElement | undefined = $state();
 
 	onMount(() => {
-		loadRealmFiles();
+		loadFileViews();
 	});
 
 	let filteredFiles = $derived.by(() => {
-		if (filter === 'all') return $realmFiles;
-		if (filter === 'mine')   return $realmFiles.filter((f) => f.presence === 'local');
-		if (filter === 'remote') return $realmFiles.filter((f) => f.presence === 'remote');
-		return $realmFiles.filter((f) => f.privacy === filter);
+		const all = $fileViews;
+		if (filter === 'all')         return all;
+		if (filter === 'mine')        return all.filter((f) => f.presence === 'local');
+		if (filter === 'remote')      return all.filter((f) => f.presence === 'remote');
+		if (filter === 'downloading') return all.filter((f) => f.presence === 'downloading');
+		if (filter === 'cached')      return all.filter((f) => f.presence === 'cached');
+		return all;
 	});
 
 	let counts = $derived.by(() => {
-		const all = $realmFiles.length;
-		const mine = $realmFiles.filter((f) => f.presence === 'local').length;
-		const remote = $realmFiles.filter((f) => f.presence === 'remote').length;
-		const priv = $realmFiles.filter((f) => f.privacy === 'private').length;
-		const shared = $realmFiles.filter((f) => f.privacy === 'shared').length;
-		return { all, mine, remote, private: priv, shared };
+		const all = $fileViews;
+		return {
+			all: all.length,
+			mine:        all.filter((f) => f.presence === 'local').length,
+			remote:      all.filter((f) => f.presence === 'remote').length,
+			downloading: all.filter((f) => f.presence === 'downloading').length,
+			cached:      all.filter((f) => f.presence === 'cached').length
+		};
 	});
 
 	async function handleFiles(files: FileList | File[]) {
@@ -52,6 +58,7 @@
 			}
 		} finally {
 			uploading = false;
+			loadFileViews();
 		}
 	}
 
@@ -107,34 +114,11 @@
 		}
 	}
 
-	async function onShare(f: RealmFile) {
-		try {
-			await shareRealmFile(f.file_id);
-			toastSuccess(`Shared ${f.path} to realm`);
-		} catch (e) {
-			toastError(`Share failed: ${String(e)}`);
-		}
-	}
-
-	async function onUnshare(f: RealmFile) {
-		try {
-			await unshareRealmFile(f.file_id);
-			toastSuccess(`Unshared ${f.path}`);
-		} catch (e) {
-			toastError(`Unshare failed: ${String(e)}`);
-		}
-	}
-
-	function stateLabel(f: RealmFile): string {
-		if (f.presence === 'remote') return 'From realm';
-		return f.privacy === 'shared' ? 'Shared' : 'Private';
-	}
-	function stateClass(f: RealmFile): string {
-		if (f.presence === 'remote')
-			return 'bg-amber-500/10 text-amber-300 border-amber-600/40';
-		return f.privacy === 'shared'
-			? 'bg-macula-600/20 text-macula-300 border-macula-600/40'
-			: 'bg-surface-700/50 text-surface-400 border-surface-600';
+	// Called by BriefcaseRow when an action completes (POST /share,
+	// DELETE /cache, completed download, etc.) so the table refreshes
+	// to show the new state.
+	function refresh(): Promise<void> {
+		return loadFileViews();
 	}
 </script>
 
@@ -148,21 +132,21 @@
 		</div>
 		<button
 			class="btn btn-sm btn-ghost"
-			onclick={loadRealmFiles}
-			disabled={$realmLoading}
+			onclick={refresh}
+			disabled={$viewLoading}
 		>
-			{$realmLoading ? 'Loading…' : 'Refresh'}
+			{$viewLoading ? 'Loading…' : 'Refresh'}
 		</button>
 	</header>
 
 	<!-- Filter chips -->
-	<div class="flex items-center gap-1 mb-4">
+	<div class="flex items-center gap-1 mb-4 flex-wrap">
 		{#each [
-			{ id: 'all',     label: `All (${counts.all})` },
-			{ id: 'mine',    label: `Mine (${counts.mine})` },
-			{ id: 'remote',  label: `From realm (${counts.remote})` },
-			{ id: 'shared',  label: `Shared (${counts.shared})` },
-			{ id: 'private', label: `Private (${counts.private})` }
+			{ id: 'all',         label: `All (${counts.all})` },
+			{ id: 'mine',        label: `Mine (${counts.mine})` },
+			{ id: 'remote',      label: `From realm (${counts.remote})` },
+			{ id: 'downloading', label: `Downloading (${counts.downloading})` },
+			{ id: 'cached',      label: `Cached (${counts.cached})` }
 		] as chip}
 			<button
 				class="px-3 py-1 text-xs rounded-full border transition-colors
@@ -202,22 +186,22 @@
 		{:else}
 			<p class="text-lg font-medium">Drop files here or click to pick</p>
 			<p class="text-sm opacity-60 mt-2">
-				Private by default. Use the Share button to publish to the realm.
+				Private by default. Use the Share action to publish to the realm.
 			</p>
 		{/if}
 	</div>
 
-	{#if $realmError}
+	{#if $viewError}
 		<div class="alert alert-error mt-4">
-			<span>{$realmError}</span>
+			<span>{$viewError}</span>
 		</div>
 	{/if}
 
 	<!-- File list -->
 	<section class="mt-6">
-		{#if filteredFiles.length === 0 && !$realmLoading}
+		{#if filteredFiles.length === 0 && !$viewLoading}
 			<p class="opacity-60 text-sm italic px-1">
-				{#if $realmFiles.length === 0}
+				{#if $fileViews.length === 0}
 					No files yet. Drop one above to get started.
 				{:else}
 					No files match this filter.
@@ -238,60 +222,7 @@
 					</thead>
 					<tbody>
 						{#each filteredFiles as f (f.file_id)}
-							<tr>
-								<td class="font-mono text-sm">{f.path}</td>
-								<td>
-									<span class="px-2 py-0.5 text-xs rounded-full border {stateClass(f)}">
-										{stateLabel(f)}
-									</span>
-								</td>
-								<td class="text-xs opacity-70">{f.mime_type || '—'}</td>
-								<td class="text-xs">{formatSize(f.size)}</td>
-								<td class="text-xs opacity-70">
-									{new Date(f.uploaded_at).toLocaleString()}
-								</td>
-								<td class="text-right space-x-1">
-									{#if f.presence === 'remote'}
-										<button
-											class="btn btn-xs btn-ghost"
-											disabled
-											title="Content fetch lands in Phase E"
-										>
-											Download (soon)
-										</button>
-									{:else if f.privacy === 'private'}
-										<button
-											class="btn btn-xs btn-ghost"
-											onclick={() => onShare(f)}
-											title="Publish to realm"
-										>
-											Share
-										</button>
-										<a
-											class="btn btn-xs btn-ghost"
-											href={fileContentUrl(f.file_id)}
-											download={f.path}
-										>
-											Download
-										</a>
-									{:else}
-										<button
-											class="btn btn-xs btn-ghost"
-											onclick={() => onUnshare(f)}
-											title="Revoke sharing"
-										>
-											Unshare
-										</button>
-										<a
-											class="btn btn-xs btn-ghost"
-											href={fileContentUrl(f.file_id)}
-											download={f.path}
-										>
-											Download
-										</a>
-									{/if}
-								</td>
-							</tr>
+							<BriefcaseRow file={f} onChange={refresh} />
 						{/each}
 					</tbody>
 				</table>
