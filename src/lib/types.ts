@@ -4,7 +4,14 @@
 // --- Health ---
 
 export interface BootStatus {
-	boot_phase: 'booting_stores' | 'starting_subscriptions' | 'replaying' | 'running' | 'initializing';
+	boot_phase:
+		| 'initializing'
+		| 'waiting_registration'
+		| 'booting_stores'
+		| 'starting_subscriptions'
+		| 'replaying'
+		| 'probing_mesh'
+		| 'running';
 	stores: Record<string, 'ready' | 'starting'>;
 	stores_ready: number;
 	stores_total: number;
