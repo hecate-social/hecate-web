@@ -162,14 +162,24 @@ export function formatSize(bytes: number | undefined | null): string {
 	return `${(bytes / (1024 * 1024 * 1024)).toFixed(2)} GB`;
 }
 
+// Base classes for all action buttons/links. Variants layer colour on top.
+const BTN_BASE =
+	'inline-flex items-center px-2 py-1 text-xs rounded border transition-colors ' +
+	'disabled:opacity-50 disabled:cursor-not-allowed';
+
 export function variantClass(variant: ActionVariant): string {
 	switch (variant) {
-		case 'primary':   return 'btn btn-xs btn-primary';
-		case 'danger':    return 'btn btn-xs btn-error';
-		case 'info':      return 'btn btn-xs btn-info';
-		case 'disabled':  return 'btn btn-xs btn-ghost btn-disabled';
+		case 'primary':
+			return `${BTN_BASE} bg-macula-600/20 text-macula-200 border-macula-500/50 hover:bg-macula-600/30`;
+		case 'danger':
+			return `${BTN_BASE} bg-danger-600/20 text-danger-400 border-danger-600/40 hover:bg-danger-600/30`;
+		case 'info':
+			return `${BTN_BASE} bg-macula-700/30 text-macula-200 border-macula-600/50 hover:bg-macula-700/40`;
+		case 'disabled':
+			return `${BTN_BASE} bg-surface-800 text-surface-500 border-surface-600 opacity-50 cursor-not-allowed`;
 		case 'secondary':
-		default:          return 'btn btn-xs btn-ghost';
+		default:
+			return `${BTN_BASE} bg-surface-800 text-surface-300 border-surface-600 hover:border-surface-500 hover:text-surface-50`;
 	}
 }
 

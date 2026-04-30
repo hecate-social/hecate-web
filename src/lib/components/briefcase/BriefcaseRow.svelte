@@ -22,9 +22,9 @@
 	let guardRefused = $derived(file.guard?.state === 'refused');
 </script>
 
-<tr>
-	<td class="font-mono text-sm">{file.path}</td>
-	<td>
+<tr class="hover:bg-surface-800/40 transition-colors">
+	<td class="px-3 py-2 font-mono text-sm truncate max-w-xs" title={file.path}>{file.path}</td>
+	<td class="px-3 py-2 whitespace-nowrap">
 		<span
 			class="px-2 py-0.5 text-xs rounded-full border {presenceLabelClass(file.presence)}"
 			title={file.guard?.reason ? `License: ${file.guard.reason}` : ''}
@@ -33,19 +33,19 @@
 		</span>
 		{#if guardRefused}
 			<span
-				class="ml-1 text-xs text-error opacity-80"
+				class="ml-1 text-xs text-danger-400 opacity-80"
 				title="License: {file.guard.reason}"
 			>
 				⚠
 			</span>
 		{/if}
 	</td>
-	<td class="text-xs opacity-70">{file.mime_type || '—'}</td>
-	<td class="text-xs">{formatSize(file.size)}</td>
-	<td class="text-xs opacity-70">
+	<td class="px-3 py-2 text-xs text-surface-400 whitespace-nowrap">{file.mime_type || '—'}</td>
+	<td class="px-3 py-2 text-xs text-right whitespace-nowrap tabular-nums">{formatSize(file.size)}</td>
+	<td class="px-3 py-2 text-xs text-surface-400 whitespace-nowrap">
 		{new Date(file.uploaded_at).toLocaleString()}
 	</td>
-	<td class="text-right">
+	<td class="px-3 py-2 text-right">
 		{#if isDownloading}
 			<DownloadProgress fileId={file.file_id} onDone={onChange} />
 		{:else}

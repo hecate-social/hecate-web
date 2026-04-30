@@ -21,6 +21,49 @@
 
 	onMount(() => {
 		loadFileViews();
+
+		// Block the WebView's default "navigate to dropped file" behaviour.
+		// Without this, a drop OUTSIDE our dropzone (or a drop that sneaks
+		// past our zone) causes WebKit to render the file inline at the
+		// bottom of the page. Must preventDefault on BOTH dragover and drop.
+		const blockDefault = (e: DragEvent) => e.preventDefault();
+		window.addEventListener('dragover', blockDefault);
+		window.addEventListener('drop', blockDefault);
+
+		if (!isTauri()) {
+			return () => {
+				window.removeEventListener('dragover', blockDefault);
+				window.removeEventListener('drop', blockDefault);
+			};
+		}
+
+		// WebKit2GTK doesn't reliably deliver OS-initiated drag/drop as
+		// HTML5 events, so we subscribe to Tauri's native drag-drop
+		// events (paths → readFile → File objects → handleFiles).
+		let unlisten: (() => void) | null = null;
+		(async () => {
+			const { getCurrentWebview } = await import('@tauri-apps/api/webview');
+			const webview = getCurrentWebview();
+			unlisten = await webview.onDragDropEvent(async (event) => {
+				const p = event.payload;
+				if (p.type === 'enter' || p.type === 'over') {
+					dragOver = true;
+				} else if (p.type === 'leave') {
+					dragOver = false;
+				} else if (p.type === 'drop') {
+					dragOver = false;
+					if (p.paths.length === 0) return;
+					const files = await Promise.all(p.paths.map(tauriPathToFile));
+					await handleFiles(files);
+				}
+			});
+		})();
+
+		return () => {
+			if (unlisten) unlisten();
+			window.removeEventListener('dragover', blockDefault);
+			window.removeEventListener('drop', blockDefault);
+		};
 	});
 
 	let filteredFiles = $derived.by(() => {
@@ -52,13 +95,13 @@
 				try {
 					await uploadRealmFile(f);
 					toastSuccess(`Uploaded ${f.name}`);
+					await loadFileViews();
 				} catch (e) {
 					toastError(`Upload failed: ${f.name} — ${String(e)}`);
 				}
 			}
 		} finally {
 			uploading = false;
-			loadFileViews();
 		}
 	}
 
@@ -131,7 +174,10 @@
 			</p>
 		</div>
 		<button
-			class="btn btn-sm btn-ghost"
+			class="inline-flex items-center px-3 py-1 text-xs rounded border
+				bg-surface-800 text-surface-300 border-surface-600
+				hover:border-surface-500 hover:text-surface-50
+				transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
 			onclick={refresh}
 			disabled={$viewLoading}
 		>
@@ -192,8 +238,8 @@
 	</div>
 
 	{#if $viewError}
-		<div class="alert alert-error mt-4">
-			<span>{$viewError}</span>
+		<div class="mt-4 px-3 py-2 rounded border border-danger-600/40 bg-danger-600/10 text-sm text-danger-400">
+			{$viewError}
 		</div>
 	{/if}
 
@@ -208,19 +254,19 @@
 				{/if}
 			</p>
 		{:else}
-			<div class="overflow-x-auto">
-				<table class="table table-zebra">
-					<thead>
+			<div class="overflow-x-auto rounded-lg border border-surface-700">
+				<table class="w-full text-sm">
+					<thead class="text-[11px] uppercase tracking-wide text-surface-400 bg-surface-800/60">
 						<tr>
-							<th>Path</th>
-							<th>State</th>
-							<th>Type</th>
-							<th>Size</th>
-							<th>Uploaded</th>
-							<th class="text-right">Actions</th>
+							<th class="text-left font-medium px-3 py-2">Path</th>
+							<th class="text-left font-medium px-3 py-2">State</th>
+							<th class="text-left font-medium px-3 py-2">Type</th>
+							<th class="text-right font-medium px-3 py-2">Size</th>
+							<th class="text-left font-medium px-3 py-2">Uploaded</th>
+							<th class="text-right font-medium px-3 py-2">Actions</th>
 						</tr>
 					</thead>
-					<tbody>
+					<tbody class="divide-y divide-surface-800">
 						{#each filteredFiles as f (f.file_id)}
 							<BriefcaseRow file={f} onChange={refresh} />
 						{/each}
