@@ -131,7 +131,10 @@ jobs:
       - name: Create Codeberg Release + upload assets
         env:
           CB_USER: ${{ secrets.CODEBERG_PUBLISHER_USER }}
-          CB_TOKEN: ${{ secrets.CODEBERG_PACKAGE_TOKEN }}
+          # Releases need write:repository scope (CODEBERG_PACKAGE_TOKEN
+          # is now scoped to write:package only — used for container
+          # pushes elsewhere).
+          CB_TOKEN: ${{ secrets.CODEBERG_RELEASE_TOKEN }}
           TAG: ${{ github.ref_name }}
           REPO: hecate-social/hecate-web
         run: |
