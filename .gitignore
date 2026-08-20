@@ -21,3 +21,5 @@ src-tauri/Cargo.lock
 src-tauri/fallback/_app/
 src-tauri/fallback/favicon.png
 src-tauri/fallback/robots.txt
+mix.lock
+rebar.lock
