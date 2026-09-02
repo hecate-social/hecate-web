@@ -1,21 +1,20 @@
-name: Release (Codeberg)
+name: Release (GitHub)
 
 # Tag-only. Per-arch matrix builds Tauri app bundles + portable
 # tarballs on GitHub-hosted runners (only place we can build macOS).
-# Final job creates a Codeberg Release and uploads all assets.
-#
-# tauri-action is intentionally invoked WITHOUT `tagName`/`releaseName`
-# so it skips GitHub Release publication. We retire the GH Releases
-# path entirely.
-#
-# Open follow-up: the Tauri app-updater (tauri.conf.json `updater`
-# section) still points at GitHub Release URLs. That's separate from
-# artifact distribution and tracked elsewhere.
+# tauri-action creates the GitHub Release itself and uploads the
+# bundles plus the updater's `latest.json`; the final job appends the
+# portable tarballs to that same release. The Tauri app-updater
+# (tauri.conf.json `updater` section) reads `latest.json` from the
+# release's `latest/download` URL.
 
 on:
   push:
     tags:
       - 'v*'
+
+permissions:
+  contents: write
 
 jobs:
   build:
@@ -72,17 +71,25 @@ jobs:
         with:
           workspaces: src-tauri -> target
 
-      - name: Build Tauri app (no GH release publication)
+      - name: Build Tauri app + publish bundles to the GitHub Release
         uses: tauri-apps/tauri-action@v0
         env:
-          # Updater signing — keep working so app updates can later
-          # be served from Codeberg-hosted update.json.
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # Updater signing: tauri-action signs each bundle and emits
+          # latest.json for the app-updater alongside it.
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         with:
-          # Intentionally NO tagName/releaseName — tauri-action skips
-          # GH Release creation when those are absent. Bundles land
-          # in src-tauri/target/<rust_target>/release/bundle/.
+          tagName: ${{ github.ref_name }}
+          releaseName: "Hecate ${{ github.ref_name }}"
+          releaseBody: |
+            Thin native desktop wrapper for the hecate-daemon. All UI is served by the daemon over Unix socket.
+
+            Install everything with `curl -fsSL https://raw.githubusercontent.com/hecate-social/hecate-install/main/install.sh | bash`,
+            or pick a bundle below (`.deb`/`.AppImage`/`.tar.gz` on Linux, `.dmg`/`.tar.gz` on macOS).
+            Requires [hecate-daemon](https://github.com/hecate-social/hecate-daemon) running locally.
+          releaseDraft: false
+          prerelease: false
           args: --target ${{ matrix.rust_target }}
 
       - name: Package portable binary
@@ -112,10 +119,12 @@ jobs:
           path: /tmp/release-assets/
           if-no-files-found: error
 
-  publish-codeberg-release:
-    name: Publish to Codeberg Releases
+  publish-portable-tarballs:
+    name: Append portable tarballs to the GitHub Release
     runs-on: ubuntu-latest
     needs: build
+    permissions:
+      contents: write
 
     steps:
       - name: Download all build artifacts
@@ -128,67 +137,8 @@ jobs:
       - name: List collected assets
         run: ls -la /tmp/release-assets-merged/
 
-      - name: Create Codeberg Release + upload assets
-        env:
-          CB_USER: ${{ secrets.CODEBERG_PUBLISHER_USER }}
-          # Releases need write:repository scope (CODEBERG_PACKAGE_TOKEN
-          # is now scoped to write:package only — used for container
-          # pushes elsewhere).
-          CB_TOKEN: ${{ secrets.CODEBERG_RELEASE_TOKEN }}
-          TAG: ${{ github.ref_name }}
-          REPO: hecate-social/hecate-web
-        run: |
-          set -euo pipefail
-          BODY=$(cat <<EOF
-          ## Hecate Desktop ${TAG}
-
-          Thin native desktop wrapper for the hecate-daemon. All UI is served by the daemon over Unix socket.
-
-          ### Installation
-
-          \`\`\`bash
-          curl -fsSL https://codeberg.org/hecate-social/hecate-install/raw/branch/main/install.sh | bash
-          \`\`\`
-
-          ### Manual
-
-          - **Linux**: \`.deb\`, \`.AppImage\`, or \`.tar.gz\` portable below
-          - **macOS**: \`.dmg\` or \`.tar.gz\` portable below
-
-          ### Requirements
-
-          - [hecate-daemon](https://codeberg.org/hecate-social/hecate-daemon) running locally
-          EOF
-          )
-
-          # Create the release. Idempotent-ish: if it already exists we
-          # 422; we then look it up by tag.
-          CREATE=$(curl -sS -o /tmp/release.json -w "%{http_code}" \
-              -H "Authorization: token ${CB_TOKEN}" \
-              -H "Content-Type: application/json" \
-              -X POST "https://codeberg.org/api/v1/repos/${REPO}/releases" \
-              -d "$(jq -n --arg tag "$TAG" --arg name "Hecate $TAG" --arg body "$BODY" \
-                  '{tag_name:$tag, name:$name, body:$body, draft:false, prerelease:false}')")
-          if [ "$CREATE" = "201" ]; then
-              REL_ID=$(jq -r .id < /tmp/release.json)
-              echo "Created Codeberg release id=$REL_ID"
-          else
-              echo "Create returned $CREATE; looking up existing release by tag..."
-              curl -sS -H "Authorization: token ${CB_TOKEN}" \
-                  "https://codeberg.org/api/v1/repos/${REPO}/releases/tags/${TAG}" \
-                  > /tmp/release.json
-              REL_ID=$(jq -r .id < /tmp/release.json)
-              echo "Existing release id=$REL_ID"
-          fi
-
-          # Upload each asset.
-          for f in /tmp/release-assets-merged/*; do
-              name=$(basename "$f")
-              echo "Uploading $name..."
-              curl -sS -o /dev/null -w "  %{http_code}\n" \
-                  -H "Authorization: token ${CB_TOKEN}" \
-                  -X POST "https://codeberg.org/api/v1/repos/${REPO}/releases/${REL_ID}/assets?name=${name}" \
-                  -F "attachment=@${f}"
-          done
-
-          echo "Codeberg release: https://codeberg.org/${REPO}/releases/tag/${TAG}"
+      - name: Upload to the release tauri-action created
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          files: /tmp/release-assets-merged/hecate-web-*.tar.gz
